@@ -1,0 +1,30 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "awi-backend"
+version = "1.0.0"
+description = "AI Backend for WhatsApp Intelligence Monitor"
+authors = ["shenald-dev <shenald@example.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.110.0"
+uvicorn = "^0.29.0"
+sqlalchemy = "^2.0.29"
+asyncpg = "^0.29.0"
+pydantic = "^2.6.4"
+pydantic-settings = "^2.2.1"
+langchain = "^0.1.13"
+langchain-openai = "^0.1.0"
+chromadb = "^0.4.24"
+redis = "^5.0.3"
+celery = "^5.3.6"
+python-dotenv = "^1.0.1"
+psycopg2-binary = "^2.9.9"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.1.1"
+ruff = "^0.3.4"

@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  # Database for relational metadata (users, messages, tasks)
+  postgres:
+    image: postgres:15-alpine
+    container_name: awi_postgres
+    environment:
+      POSTGRES_USER: awi_user
+      POSTGRES_PASSWORD: awi_password
+      POSTGRES_DB: awi_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U awi_user -d awi_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # In-memory store for queues and caching
+  redis:
+    image: redis:7-alpine
+    container_name: awi_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  # Vector Database for embeddings and semantic search
+  chromadb:
+    image: chromadb/chroma:0.4.24
+    container_name: awi_chromadb
+    ports:
+      - "8000:8000"
+    environment:
+      - IS_PERSISTENT=TRUE
+      - PERSIST_DIRECTORY=/chroma/chroma
+    volumes:
+      - chroma_data:/chroma/chroma
+
+volumes:
+  postgres_data:
+  redis_data:
+  chroma_data:
