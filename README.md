@@ -1,7 +1,4 @@
-<div align="center">
-  <img src="https://i.imgur.com/your-ai-wa-logo.png" alt="AI WhatsApp Intelligence Logo" width="200" />
-  
-  # 🧠 AI WhatsApp Group Intelligence Monitor
+  <img src="./assets/logo.png" alt="AI WhatsApp Intelligence Logo" width="200" style="border-radius: 20px" />
 
   **A fully automated, real-time intelligence hub for your WhatsApp groups.**  
   *Extract decisions, track sentiment, surface tasks, and generate insights autonomously using LangChain and LLMs.*
@@ -125,7 +122,7 @@ npm run dev
 *(The glassmorphic intelligence dashboard running locally)*
 
 <div align="center">
-  <img src="https://i.imgur.com/placeholder-dashboard.png" alt="Dashboard Preview" />
+  <img src="./assets/dashboard_preview.png" alt="Dashboard Preview" />
 </div>
 
 ---
