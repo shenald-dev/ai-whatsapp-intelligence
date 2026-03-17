@@ -21,10 +21,10 @@ class Message(Base):
     __tablename__ = "messages"
 
     id = Column(String, primary_key=True, index=True)
-    group_id = Column(String, ForeignKey("groups.id"))
+    group_id = Column(String, ForeignKey("groups.id"), index=True)
     sender_id = Column(String, ForeignKey("users.id"))
     content = Column(Text)
-    timestamp = Column(DateTime(timezone=True))
+    timestamp = Column(DateTime(timezone=True), index=True)
     is_media = Column(Boolean, default=False)
     quoted_msg_id = Column(String, nullable=True)
     
@@ -39,7 +39,7 @@ class Summary(Base):
     __tablename__ = "summaries"
     
     id = Column(Integer, primary_key=True, index=True)
-    group_id = Column(String, ForeignKey("groups.id"))
+    group_id = Column(String, ForeignKey("groups.id"), index=True)
     period = Column(String) # daily, weekly
     start_time = Column(DateTime(timezone=True))
     end_time = Column(DateTime(timezone=True))
