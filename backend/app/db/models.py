@@ -22,7 +22,7 @@ class Message(Base):
 
     id = Column(String, primary_key=True, index=True)
     group_id = Column(String, ForeignKey("groups.id"), index=True)
-    sender_id = Column(String, ForeignKey("users.id"))
+    sender_id = Column(String, ForeignKey("users.id"), index=True)
     content = Column(Text)
     timestamp = Column(DateTime(timezone=True), index=True)
     is_media = Column(Boolean, default=False)
