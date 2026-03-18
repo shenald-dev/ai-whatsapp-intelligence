@@ -12,7 +12,9 @@ from app.ai.engine import ai_engine
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://awi_user:awi_password@localhost:5432/awi_db")
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL environment variable is missing")
 
 engine = create_async_engine(DATABASE_URL, echo=False)
 AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
@@ -61,6 +63,8 @@ async def seed_db():
         print("Seeding Messages & running AI pipeline...")
         now = datetime.now()
         
+        messages = []
+        tasks = []
         for i in range(20):
             group = random.choice(GROUPS)
             user = random.choice(USERS)
@@ -78,13 +82,16 @@ async def seed_db():
                 is_media=False,
                 is_analyzed=True
             )
+            messages.append(msg)
+            tasks.append(ai_engine.analyze_message(content))
             
-            # Mock AI analysis for speed during seed
-            analysis = await ai_engine.analyze_message(content)
+        # Run AI analysis concurrently for speed
+        analyses = await asyncio.gather(*tasks)
+
+        for msg, analysis in zip(messages, analyses):
             msg.sentiment = analysis.get("sentiment", "neutral")
             msg.classification = analysis.get("classification", "discussion")
             msg.topics = analysis.get("topics", [])
-            
             session.add(msg)
             
         await session.commit()
