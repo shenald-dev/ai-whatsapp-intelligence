@@ -1,10 +1,8 @@
-## 2024-05-24 — Missing Database Indexes on Hot Paths
+## 2025-05-15 — Enforced Fail-Fast for Sensitive Credentials
 
-Learning:
-The core tables `messages` and `summaries` lacked indexes on their most frequently queried columns (`group_id` and `timestamp`), which would lead to severe performance degradation via full-table scans as data volume increases.
+Learning: Hardcoded credential fallbacks in environment variable lookups (e.g., `os.getenv("DATABASE_URL", "...")`) create a security risk where applications might silently use default, insecure credentials if the environment is misconfigured.
 
-Action:
-Refactored the dashboard API to push all group statistics aggregations (e.g., analyzed counts, sentiment breakdown, classification detection) down to the PostgreSQL database level using optimized `GROUP BY` and `CASE` aggregation queries (`func.sum(case(...))`). Ensure future metrics queries follow this pattern, shifting computational weight off the API nodes and taking advantage of SQL optimizations.
+Action: Replaced all instances of `os.getenv` for sensitive credentials (DATABASE_URL, SYNC_DATABASE_URL, REDIS_URL, API_KEY) with explicit checks that raise `ValueError` or `HTTPException` if the variable is missing.
 
 ## 2026-03-17 — Missing Indexes on High Read Tables
 
