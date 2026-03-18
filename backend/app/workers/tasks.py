@@ -10,9 +10,9 @@ from ..ai.engine import ai_engine
 load_dotenv()
 
 # Worker uses sync engine for simplicity within Celery
-SYNC_DB_URL = os.getenv("SYNC_DATABASE_URL")
+SYNC_DB_URL = os.environ.get("SYNC_DATABASE_URL")
 if not SYNC_DB_URL:
-    raise ValueError("SYNC_DATABASE_URL environment variable is missing")
+    raise ValueError("SYNC_DATABASE_URL environment variable is not set")
 
 engine = create_engine(SYNC_DB_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

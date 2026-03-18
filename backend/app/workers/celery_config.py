@@ -1,9 +1,9 @@
 import os
 from celery import Celery
 
-REDIS_URL = os.getenv("REDIS_URL")
+REDIS_URL = os.environ.get("REDIS_URL")
 if not REDIS_URL:
-    raise ValueError("REDIS_URL environment variable is missing")
+    raise ValueError("REDIS_URL environment variable is not set")
 
 celery_app = Celery(
     "whatsapp_workers",
