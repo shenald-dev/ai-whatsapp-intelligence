@@ -13,10 +13,6 @@ class MessageIngest(BaseModel):
     is_media: bool
     quoted_msg_id: Optional[str] = None
 
-class AnalysisQuery(BaseModel):
-    group_id: str
-    days: int = 7
-
 class SummaryResponse(BaseModel):
     id: int
     group_id: str
