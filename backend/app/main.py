@@ -10,7 +10,7 @@ from datetime import datetime
 
 from .db.database import engine, Base, get_db
 from .db import models
-from .api.schemas import MessageIngest, AnalysisQuery
+from .api.schemas import MessageIngest
 from .api.endpoints import router as dashboard_router
 
 app = FastAPI(
