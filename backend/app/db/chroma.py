@@ -1,6 +1,5 @@
 import os
 import chromadb
-from chromadb.config import Settings
 
 CHROMA_HOST = os.getenv("CHROMA_HOST", "localhost")
 CHROMA_PORT = int(os.getenv("CHROMA_PORT", "8000"))
