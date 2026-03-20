@@ -61,6 +61,10 @@ async def seed_db():
         print("Seeding Messages & running AI pipeline...")
         now = datetime.now()
         
+        # Prepare all messages and analysis tasks
+        messages = []
+        analysis_tasks = []
+
         for i in range(20):
             group = random.choice(GROUPS)
             user = random.choice(USERS)
@@ -79,12 +83,17 @@ async def seed_db():
                 is_analyzed=True
             )
             
-            # Mock AI analysis for speed during seed
-            analysis = await ai_engine.analyze_message(content)
+            messages.append(msg)
+            analysis_tasks.append(ai_engine.analyze_message(content))
+
+        # Execute all AI analysis concurrently
+        analyses = await asyncio.gather(*analysis_tasks)
+
+        # Update messages with analysis results and add to session
+        for msg, analysis in zip(messages, analyses):
             msg.sentiment = analysis.get("sentiment", "neutral")
             msg.classification = analysis.get("classification", "discussion")
             msg.topics = analysis.get("topics", [])
-
             session.add(msg)
             
         await session.commit()
