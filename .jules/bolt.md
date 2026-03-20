@@ -13,3 +13,11 @@ The database model for `Message` tracks raw WhatsApp ingestion traffic. However,
 
 Action:
 Added `index=True` to `group_id`, `sender_id`, and `timestamp` on the `Message` table, and `group_id` on the `Summary` table. Future model additions must be analyzed for their high-read patterns to determine optimal indices prior to production data scaling.
+
+## 2024-05-18 — Refactored data seeding script to use asyncio.gather
+
+Learning:
+The database seeding script (`backend/seed.py`) was running AI analysis tasks sequentially in a loop, creating an I/O-bound bottleneck due to the nature of `ai_engine.analyze_message` and causing significant delays.
+
+Action:
+Refactored the data seeding process to execute AI analysis concurrently using `asyncio.gather`. Future bulk processing operations that depend on I/O-bound tasks should follow this concurrent execution pattern.
