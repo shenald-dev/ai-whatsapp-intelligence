@@ -13,6 +13,17 @@ collection = chroma_client.get_or_create_collection(
     metadata={"hnsw:space": "cosine"}
 )
 
+def store_message_embedding(message_id: str, content: str, metadata: dict):
+    """Store the message text and metadata in the vector database."""
+    try:
+        collection.add(
+            documents=[content],
+            metadatas=[metadata],
+            ids=[message_id]
+        )
+    except Exception as e:
+        print(f"ChromaDB Error: {e}")
+
 def search_similar_messages(query: str, n_results: int = 5):
     """Semantic search query over the chat history."""
     try:
