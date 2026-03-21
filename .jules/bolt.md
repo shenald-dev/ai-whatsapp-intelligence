@@ -21,3 +21,11 @@ The database seeding script (`backend/seed.py`) was running AI analysis tasks se
 
 Action:
 Refactored the data seeding process to execute AI analysis concurrently using `asyncio.gather`. Future bulk processing operations that depend on I/O-bound tasks should follow this concurrent execution pattern.
+
+## 2024-03-21 — Enforce Critical Environment Variables
+
+Learning:
+Relying on hardcoded default values for critical infrastructure paths (`DATABASE_URL`, `REDIS_URL`, `API_KEY`) risks silent failures or unintended operations against local endpoints when secrets are misconfigured or environments differ.
+
+Action:
+Replaced all sensitive and critical `os.getenv` defaults across the backend with explicit validation logic that raises a `ValueError` during initialization, enabling a "fail fast" paradigm that immediately blocks deployment if the environment is incomplete.
