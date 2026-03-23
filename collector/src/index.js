@@ -5,7 +5,12 @@ require('dotenv').config();
 
 // Configuration
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000/api/v1/ingest';
-const API_KEY = process.env.API_KEY || 'super-secret-collector-key';
+const API_KEY = process.env.API_KEY;
+
+if (!API_KEY) {
+    throw new Error('API_KEY environment variable is not set');
+}
+
 const ALLOWED_GROUPS = process.env.ALLOWED_GROUPS ? process.env.ALLOWED_GROUPS.split(',') : [];
 
 console.log('🚀 AI WhatsApp Intelligence Collector Starting...');
