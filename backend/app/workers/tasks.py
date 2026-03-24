@@ -26,12 +26,7 @@ def process_message(message_id: str):
             return {"status": "skipped", "reason": "Not found, analyzed, or empty"}
 
         # Run AI analysis (async block within sync celery task)
-        loop = asyncio.get_event_loop()
-        if loop.is_closed():
-             loop = asyncio.new_event_loop()
-             asyncio.set_event_loop(loop)
-             
-        analysis = loop.run_until_complete(ai_engine.analyze_message(msg.content))
+        analysis = asyncio.run(ai_engine.analyze_message(msg.content))
 
         # Update DB
         msg.sentiment = analysis.get("sentiment")
