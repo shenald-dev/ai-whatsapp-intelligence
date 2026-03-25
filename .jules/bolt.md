@@ -37,3 +37,11 @@ The Celery worker `process_message` task was manually managing the asyncio event
 
 Action:
 Refactored the synchronous to asynchronous execution bridge in the Celery worker to use `asyncio.run()`. This cleanly handles event loop creation and teardown. Future asynchronous calls within synchronous contexts should prefer `asyncio.run()` to prevent event loop lifecycle issues.
+
+## 2026-03-25 — Implemented LRU cache for entity resolution in ingestion pipeline
+
+Learning:
+The `/api/v1/ingest` endpoint repeatedly queried the database to verify `Group` and `User` existence for every single incoming message. Since WhatsApp chat traffic often involves bursts of messages from the same active users in the same groups, this created massive redundant I/O bottlenecks and increased latency.
+
+Action:
+Implemented a thread-safe `SimpleLRUCache` using `collections.OrderedDict` in `backend/app/main.py`. The cache safely stores recently seen Group and User IDs *after* successful database commits. This avoids thousands of unnecessary `SELECT` queries during high-traffic periods.

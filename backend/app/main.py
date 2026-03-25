@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 import os
 from datetime import datetime
+from collections import OrderedDict
 
 from .db.database import engine, Base, get_db
 from .db import models
@@ -27,6 +28,27 @@ app.add_middleware(
 )
 
 app.include_router(dashboard_router)
+
+class SimpleLRUCache:
+    def __init__(self, capacity: int = 1000):
+        self.cache = OrderedDict()
+        self.capacity = capacity
+
+    def get(self, key: str) -> bool:
+        if key not in self.cache:
+            return False
+        self.cache.move_to_end(key)
+        return True
+
+    def put(self, key: str) -> None:
+        self.cache[key] = True
+        self.cache.move_to_end(key)
+        if len(self.cache) > self.capacity:
+            self.cache.popitem(last=False)
+
+# Global caches for ingestion
+group_cache = SimpleLRUCache(capacity=5000)
+user_cache = SimpleLRUCache(capacity=10000)
 
 API_KEY_NAME = "X-API-Key"
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
@@ -58,16 +80,20 @@ async def ingest_message(
     api_key: str = Depends(get_api_key)
 ):
     # 1. Ensure Group exists
-    group = await db.get(models.Group, payload.group_id)
-    if not group:
-        group = models.Group(id=payload.group_id, name=payload.group_name)
-        db.add(group)
+    cached_group = group_cache.get(payload.group_id)
+    if not cached_group:
+        group = await db.get(models.Group, payload.group_id)
+        if not group:
+            group = models.Group(id=payload.group_id, name=payload.group_name)
+            db.add(group)
 
     # 2. Ensure User exists
-    user = await db.get(models.User, payload.sender_id)
-    if not user:
-        user = models.User(id=payload.sender_id, name=payload.sender_name)
-        db.add(user)
+    cached_user = user_cache.get(payload.sender_id)
+    if not cached_user:
+        user = await db.get(models.User, payload.sender_id)
+        if not user:
+            user = models.User(id=payload.sender_id, name=payload.sender_name)
+            db.add(user)
 
     # Convert JS timestamp (unix seconds) to Datetime
     dt = datetime.fromtimestamp(payload.timestamp)
@@ -86,6 +112,11 @@ async def ingest_message(
     
     try:
         await db.commit()
+        # Successfully committed, so we can safely cache
+        if not cached_group:
+            group_cache.put(payload.group_id)
+        if not cached_user:
+            user_cache.put(payload.sender_id)
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
