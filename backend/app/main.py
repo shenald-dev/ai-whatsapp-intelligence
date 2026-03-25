@@ -5,16 +5,25 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 import os
 from datetime import datetime
+from contextlib import asynccontextmanager
 
 from .db.database import engine, Base, get_db
 from .db import models
 from .api.schemas import MessageIngest
 from .api.endpoints import router as dashboard_router
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Only for development: create tables sync (in production use alembic)
+    async with engine.begin() as conn:
+        await conn.run_sync(models.Base.metadata.create_all)
+    yield
+
 app = FastAPI(
     title="AI WhatsApp Intelligence API",
     description="Backend API for ingesting, analyzing, and retrieving WhatsApp group intelligence.",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # CORS Setup
@@ -39,12 +48,6 @@ async def get_api_key(api_key_header: str = Security(api_key_header)):
     if api_key_header == API_KEY:
         return api_key_header
     raise HTTPException(status_code=403, detail="Could not validate credentials")
-
-@app.on_event("startup")
-async def startup():
-    # Only for development: create tables sync (in production use alembic)
-    async with engine.begin() as conn:
-        await conn.run_sync(models.Base.metadata.create_all)
 
 @app.get("/")
 async def root():
