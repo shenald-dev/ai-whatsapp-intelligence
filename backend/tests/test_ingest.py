@@ -1,0 +1,70 @@
+import pytest
+from unittest.mock import AsyncMock, patch
+from fastapi.testclient import TestClient
+from app.main import app, entity_cache, SimpleLRUCache, get_api_key
+from app.db.database import get_db
+
+@pytest.fixture(autouse=True)
+def cleanup():
+    # Clear dependency overrides after each test
+    yield
+    app.dependency_overrides.clear()
+    entity_cache.cache.clear()
+
+def test_lru_cache():
+    cache = SimpleLRUCache(2)
+    assert cache.get("1") == False
+    cache.put("1")
+    assert cache.get("1") == True
+    cache.put("2")
+    cache.put("3") # Should evict "1"
+    assert cache.get("1") == False
+    assert cache.get("2") == True
+    assert cache.get("3") == True
+
+def test_ingest_message_caching():
+    client = TestClient(app)
+
+    mock_db = AsyncMock()
+    # Mock db.get to return None (so it adds to db)
+    mock_db.get.return_value = None
+
+    # Override dependencies
+    app.dependency_overrides[get_db] = lambda: mock_db
+    app.dependency_overrides[get_api_key] = lambda: "valid-key"
+
+    payload = {
+        "message_id": "msg1",
+        "group_id": "grp1",
+        "group_name": "Group 1",
+        "sender_id": "usr1",
+        "sender_name": "User 1",
+        "content": "Hello",
+        "timestamp": 1700000000,
+        "is_media": False
+    }
+
+    # First request
+    response = client.post("/api/v1/ingest", json=payload)
+    assert response.status_code == 200
+
+    # Assert DB methods were called
+    assert mock_db.get.call_count == 2
+    assert mock_db.add.call_count == 3  # group, user, msg
+    assert mock_db.commit.call_count == 1
+
+    # Check cache is updated
+    assert entity_cache.get("group_grp1") == True
+    assert entity_cache.get("user_usr1") == True
+
+    # Reset mocks
+    mock_db.reset_mock()
+
+    # Second request
+    response = client.post("/api/v1/ingest", json=payload)
+    assert response.status_code == 200
+
+    # Assert DB get and add for group/user were NOT called
+    assert mock_db.get.call_count == 0
+    assert mock_db.add.call_count == 1 # Only msg
+    assert mock_db.commit.call_count == 1

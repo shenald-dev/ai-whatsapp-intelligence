@@ -37,3 +37,11 @@ The Celery worker `process_message` task was manually managing the asyncio event
 
 Action:
 Refactored the synchronous to asynchronous execution bridge in the Celery worker to use `asyncio.run()`. This cleanly handles event loop creation and teardown. Future asynchronous calls within synchronous contexts should prefer `asyncio.run()` to prevent event loop lifecycle issues.
+
+## 2024-05-18 — Use SimpleLRUCache to reduce database I/O for entity existence checks
+
+Learning:
+The webhook `ingest_message` endpoint made redundant DB calls to check if a group or user existed for every message, unnecessarily hitting the database during high-traffic message ingestion events and causing a database bottleneck.
+
+Action:
+Implemented an in-memory `SimpleLRUCache` (via `collections.OrderedDict`) to keep track of known `group_id` and `user_id`s, reducing DB `get` and `add` operations for frequently seen entities. Crucially, cache entries are only populated after a successful database commit to prevent cache poisoning on rollback. We should continue caching frequently checked, immutable (or rarely mutating) identities across APIs.
