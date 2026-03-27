@@ -41,16 +41,3 @@ def store_message_embedding(message_id: str, content: str, metadata: dict):
         )
     except Exception as e:
         print(f"ChromaDB Error: {e}")
-
-def search_similar_messages(query: str, n_results: int = 5):
-    """Semantic search query over the chat history."""
-    try:
-        coll = get_collection()
-        results = coll.query(
-            query_texts=[query],
-            n_results=n_results
-        )
-        return results
-    except Exception as e:
-        print(f"ChromaDB Query Error: {e}")
-        return {"documents": [], "metadatas": []}

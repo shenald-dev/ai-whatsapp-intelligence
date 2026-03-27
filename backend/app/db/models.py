@@ -34,17 +34,3 @@ class Message(Base):
     classification = Column(String, nullable=True) # question, task, announcement, discussion
     topics = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-class Summary(Base):
-    __tablename__ = "summaries"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    group_id = Column(String, ForeignKey("groups.id"), index=True)
-    period = Column(String) # daily, weekly
-    start_time = Column(DateTime(timezone=True))
-    end_time = Column(DateTime(timezone=True))
-    content = Column(Text)
-    key_decisions = Column(JSON)
-    tasks = Column(JSON)
-    top_contributors = Column(JSON)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())

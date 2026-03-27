@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "awi-backend"
-version = "1.0.0"
+version = "1.0.1"
 description = "AI Backend for WhatsApp Intelligence Monitor"
 authors = ["shenald-dev <shenald@example.com>"]
 readme = "README.md"
