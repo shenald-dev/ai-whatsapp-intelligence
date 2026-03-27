@@ -53,3 +53,11 @@ The webhook `ingest_message` endpoint successfully saved messages to the databas
 
 Action:
 Imported `celery_app` from `.workers.celery_config` and called `celery_app.send_task("enrich_message", args=[msg.id])` to properly trigger the AI background task after committing a new message to the database. Additionally, added a `unittest.mock.patch` for `app.main.celery_app.send_task` in the `test_ingest_message_caching` test to avoid requiring a real Redis backend during automated test runs. Always ensure that the functional loop of features is completed, and asynchronous hooks are actually invoked.
+
+## 2026-03-27 — Integrated ChromaDB & Fixed Early Connection Crashes
+
+Learning:
+The project's README specifies a vector database (ChromaDB) for semantic search, and `backend/app/db/chroma.py` was created. However, it was not being utilized by any pipelines. Furthermore, importing `chromadb` instantiated a connection at the module level. If the ChromaDB server was down (or in a test environment where it isn't required), simply running tests or importing modules would trigger a `ValueError: Could not connect to a Chroma server` and crash the application entirely.
+
+Action:
+Refactored `backend/app/db/chroma.py` to use lazy initialization, instantiating the connection and collection only when a query or insertion is made. Integrated ChromaDB into the Celery task (`backend/app/workers/tasks.py`) and seeding script (`backend/seed.py`) to actively index message content and extracted metadata (`group_id`, `sender_id`, `sentiment`, `classification`). Always decouple external connection logic from module imports to prevent catastrophic application startup failures.

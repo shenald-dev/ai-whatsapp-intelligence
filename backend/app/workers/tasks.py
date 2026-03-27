@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 
 from ..db.models import Message
 from ..ai.engine import ai_engine
+from ..db.chroma import store_message_embedding
 
 load_dotenv()
 
@@ -35,6 +36,16 @@ def process_message(message_id: str):
         msg.is_analyzed = True
         
         session.commit()
+
+        # Store message in ChromaDB for semantic search
+        metadata = {
+            "group_id": msg.group_id,
+            "sender_id": msg.sender_id,
+            "sentiment": msg.sentiment,
+            "classification": msg.classification
+        }
+        store_message_embedding(msg.id, msg.content, metadata)
+
         return {"status": "success", "message_id": message_id}
         
     except Exception as e:

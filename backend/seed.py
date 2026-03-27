@@ -9,6 +9,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.db import models
 from app.ai.engine import ai_engine
+from app.db.chroma import store_message_embedding
 
 load_dotenv()
 
@@ -98,6 +99,15 @@ async def seed_db():
             msg.topics = analysis.get("topics", [])
             session.add(msg)
             
+            # Store message in ChromaDB for semantic search
+            metadata = {
+                "group_id": msg.group_id,
+                "sender_id": msg.sender_id,
+                "sentiment": msg.sentiment,
+                "classification": msg.classification
+            }
+            store_message_embedding(msg.id, msg.content, metadata)
+
         await session.commit()
         print("✅ Database successfully seeded with AI intelligence!")
 
