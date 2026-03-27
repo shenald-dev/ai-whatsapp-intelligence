@@ -6,6 +6,7 @@ from sqlalchemy.future import select
 import os
 from datetime import datetime
 from contextlib import asynccontextmanager
+import collections
 
 from .db.database import engine, Base, get_db
 from .db import models
@@ -40,6 +41,26 @@ app.add_middleware(
 
 app.include_router(dashboard_router)
 
+class SimpleLRUCache:
+    def __init__(self, capacity: int):
+        self.cache = collections.OrderedDict()
+        self.capacity = capacity
+
+    def get(self, key: str) -> bool:
+        if key not in self.cache:
+            return False
+        self.cache.move_to_end(key)
+        return True
+
+    def put(self, key: str) -> None:
+        self.cache[key] = True
+        self.cache.move_to_end(key)
+        if len(self.cache) > self.capacity:
+            self.cache.popitem(last=False)
+
+# Cache for entity existence checks
+entity_cache = SimpleLRUCache(1000)
+
 API_KEY_NAME = "X-API-Key"
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
 
@@ -63,17 +84,26 @@ async def ingest_message(
     db: AsyncSession = Depends(get_db),
     api_key: str = Depends(get_api_key)
 ):
+    # Tracking if we need to cache these after commit
+    cache_updates = []
+
     # 1. Ensure Group exists
-    group = await db.get(models.Group, payload.group_id)
-    if not group:
-        group = models.Group(id=payload.group_id, name=payload.group_name)
-        db.add(group)
+    group_cache_key = f"group_{payload.group_id}"
+    if not entity_cache.get(group_cache_key):
+        group = await db.get(models.Group, payload.group_id)
+        if not group:
+            group = models.Group(id=payload.group_id, name=payload.group_name)
+            db.add(group)
+        cache_updates.append(group_cache_key)
 
     # 2. Ensure User exists
-    user = await db.get(models.User, payload.sender_id)
-    if not user:
-        user = models.User(id=payload.sender_id, name=payload.sender_name)
-        db.add(user)
+    user_cache_key = f"user_{payload.sender_id}"
+    if not entity_cache.get(user_cache_key):
+        user = await db.get(models.User, payload.sender_id)
+        if not user:
+            user = models.User(id=payload.sender_id, name=payload.sender_name)
+            db.add(user)
+        cache_updates.append(user_cache_key)
 
     # Convert JS timestamp (unix seconds) to Datetime
     dt = datetime.fromtimestamp(payload.timestamp)
@@ -92,6 +122,11 @@ async def ingest_message(
     
     try:
         await db.commit()
+
+        # 4. Update Cache only after successful commit
+        for key in cache_updates:
+            entity_cache.put(key)
+
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
