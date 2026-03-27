@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from fastapi.testclient import TestClient
 from app.main import app, entity_cache, SimpleLRUCache, get_api_key
 from app.db.database import get_db
@@ -22,12 +22,16 @@ def test_lru_cache():
     assert cache.get("2") == True
     assert cache.get("3") == True
 
-def test_ingest_message_caching():
+from unittest.mock import patch
+
+@patch("app.main.celery_app.send_task")
+def test_ingest_message_caching(mock_send_task):
     client = TestClient(app)
 
     mock_db = AsyncMock()
     # Mock db.get to return None (so it adds to db)
     mock_db.get.return_value = None
+    mock_db.add = MagicMock()
 
     # Override dependencies
     app.dependency_overrides[get_db] = lambda: mock_db
