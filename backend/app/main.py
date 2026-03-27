@@ -12,6 +12,7 @@ from .db.database import engine, Base, get_db
 from .db import models
 from .api.schemas import MessageIngest
 from .api.endpoints import router as dashboard_router
+from .workers.celery_config import celery_app
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -131,7 +132,7 @@ async def ingest_message(
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
         
-    # NOTE: Here we would trigger a Celery task to run AI enrichment asynchronously
-    # e.g., celery_app.send_task("enrich_message", args=[msg.id])
+    # Trigger a Celery task to run AI enrichment asynchronously
+    celery_app.send_task("enrich_message", args=[msg.id])
     
     return {"status": "success", "message_id": msg.id}

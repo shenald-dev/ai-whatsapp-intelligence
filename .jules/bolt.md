@@ -45,3 +45,11 @@ The webhook `ingest_message` endpoint made redundant DB calls to check if a grou
 
 Action:
 Implemented an in-memory `SimpleLRUCache` (via `collections.OrderedDict`) to keep track of known `group_id` and `user_id`s, reducing DB `get` and `add` operations for frequently seen entities. Crucially, cache entries are only populated after a successful database commit to prevent cache poisoning on rollback. We should continue caching frequently checked, immutable (or rarely mutating) identities across APIs.
+
+## 2024-05-18 — Activated Celery Background Task for AI Enrichment
+
+Learning:
+The webhook `ingest_message` endpoint successfully saved messages to the database but merely had a placeholder comment `# NOTE: Here we would trigger a Celery task...` instead of actually executing the background processing step. This caused the core AI enrichment functionality to be skipped during message ingestion.
+
+Action:
+Imported `celery_app` from `.workers.celery_config` and called `celery_app.send_task("enrich_message", args=[msg.id])` to properly trigger the AI background task after committing a new message to the database. Additionally, added a `unittest.mock.patch` for `app.main.celery_app.send_task` in the `test_ingest_message_caching` test to avoid requiring a real Redis backend during automated test runs. Always ensure that the functional loop of features is completed, and asynchronous hooks are actually invoked.
