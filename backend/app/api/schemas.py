@@ -13,16 +13,6 @@ class MessageIngest(BaseModel):
     is_media: bool
     quoted_msg_id: Optional[str] = None
 
-class SummaryResponse(BaseModel):
-    id: int
-    group_id: str
-    period: str
-    content: str
-    key_decisions: List[str]
-    tasks: List[str]
-    
-    model_config = ConfigDict(from_attributes=True)
-
 class MessageResponse(BaseModel):
     id: str
     content: str
