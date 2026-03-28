@@ -61,3 +61,11 @@ The project's README specifies a vector database (ChromaDB) for semantic search,
 
 Action:
 Refactored `backend/app/db/chroma.py` to use lazy initialization, instantiating the connection and collection only when a query or insertion is made. Integrated ChromaDB into the Celery task (`backend/app/workers/tasks.py`) and seeding script (`backend/seed.py`) to actively index message content and extracted metadata (`group_id`, `sender_id`, `sentiment`, `classification`). Always decouple external connection logic from module imports to prevent catastrophic application startup failures.
+
+## 2025-03-28 — DB Connection Exhaustion in Celery Tasks
+
+Learning:
+Celery workers holding synchronous database transactions open while waiting for external LLM API calls causes database connection pool exhaustion under load, significantly degrading performance and reliability.
+
+Action:
+Always release or commit database transactions (e.g. `session.commit()`) before blocking on slow external network I/O in worker tasks, then re-acquire the required objects if necessary afterwards.

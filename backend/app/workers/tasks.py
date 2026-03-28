@@ -26,8 +26,21 @@ def process_message(message_id: str):
         if not msg or msg.is_analyzed or not msg.content:
             return {"status": "skipped", "reason": "Not found, analyzed, or empty"}
 
+        # Extract needed fields before committing to prevent lazy loading
+        content = msg.content
+        group_id = msg.group_id
+        sender_id = msg.sender_id
+
+        # Release the database connection back to the pool before blocking on the network call
+        session.commit()
+
         # Run AI analysis (async block within sync celery task)
-        analysis = asyncio.run(ai_engine.analyze_message(msg.content))
+        analysis = asyncio.run(ai_engine.analyze_message(content))
+
+        # Re-acquire the message in a new transaction
+        msg = session.query(Message).filter(Message.id == message_id).first()
+        if not msg:
+            return {"status": "error", "reason": "Message deleted during analysis"}
 
         # Update DB
         msg.sentiment = analysis.get("sentiment")
@@ -39,12 +52,12 @@ def process_message(message_id: str):
 
         # Store message in ChromaDB for semantic search
         metadata = {
-            "group_id": msg.group_id,
-            "sender_id": msg.sender_id,
+            "group_id": group_id,
+            "sender_id": sender_id,
             "sentiment": msg.sentiment,
             "classification": msg.classification
         }
-        store_message_embedding(msg.id, msg.content, metadata)
+        store_message_embedding(message_id, content, metadata)
 
         return {"status": "success", "message_id": message_id}
         
