@@ -85,6 +85,11 @@ async def ingest_message(
     db: AsyncSession = Depends(get_db),
     _api_key: str = Depends(get_api_key)
 ):
+    # Idempotency check: see if message already exists
+    existing_msg = await db.get(models.Message, payload.message_id)
+    if existing_msg:
+        return {"status": "success", "message_id": payload.message_id, "detail": "Already ingested"}
+
     # Tracking if we need to cache these after commit
     cache_updates = []
 

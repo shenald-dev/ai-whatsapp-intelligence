@@ -53,7 +53,7 @@ def test_ingest_message_caching(mock_send_task):
     assert response.status_code == 200
 
     # Assert DB methods were called
-    assert mock_db.get.call_count == 2
+    assert mock_db.get.call_count == 3 # msg idempotency check, group, user
     assert mock_db.add.call_count == 3  # group, user, msg
     assert mock_db.commit.call_count == 1
 
@@ -64,11 +64,13 @@ def test_ingest_message_caching(mock_send_task):
     # Reset mocks
     mock_db.reset_mock()
 
-    # Second request
+    # Second request (simulate existing message for idempotency check)
+    mock_db.get.return_value = MagicMock() # Mock returning an existing message
     response = client.post("/api/v1/ingest", json=payload)
     assert response.status_code == 200
+    assert response.json().get("detail") == "Already ingested"
 
-    # Assert DB get and add for group/user were NOT called
-    assert mock_db.get.call_count == 0
-    assert mock_db.add.call_count == 1 # Only msg
-    assert mock_db.commit.call_count == 1
+    # Assert DB get and add were NOT called further
+    assert mock_db.get.call_count == 1 # Only the idempotency check
+    assert mock_db.add.call_count == 0
+    assert mock_db.commit.call_count == 0
