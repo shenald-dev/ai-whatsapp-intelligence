@@ -83,7 +83,7 @@ async def root():
 async def ingest_message(
     payload: MessageIngest, 
     db: AsyncSession = Depends(get_db),
-    api_key: str = Depends(get_api_key)
+    _api_key: str = Depends(get_api_key)
 ):
     # Tracking if we need to cache these after commit
     cache_updates = []
