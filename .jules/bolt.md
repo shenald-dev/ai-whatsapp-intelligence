@@ -69,3 +69,11 @@ Celery workers holding synchronous database transactions open while waiting for 
 
 Action:
 Always release or commit database transactions (e.g. `session.commit()`) before blocking on slow external network I/O in worker tasks, then re-acquire the required objects if necessary afterwards.
+
+## 2025-05-18 — Added webhook idempotency to prevent redundant processing
+
+Learning:
+The webhook ingestion endpoint `ingest_message` lacked an idempotency check for incoming messages. If a message payload was delivered multiple times (which is common in webhook architectures, e.g. due to retries or network blips), the endpoint would attempt to process and save the duplicate message, leading to a `500 IntegrityError` or wasted database cycles and background task triggers.
+
+Action:
+Added a preemptive idempotency check at the beginning of the `ingest_message` handler in `backend/app/main.py`. The endpoint now verifies if `payload.message_id` already exists in the database. If it does, it immediately returns a `200 OK` with a detail message ("Already ingested"), bypassing further database operations and background tasks. This prevents duplicate errors, reduces unnecessary I/O, and improves system resilience. Future webhook handlers should always include idempotency checks.
