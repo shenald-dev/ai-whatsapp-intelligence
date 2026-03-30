@@ -12,7 +12,6 @@ BASE_URL = "https://openrouter.ai/api/v1"
 class MessageAnalysis(BaseModel):
     sentiment: str = Field(description="The sentiment of the message: positive, negative, or neutral")
     classification: str = Field(description="One of: question, task, announcement, discussion, or other")
-    topics: List[str] = Field(description="List of 1 to 3 key topics discussed in the message")
 
 class AIEngine:
     def __init__(self):
@@ -39,14 +38,13 @@ class AIEngine:
     async def analyze_message(self, content: str) -> dict:
         """Runs the message through the LLM to extract metadata."""
         if not content.strip() or len(content) < 5:
-            return {"sentiment": "neutral", "classification": "other", "topics": []}
+            return {"sentiment": "neutral", "classification": "other"}
 
         if not self.llm:
             # Mock mode if no API key
             return {
                 "sentiment": "neutral",
-                "classification": "discussion",
-                "topics": ["mock_topic"] if "mock" in content else []
+                "classification": "discussion"
             }
 
         try:
@@ -55,7 +53,7 @@ class AIEngine:
             return result.model_dump()
         except Exception as e:
             print(f"AI Analysis Error: {e}")
-            return {"sentiment": "neutral", "classification": "other", "topics": []}
+            return {"sentiment": "neutral", "classification": "other"}
 
 # Singleton
 ai_engine = AIEngine()

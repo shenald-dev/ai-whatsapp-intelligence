@@ -45,7 +45,6 @@ def process_message(message_id: str):
         # Update DB
         msg.sentiment = analysis.get("sentiment")
         msg.classification = analysis.get("classification")
-        msg.topics = analysis.get("topics", [])
         msg.is_analyzed = True
         
         session.commit()

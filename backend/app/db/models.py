@@ -14,7 +14,6 @@ class User(Base):
 
     id = Column(String, primary_key=True, index=True)
     name = Column(String)
-    is_bot = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class Message(Base):
@@ -32,5 +31,4 @@ class Message(Base):
     is_analyzed = Column(Boolean, default=False)
     sentiment = Column(String, nullable=True) # positive, negative, neutral
     classification = Column(String, nullable=True) # question, task, announcement, discussion
-    topics = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
