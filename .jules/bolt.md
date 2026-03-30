@@ -77,3 +77,11 @@ The webhook ingestion endpoint `ingest_message` lacked an idempotency check for 
 
 Action:
 Added a preemptive idempotency check at the beginning of the `ingest_message` handler in `backend/app/main.py`. The endpoint now verifies if `payload.message_id` already exists in the database. If it does, it immediately returns a `200 OK` with a detail message ("Already ingested"), bypassing further database operations and background tasks. This prevents duplicate errors, reduces unnecessary I/O, and improves system resilience. Future webhook handlers should always include idempotency checks.
+
+## 2026-03-29 — Fixed Timing Attack Vulnerability in API Key Comparison
+
+Learning:
+The `get_api_key` dependency function in `backend/app/main.py` was previously using a standard equality operator (`==`) to verify the API key. This exposed the endpoint to timing attacks, where an attacker could theoretically measure the time taken to reject an invalid key and use that information to guess the correct key character by character. Additionally, `datetime.fromtimestamp()` was creating naive datetime objects, which can lead to timezone drift issues when saved to PostgreSQL.
+
+Action:
+Refactored `get_api_key` to use `secrets.compare_digest()` for constant-time comparison, mitigating timing attacks. Also updated the timestamp conversion to use `tz=timezone.utc` to ensure timezone-aware datetime objects are stored in the database correctly.

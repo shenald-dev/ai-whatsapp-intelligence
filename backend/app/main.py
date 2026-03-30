@@ -4,7 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 import os
-from datetime import datetime
+import secrets
+from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 import collections
 
@@ -70,7 +71,7 @@ if not API_KEY:
     raise ValueError("API_KEY environment variable is not set")
 
 async def get_api_key(api_key_header: str = Security(api_key_header)):
-    if api_key_header == API_KEY:
+    if api_key_header and secrets.compare_digest(api_key_header, API_KEY):
         return api_key_header
     raise HTTPException(status_code=403, detail="Could not validate credentials")
 
@@ -112,7 +113,7 @@ async def ingest_message(
         cache_updates.append(user_cache_key)
 
     # Convert JS timestamp (unix seconds) to Datetime
-    dt = datetime.fromtimestamp(payload.timestamp)
+    dt = datetime.fromtimestamp(payload.timestamp, tz=timezone.utc)
 
     # 3. Save Message
     msg = models.Message(
