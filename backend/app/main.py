@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 import os
+import secrets
 from datetime import datetime
 from contextlib import asynccontextmanager
 import collections
@@ -24,7 +25,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="AI WhatsApp Intelligence API",
     description="Backend API for ingesting, analyzing, and retrieving WhatsApp group intelligence.",
-    version="1.0.0",
+    version="1.0.3",
     lifespan=lifespan
 )
 
@@ -70,7 +71,7 @@ if not API_KEY:
     raise ValueError("API_KEY environment variable is not set")
 
 async def get_api_key(api_key_header: str = Security(api_key_header)):
-    if api_key_header == API_KEY:
+    if api_key_header and secrets.compare_digest(api_key_header, API_KEY):
         return api_key_header
     raise HTTPException(status_code=403, detail="Could not validate credentials")
 
