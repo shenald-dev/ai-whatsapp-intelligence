@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.4] - 2026-03-31
+
+### Assured & Pruned
+* **Lifecycle:** Verified system integrity post-optimizations. Test suite passing (5/5 tests).
+* **Code Pruning:** Eliminated unused compiled Python files (`__pycache__`) and scratch files to reduce entropy.
+
+### Upgrades
+* **Dependencies:** Bumped minor/patch version of `dotenv` to `^17.3.1` in Node.js Collector.
+
 ## [1.0.3] - 2026-03-30
 
 ### Assured & Pruned

@@ -13,6 +13,14 @@ Observed unused `Summary` model, `SummaryResponse` schema, and unused queries in
 
 Alignment / Deferred:
 Upgraded safe minor/patch dependencies in the node collector. Kept standard models aligned with current usage (no unused data schemas floating around). No regressions detected from previous API optimizations. Tested the environment, verifying DB migrations and ChromaDB usage remains healthy.
+## 2026-03-31 — Assessment & Lifecycle
+
+Observation / Pruned:
+Observed system remained highly aligned after timing attack mitigation. Re-verified robust passing test suite. Pruned `__pycache__` artifacts to maintain repo cleanliness and remove entropy.
+
+Alignment / Deferred:
+Upgraded `dotenv` to `^17.3.1` safely via minor/patch bump in the node collector. Kept standard API models and endpoints aligned. Tests all pass.
+
 ## 2026-03-30 — Assessment & Lifecycle
 
 Observation / Pruned:
