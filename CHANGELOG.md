@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.3] - 2026-03-30
+
+### Assured & Pruned
+* **Security:** Hardened API key validation by implementing `secrets.compare_digest` for secure, constant-time validation of `X-API-Key` headers, mitigating timing attack vectors.
+* **Dependencies:** Bumped safe minor/patch dependencies across the Node.js Collector (`nodemon`) and Python backend.
+* **Code Pruning:** Removed unused `JSON` module import from database models and eliminated obsolete scratch directories (`__pycache__`).
+
 ## [1.0.2] - 2026-03-29
 
 ### Assured & Pruned
