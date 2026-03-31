@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 import os
 import secrets
-from datetime import datetime
+from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 import collections
 
@@ -113,7 +113,7 @@ async def ingest_message(
         cache_updates.append(user_cache_key)
 
     # Convert JS timestamp (unix seconds) to Datetime
-    dt = datetime.fromtimestamp(payload.timestamp)
+    dt = datetime.fromtimestamp(payload.timestamp, tz=timezone.utc)
 
     # 3. Save Message
     msg = models.Message(
