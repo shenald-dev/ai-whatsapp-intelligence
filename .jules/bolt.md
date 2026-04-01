@@ -93,3 +93,11 @@ In the FastAPI backend, the message ingestion webhook `/api/v1/ingest` was using
 
 Action:
 Refactored the synchronous Celery task dispatch to run in a separate thread using `await asyncio.to_thread(celery_app.send_task, "enrich_message", args=[msg.id])`. Future synchronous I/O operations from third-party libraries within async endpoints must similarly be offloaded to threads to maintain ASGI server responsiveness.
+
+## 2024-04-01 — Replace print statements with proper logging
+
+Learning:
+The codebase was using raw `print()` statements for error reporting in some critical modules (`backend/app/db/chroma.py`, `backend/app/ai/engine.py`), which bypasses standard log formatting, structured logging, and log routing tools, making it harder to debug in production.
+
+Action:
+Ensure the standard Python `logging` module is used with module-level loggers (`logger = logging.getLogger(__name__)`) for all application events and errors instead of `print()` statements.
