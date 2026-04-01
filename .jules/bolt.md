@@ -85,3 +85,11 @@ The `get_api_key` dependency function in `backend/app/main.py` was previously us
 
 Action:
 Refactored `get_api_key` to use `secrets.compare_digest()` for constant-time comparison, mitigating timing attacks. Also updated the timestamp conversion to use `tz=timezone.utc` to ensure timezone-aware datetime objects are stored in the database correctly.
+
+## 2026-04-01 — Refactored Celery task dispatch to avoid blocking async event loop
+
+Learning:
+In the FastAPI backend, the message ingestion webhook `/api/v1/ingest` was using `celery_app.send_task` synchronously to trigger AI enrichment background tasks. Since this endpoint is an asynchronous coroutine (`async def`), calling a synchronous I/O-bound method directly blocks the event loop, preventing the server from handling other concurrent requests and causing severe performance degradation and latency spikes during high message volume.
+
+Action:
+Refactored the synchronous Celery task dispatch to run in a separate thread using `await asyncio.to_thread(celery_app.send_task, "enrich_message", args=[msg.id])`. Future synchronous I/O operations from third-party libraries within async endpoints must similarly be offloaded to threads to maintain ASGI server responsiveness.

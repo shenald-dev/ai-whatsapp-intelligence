@@ -8,6 +8,7 @@ import secrets
 from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 import collections
+import asyncio
 
 from .db.database import engine, Base, get_db
 from .db import models
@@ -139,6 +140,6 @@ async def ingest_message(
         raise HTTPException(status_code=500, detail=str(e))
         
     # Trigger a Celery task to run AI enrichment asynchronously
-    celery_app.send_task("enrich_message", args=[msg.id])
+    await asyncio.to_thread(celery_app.send_task, "enrich_message", args=[msg.id])
     
     return {"status": "success", "message_id": msg.id}
