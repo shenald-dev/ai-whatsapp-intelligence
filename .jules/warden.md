@@ -28,3 +28,11 @@ Observed minor vulnerabilities with timing attacks on string comparisons for API
 
 Alignment / Deferred:
 Hardened API token verification with secrets.compare_digest. Updated dependencies across Node.js collector and Python backend to safe minor/patch versions.
+
+## 2026-04-01 — Assessment & Lifecycle
+
+Observation / Pruned:
+Observed unused `topics` logic and dummy variables in `seed.py`. Replaced standard `print` statements in the AI Engine and Chroma client with python `logging` standard modules. Pruned `__pycache__` artifacts to reduce codebase entropy. Total lines removed/pruned: ~15.
+
+Alignment / Deferred:
+Hardened tracking schemas. Safely bumped Node dependencies (`dotenv`) to the latest minor version. Kept tests completely aligned. No structural regression noted.

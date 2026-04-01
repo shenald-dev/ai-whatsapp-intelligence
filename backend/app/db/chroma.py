@@ -1,5 +1,8 @@
 import os
+import logging
 import chromadb
+
+logger = logging.getLogger(__name__)
 
 CHROMA_HOST = os.getenv("CHROMA_HOST", "localhost")
 CHROMA_PORT = int(os.getenv("CHROMA_PORT", "8000"))
@@ -21,7 +24,7 @@ def get_collection():
                 metadata={"hnsw:space": "cosine"}
             )
         except Exception as e:
-            print(f"ChromaDB Initialization Error: {e}")
+            logger.error(f"ChromaDB Initialization Error: {e}")
             raise
     return _collection
 
@@ -40,4 +43,4 @@ def store_message_embedding(message_id: str, content: str, metadata: dict):
             ids=[message_id]
         )
     except Exception as e:
-        print(f"ChromaDB Error: {e}")
+        logger.error(f"ChromaDB Error: {e}")

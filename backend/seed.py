@@ -68,7 +68,7 @@ async def seed_db():
         messages = []
         analysis_tasks = []
 
-        for i in range(20):
+        for _ in range(20):
             group = random.choice(GROUPS)
             user = random.choice(USERS)
             content = random.choice(MESSAGES)
@@ -96,7 +96,6 @@ async def seed_db():
         for msg, analysis in zip(messages, analyses):
             msg.sentiment = analysis.get("sentiment", "neutral")
             msg.classification = analysis.get("classification", "discussion")
-            msg.topics = analysis.get("topics", [])
             session.add(msg)
             
             # Store message in ChromaDB for semantic search

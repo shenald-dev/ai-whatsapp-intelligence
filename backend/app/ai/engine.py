@@ -1,9 +1,12 @@
 import os
+import logging
 from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, Field
 from typing import List
+
+logger = logging.getLogger(__name__)
 
 # Setup LangChain to use OpenRouter (or fallback to OpenAI)
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
@@ -52,7 +55,7 @@ class AIEngine:
             result: MessageAnalysis = await chain.ainvoke({"message": content})
             return result.model_dump()
         except Exception as e:
-            print(f"AI Analysis Error: {e}")
+            logger.error(f"AI Analysis Error: {e}")
             return {"sentiment": "neutral", "classification": "other"}
 
 # Singleton
