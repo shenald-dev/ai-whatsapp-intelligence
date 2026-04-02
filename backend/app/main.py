@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 import collections
 import asyncio
+from sqlalchemy.dialects.postgresql import insert
 
 from .db.database import engine, get_db
 from .db import models
@@ -97,19 +98,21 @@ async def ingest_message(
     # 1. Ensure Group exists
     group_cache_key = f"group_{payload.group_id}"
     if not entity_cache.get(group_cache_key):
-        group = await db.get(models.Group, payload.group_id)
-        if not group:
-            group = models.Group(id=payload.group_id, name=payload.group_name)
-            db.add(group)
+        stmt = insert(models.Group).values(
+            id=payload.group_id,
+            name=payload.group_name
+        ).on_conflict_do_nothing(index_elements=['id'])
+        await db.execute(stmt)
         cache_updates.append(group_cache_key)
 
     # 2. Ensure User exists
     user_cache_key = f"user_{payload.sender_id}"
     if not entity_cache.get(user_cache_key):
-        user = await db.get(models.User, payload.sender_id)
-        if not user:
-            user = models.User(id=payload.sender_id, name=payload.sender_name)
-            db.add(user)
+        stmt = insert(models.User).values(
+            id=payload.sender_id,
+            name=payload.sender_name
+        ).on_conflict_do_nothing(index_elements=['id'])
+        await db.execute(stmt)
         cache_updates.append(user_cache_key)
 
     # Convert JS timestamp (unix seconds) to Datetime
