@@ -1,6 +1,5 @@
 from pydantic import BaseModel, ConfigDict
-from datetime import datetime
-from typing import Optional, List
+from typing import Optional
 
 class MessageIngest(BaseModel):
     message_id: str

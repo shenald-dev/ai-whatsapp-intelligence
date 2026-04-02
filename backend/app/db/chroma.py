@@ -1,7 +1,6 @@
 import os
 import logging
 import chromadb
-import logging
 
 logger = logging.getLogger(__name__)
 
