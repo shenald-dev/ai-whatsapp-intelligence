@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi.testclient import TestClient
 from app.main import app, entity_cache, SimpleLRUCache, get_api_key
 from app.db.database import get_db
@@ -13,16 +13,15 @@ def cleanup():
 
 def test_lru_cache():
     cache = SimpleLRUCache(2)
-    assert cache.get("1") == False
+    assert cache.get("1") is False
     cache.put("1")
-    assert cache.get("1") == True
+    assert cache.get("1") is True
     cache.put("2")
     cache.put("3") # Should evict "1"
-    assert cache.get("1") == False
-    assert cache.get("2") == True
-    assert cache.get("3") == True
+    assert cache.get("1") is False
+    assert cache.get("2") is True
+    assert cache.get("3") is True
 
-from unittest.mock import patch
 
 @patch("app.main.celery_app.send_task")
 def test_ingest_message_caching(mock_send_task):
@@ -58,8 +57,8 @@ def test_ingest_message_caching(mock_send_task):
     assert mock_db.commit.call_count == 1
 
     # Check cache is updated
-    assert entity_cache.get("group_grp1") == True
-    assert entity_cache.get("user_usr1") == True
+    assert entity_cache.get("group_grp1") is True
+    assert entity_cache.get("user_usr1") is True
 
     # Reset mocks
     mock_db.reset_mock()

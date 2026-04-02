@@ -1,6 +1,5 @@
 from fastapi.testclient import TestClient
 from app.main import app
-import os
 
 def test_cors_restricted():
     client = TestClient(app)
