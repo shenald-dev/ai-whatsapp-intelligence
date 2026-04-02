@@ -32,3 +32,6 @@ All notable changes to this project will be documented in this file.
 
 ### Upgrades
 * **Dependencies:** Bumped minor/patch versions of standard packages in the Node.js Collector (e.g., `axios`, `dotenv`, `nodemon`, `whatsapp-web.js`) and resolved minor vulnerabilities.
+## [1.0.5] - 2026-04-01
+### Assure, Prune, and Sync
+* **Lifecycle:** Pruned dead variables and `topics` tracking from `seed.py`. Upgraded `dotenv` module to safe minor/patch versions across node dependencies. Consolidated print statements to use standard python `logging` modules in `engine.py` and `chroma.py`.
