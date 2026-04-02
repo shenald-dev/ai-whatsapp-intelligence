@@ -22,6 +22,7 @@ def test_lru_cache():
     assert cache.get("2")
     assert cache.get("3")
 
+
 @patch("app.main.celery_app.send_task")
 def test_ingest_message_caching(mock_send_task):
     client = TestClient(app)
