@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.sql import func
@@ -24,7 +24,7 @@ async def get_group_stats(group_id: str, db: AsyncSession = Depends(get_db)):
     
     query = select(
         func.count(models.Message.id).label("total"),
-        func.coalesce(func.sum(case((models.Message.is_analyzed == True, 1), else_=0)), 0).label("analyzed"),
+        func.coalesce(func.sum(case((models.Message.is_analyzed == True, 1), else_=0)), 0).label("analyzed"), # noqa: E712
         func.coalesce(func.sum(case((models.Message.sentiment == 'positive', 1), else_=0)), 0).label("positive"),
         func.coalesce(func.sum(case((models.Message.sentiment == 'negative', 1), else_=0)), 0).label("negative"),
         func.coalesce(func.sum(case((models.Message.sentiment == 'neutral', 1), else_=0)), 0).label("neutral"),

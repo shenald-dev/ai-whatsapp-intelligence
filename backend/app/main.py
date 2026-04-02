@@ -2,7 +2,6 @@ from fastapi import FastAPI, Depends, HTTPException, Security
 from fastapi.security.api_key import APIKeyHeader
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 import os
 import secrets
 from datetime import datetime, timezone
@@ -10,7 +9,7 @@ from contextlib import asynccontextmanager
 import collections
 import asyncio
 
-from .db.database import engine, Base, get_db
+from .db.database import engine, get_db
 from .db import models
 from .api.schemas import MessageIngest
 from .api.endpoints import router as dashboard_router
