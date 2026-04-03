@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.7] - 2026-04-03
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity post-optimizations, specifically the new UPSERT logic in the ingestion endpoint to prevent race conditions during high concurrency.
+* **Upgrades:** Bumped safe patch and minor versions for Node.js and Python dependencies.
+
 ## [1.0.4] - 2026-03-31
 
 ### Assured & Pruned
