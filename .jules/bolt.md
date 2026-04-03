@@ -109,3 +109,10 @@ The webhook `ingest_message` endpoint previously checked for the existence of gr
 
 Action:
 Refactored the entity creation logic to use PostgreSQL's native UPSERT capability (`insert(...).on_conflict_do_nothing()`). This offloads the concurrency safety to the database level, preventing `IntegrityError` exceptions while maintaining correct data state. Always use `ON CONFLICT DO NOTHING` (or `DO UPDATE`) for inserts in high-concurrency or webhook architectures rather than application-level get-check-add patterns.
+## 2026-04-03 — Webhook Caching & Upsert
+
+Learning:
+The webhook `ingest_message` endpoint previously hit the database for every single incoming message payload via `db.get(models.Message, ...)` to perform idempotency checks, which caused unnecessary I/O. Additionally, `models.Message` was being inserted via the traditional `db.add()` pattern, which can lead to `IntegrityError` in high-volume, highly-concurrent workloads if idempotency checks fail to resolve races.
+
+Action:
+Replaced the `db.get()` idempotency check with an in-memory look up against the `SimpleLRUCache` to eliminate the database roundtrip. Replaced the `db.add()` pattern for `models.Message` with PostgreSQL's native UPSERT capability (`insert(...).on_conflict_do_nothing()`) and leveraged `result.rowcount` to ascertain ingestion status. Future bulk/webhook ingestion logic should leverage cache checks and UPSERT natively rather than ORM get-add patterns.

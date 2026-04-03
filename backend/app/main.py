@@ -87,13 +87,13 @@ async def ingest_message(
     db: AsyncSession = Depends(get_db),
     _api_key: str = Depends(get_api_key)
 ):
-    # Idempotency check: see if message already exists
-    existing_msg = await db.get(models.Message, payload.message_id)
-    if existing_msg:
-        return {"status": "success", "message_id": payload.message_id, "detail": "Already ingested"}
-
     # Tracking if we need to cache these after commit
     cache_updates = []
+
+    # Idempotency check: see if message already exists in cache
+    msg_cache_key = f"msg_{payload.message_id}"
+    if entity_cache.get(msg_cache_key):
+        return {"status": "success", "message_id": payload.message_id, "detail": "Already ingested"}
 
     # 1. Ensure Group exists
     group_cache_key = f"group_{payload.group_id}"
@@ -118,8 +118,8 @@ async def ingest_message(
     # Convert JS timestamp (unix seconds) to Datetime
     dt = datetime.fromtimestamp(payload.timestamp, tz=timezone.utc)
 
-    # 3. Save Message
-    msg = models.Message(
+    # 3. Save Message with UPSERT
+    stmt = insert(models.Message).values(
         id=payload.message_id,
         group_id=payload.group_id,
         sender_id=payload.sender_id,
@@ -127,9 +127,16 @@ async def ingest_message(
         timestamp=dt,
         is_media=payload.is_media,
         quoted_msg_id=payload.quoted_msg_id
-    )
-    db.add(msg)
+    ).on_conflict_do_nothing(index_elements=['id'])
     
+    result = await db.execute(stmt)
+
+    # If no row was inserted, it means it already existed (idempotency fallback)
+    if result.rowcount == 0:
+        return {"status": "success", "message_id": payload.message_id, "detail": "Already ingested"}
+
+    cache_updates.append(msg_cache_key)
+
     try:
         await db.commit()
 
@@ -142,6 +149,6 @@ async def ingest_message(
         raise HTTPException(status_code=500, detail=str(e))
         
     # Trigger a Celery task to run AI enrichment asynchronously
-    await asyncio.to_thread(celery_app.send_task, "enrich_message", args=[msg.id])
+    await asyncio.to_thread(celery_app.send_task, "enrich_message", args=[payload.message_id])
     
-    return {"status": "success", "message_id": msg.id}
+    return {"status": "success", "message_id": payload.message_id}

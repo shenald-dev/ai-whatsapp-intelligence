@@ -52,26 +52,27 @@ def test_ingest_message_caching(mock_send_task):
     assert response.status_code == 200
 
     # Assert DB methods were called
-    assert mock_db.get.call_count == 1 # msg idempotency check
-    assert mock_db.execute.call_count == 2 # group upsert, user upsert
-    assert mock_db.add.call_count == 1  # msg
+    assert mock_db.get.call_count == 0 # no more msg db.get
+    assert mock_db.execute.call_count == 3 # group upsert, user upsert, message upsert
+    assert mock_db.add.call_count == 0  # no more message add
     assert mock_db.commit.call_count == 1
 
     # Check cache is updated
     assert entity_cache.get("group_grp1") is True
     assert entity_cache.get("user_usr1") is True
+    assert entity_cache.get("msg_msg1") is True
 
     # Reset mocks
     mock_db.reset_mock()
 
     # Second request (simulate existing message for idempotency check)
-    mock_db.get.return_value = MagicMock() # Mock returning an existing message
+    # The cache should prevent database calls entirely.
     response = client.post("/api/v1/ingest", json=payload)
     assert response.status_code == 200
     assert response.json().get("detail") == "Already ingested"
 
     # Assert DB get and add were NOT called further
-    assert mock_db.get.call_count == 1 # Only the idempotency check
+    assert mock_db.get.call_count == 0
     assert mock_db.execute.call_count == 0
     assert mock_db.add.call_count == 0
     assert mock_db.commit.call_count == 0
