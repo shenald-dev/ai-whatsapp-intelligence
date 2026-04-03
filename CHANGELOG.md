@@ -35,3 +35,9 @@ All notable changes to this project will be documented in this file.
 ## [1.0.5] - 2026-04-01
 ### Assure, Prune, and Sync
 * **Lifecycle:** Pruned dead variables and `topics` tracking from `seed.py`. Upgraded `dotenv` module to safe minor/patch versions across node dependencies. Consolidated print statements to use standard python `logging` modules in `engine.py` and `chroma.py`.
+
+## [1.0.6] - 2026-04-02
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity post-optimizations. Re-verified backend tests perfectly pass.
+* **Upgrades:** Bumped safe patch versions for python dependencies `aiohttp` and `charset-normalizer`.

@@ -52,8 +52,9 @@ def test_ingest_message_caching(mock_send_task):
     assert response.status_code == 200
 
     # Assert DB methods were called
-    assert mock_db.get.call_count == 3 # msg idempotency check, group, user
-    assert mock_db.add.call_count == 3  # group, user, msg
+    assert mock_db.get.call_count == 1 # msg idempotency check
+    assert mock_db.execute.call_count == 2 # group upsert, user upsert
+    assert mock_db.add.call_count == 1  # msg
     assert mock_db.commit.call_count == 1
 
     # Check cache is updated
@@ -71,5 +72,6 @@ def test_ingest_message_caching(mock_send_task):
 
     # Assert DB get and add were NOT called further
     assert mock_db.get.call_count == 1 # Only the idempotency check
+    assert mock_db.execute.call_count == 0
     assert mock_db.add.call_count == 0
     assert mock_db.commit.call_count == 0
