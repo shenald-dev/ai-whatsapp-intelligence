@@ -101,3 +101,11 @@ The codebase was using raw `print()` statements for error reporting in some crit
 
 Action:
 Ensure the standard Python `logging` module is used with module-level loggers (`logger = logging.getLogger(__name__)`) for all application events and errors instead of `print()` statements.
+
+## 2026-04-03 — Webhook Concurrency & Upsert Race Condition
+
+Learning:
+The webhook `ingest_message` endpoint previously checked for the existence of groups and users (`db.get()`), and if missing, created them (`db.add()`). During a high-concurrency event (e.g. initial group ingestion where multiple messages are delivered simultaneously), this get-check-add pattern causes a race condition. Multiple webhook handlers see that a group/user does not exist and attempt to `db.add()` the same ID simultaneously. Only the first commit succeeds, while subsequent handlers crash with a `500 IntegrityError` (UniqueViolation).
+
+Action:
+Refactored the entity creation logic to use PostgreSQL's native UPSERT capability (`insert(...).on_conflict_do_nothing()`). This offloads the concurrency safety to the database level, preventing `IntegrityError` exceptions while maintaining correct data state. Always use `ON CONFLICT DO NOTHING` (or `DO UPDATE`) for inserts in high-concurrency or webhook architectures rather than application-level get-check-add patterns.
