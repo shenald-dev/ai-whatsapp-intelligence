@@ -109,3 +109,11 @@ The webhook `ingest_message` endpoint previously checked for the existence of gr
 
 Action:
 Refactored the entity creation logic to use PostgreSQL's native UPSERT capability (`insert(...).on_conflict_do_nothing()`). This offloads the concurrency safety to the database level, preventing `IntegrityError` exceptions while maintaining correct data state. Always use `ON CONFLICT DO NOTHING` (or `DO UPDATE`) for inserts in high-concurrency or webhook architectures rather than application-level get-check-add patterns.
+
+## 2026-04-03 — Webhook Concurrency & Upsert Race Condition (Message Table)
+
+Learning:
+The webhook `ingest_message` endpoint successfully migrated user and group creation to `insert(...).on_conflict_do_nothing()`, but the core message insertion still relied on `db.add(msg)`. Under high-concurrency scenarios where multiple identical webhook events are delivered simultaneously, the initial `db.get()` check might return `None` for all handlers, leading to all of them trying to `db.add()` the same message ID. Only one transaction succeeds, and the others fail with a 500 `IntegrityError` UniqueViolation on the messages table.
+
+Action:
+Refactored the core message creation block to use PostgreSQL's native UPSERT via `insert(...).on_conflict_do_nothing().returning(models.Message.id)`. If the `.scalar()` check on the returning ID is empty, it means the insert was skipped because it was a duplicate from a concurrent delivery race. In this case, we immediately short-circuit with a 200 "Already ingested (concurrent)" response to avoid throwing errors or triggering redundant Celery background AI tasks. Always ensure idempotency and UPSERT strategies apply comprehensively to the core data models of the webhook handler, not just dependencies.
