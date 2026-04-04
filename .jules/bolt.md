@@ -109,3 +109,11 @@ The webhook `ingest_message` endpoint previously checked for the existence of gr
 
 Action:
 Refactored the entity creation logic to use PostgreSQL's native UPSERT capability (`insert(...).on_conflict_do_nothing()`). This offloads the concurrency safety to the database level, preventing `IntegrityError` exceptions while maintaining correct data state. Always use `ON CONFLICT DO NOTHING` (or `DO UPDATE`) for inserts in high-concurrency or webhook architectures rather than application-level get-check-add patterns.
+
+## 2025-04-04 — Concurrent Webhook Safety
+
+Learning:
+In high-volume systems like WhatsApp listeners, webhooks can fire concurrently with duplicate payloads. The traditional get-check-add database pattern fails under these conditions with an `IntegrityError` due to race conditions.
+
+Action:
+Use PostgreSQL's native `UPSERT` via `sqlalchemy.dialects.postgresql.insert(...).on_conflict_do_nothing().returning(...)`. Check if the scalar result is `None` to short-circuit processing cleanly without triggering redundant downstream tasks.
