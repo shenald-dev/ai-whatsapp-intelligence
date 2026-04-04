@@ -36,6 +36,13 @@ All notable changes to this project will be documented in this file.
 ### Assure, Prune, and Sync
 * **Lifecycle:** Pruned dead variables and `topics` tracking from `seed.py`. Upgraded `dotenv` module to safe minor/patch versions across node dependencies. Consolidated print statements to use standard python `logging` modules in `engine.py` and `chroma.py`.
 
+## [1.0.7] - 2026-04-03
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Converted `Message` creation in ingestion webhook to a concurrent-safe PostgreSQL UPSERT to prevent `IntegrityError` exceptions on duplicate payload deliveries.
+* **Lifecycle:** Pruned `__pycache__` artifacts to reduce codebase entropy.
+* **Upgrades:** Bumped safe patch versions for python dependencies via `poetry update` and node dependencies via `ncu -u`.
+
 ## [1.0.6] - 2026-04-02
 
 ### Assure, Prune, and Sync

@@ -44,3 +44,11 @@ Observed that all codebase paths are fully aligned and Vulture reports no active
 
 Alignment / Deferred:
 Bumping safe patch version for python dependencies `aiohttp` and `charset-normalizer`. All tests passed successfully post-update.
+
+## 2026-04-03 — Assessment & Lifecycle
+
+Observation / Pruned:
+Observed that duplicate payload deliveries triggered `IntegrityError` in the `Message` table. Pruned `__pycache__` artifacts to maintain repo cleanliness.
+
+Alignment / Deferred:
+Aligned database inserts by hardening the `Message` ingestion webhook to use PostgreSQL's concurrent-safe `UPSERT` pattern. Updated tests to cover the `db.execute().scalar()` logic correctly. Checked dependencies. All test suites pass seamlessly.

@@ -48,13 +48,16 @@ def test_ingest_message_caching(mock_send_task):
     }
 
     # First request
+    mock_execute_result = MagicMock()
+    mock_execute_result.scalar.return_value = "msg1"
+    mock_db.execute.return_value = mock_execute_result
+
     response = client.post("/api/v1/ingest", json=payload)
     assert response.status_code == 200
 
     # Assert DB methods were called
     assert mock_db.get.call_count == 1 # msg idempotency check
-    assert mock_db.execute.call_count == 2 # group upsert, user upsert
-    assert mock_db.add.call_count == 1  # msg
+    assert mock_db.execute.call_count == 3 # group upsert, user upsert, msg upsert
     assert mock_db.commit.call_count == 1
 
     # Check cache is updated
