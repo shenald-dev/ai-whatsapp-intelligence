@@ -30,7 +30,8 @@ def test_ingest_message_caching(mock_send_task):
     mock_db = AsyncMock()
     # Mock db.get to return None (so it adds to db)
     mock_db.get.return_value = None
-    mock_db.add = MagicMock()
+    mock_db.execute.return_value = MagicMock()
+    mock_db.execute.return_value.scalar.return_value = "msg1"
 
     # Override dependencies
     app.dependency_overrides[get_db] = lambda: mock_db
@@ -53,8 +54,7 @@ def test_ingest_message_caching(mock_send_task):
 
     # Assert DB methods were called
     assert mock_db.get.call_count == 1 # msg idempotency check
-    assert mock_db.execute.call_count == 2 # group upsert, user upsert
-    assert mock_db.add.call_count == 1  # msg
+    assert mock_db.execute.call_count == 3 # group upsert, user upsert, msg upsert
     assert mock_db.commit.call_count == 1
 
     # Check cache is updated
@@ -73,5 +73,4 @@ def test_ingest_message_caching(mock_send_task):
     # Assert DB get and add were NOT called further
     assert mock_db.get.call_count == 1 # Only the idempotency check
     assert mock_db.execute.call_count == 0
-    assert mock_db.add.call_count == 0
     assert mock_db.commit.call_count == 0
