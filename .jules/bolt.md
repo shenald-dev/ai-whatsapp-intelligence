@@ -109,3 +109,7 @@ The webhook `ingest_message` endpoint previously checked for the existence of gr
 
 Action:
 Refactored the entity creation logic to use PostgreSQL's native UPSERT capability (`insert(...).on_conflict_do_nothing()`). This offloads the concurrency safety to the database level, preventing `IntegrityError` exceptions while maintaining correct data state. Always use `ON CONFLICT DO NOTHING` (or `DO UPDATE`) for inserts in high-concurrency or webhook architectures rather than application-level get-check-add patterns.
+
+## 2024-05-19 — Webhook Idempotency Race Condition
+Learning: The standard get-check-add pattern in webhook endpoints (like `api/v1/ingest`) creates an `IntegrityError` race condition during concurrent duplicate payload deliveries. Furthermore, short-circuiting a request purely based on an UPSERT returning `None` (for a child record) without committing the session will inadvertently roll back previously queued inserts (like parent records).
+Action: Webhooks must use PostgreSQL's native UPSERT (`insert(...).on_conflict_do_nothing().returning(...)`). If the UPSERT `.scalar()` returns `None`, an explicit `db.commit()` must still be called to persist any earlier database additions before returning early.
