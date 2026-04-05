@@ -44,3 +44,11 @@ Observed that all codebase paths are fully aligned and Vulture reports no active
 
 Alignment / Deferred:
 Bumping safe patch version for python dependencies `aiohttp` and `charset-normalizer`. All tests passed successfully post-update.
+
+## 2026-04-05 — Assessment & Lifecycle
+
+Observation / Pruned:
+Observed `ingest_message` webhook wasn't completely handling idempotency for concurrent message creation, risking `IntegrityError` exceptions. Pruned previous `db.add` usage in favor of full UPSERT.
+
+Alignment / Deferred:
+Hardened message ingestion to correctly short-circuit and commit early when `UPSERT` detects existing records. Safely bumped Node dependency `dotenv` and minor Python deps (`sqlalchemy`, `orjson`, etc). All tests passed successfully post-update.

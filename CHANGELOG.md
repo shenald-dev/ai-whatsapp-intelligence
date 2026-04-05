@@ -36,6 +36,12 @@ All notable changes to this project will be documented in this file.
 ### Assure, Prune, and Sync
 * **Lifecycle:** Pruned dead variables and `topics` tracking from `seed.py`. Upgraded `dotenv` module to safe minor/patch versions across node dependencies. Consolidated print statements to use standard python `logging` modules in `engine.py` and `chroma.py`.
 
+## [1.0.7] - 2026-04-05
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Aligned message saving logic to use UPSERT with `.returning(...)` to fully mitigate concurrent insert `IntegrityError` edge cases. Adjusted related mock tests. Verified system integrity.
+* **Upgrades:** Bumped safe patch version for Node dependency `dotenv` (`^17.4.1`) and minor Python library updates (`click`, `orjson`, `hf-xet`, `huggingface-hub`, `sqlalchemy`, etc).
+
 ## [1.0.6] - 2026-04-02
 
 ### Assure, Prune, and Sync
