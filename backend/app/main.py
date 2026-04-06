@@ -26,7 +26,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="AI WhatsApp Intelligence API",
     description="Backend API for ingesting, analyzing, and retrieving WhatsApp group intelligence.",
-    version="1.0.6",
+    version="1.0.7",
     lifespan=lifespan
 )
 
@@ -95,42 +95,42 @@ async def ingest_message(
     # Tracking if we need to cache these after commit
     cache_updates = []
 
-    # 1. Ensure Group exists
-    group_cache_key = f"group_{payload.group_id}"
-    if not entity_cache.get(group_cache_key):
-        stmt = insert(models.Group).values(
-            id=payload.group_id,
-            name=payload.group_name
-        ).on_conflict_do_nothing(index_elements=['id'])
-        await db.execute(stmt)
-        cache_updates.append(group_cache_key)
-
-    # 2. Ensure User exists
-    user_cache_key = f"user_{payload.sender_id}"
-    if not entity_cache.get(user_cache_key):
-        stmt = insert(models.User).values(
-            id=payload.sender_id,
-            name=payload.sender_name
-        ).on_conflict_do_nothing(index_elements=['id'])
-        await db.execute(stmt)
-        cache_updates.append(user_cache_key)
-
-    # Convert JS timestamp (unix seconds) to Datetime
-    dt = datetime.fromtimestamp(payload.timestamp, tz=timezone.utc)
-
-    # 3. Save Message
-    msg = models.Message(
-        id=payload.message_id,
-        group_id=payload.group_id,
-        sender_id=payload.sender_id,
-        content=payload.content,
-        timestamp=dt,
-        is_media=payload.is_media,
-        quoted_msg_id=payload.quoted_msg_id
-    )
-    db.add(msg)
-    
     try:
+        # 1. Ensure Group exists
+        group_cache_key = f"group_{payload.group_id}"
+        if not entity_cache.get(group_cache_key):
+            stmt = insert(models.Group).values(
+                id=payload.group_id,
+                name=payload.group_name
+            ).on_conflict_do_nothing(index_elements=['id'])
+            await db.execute(stmt)
+            cache_updates.append(group_cache_key)
+
+        # 2. Ensure User exists
+        user_cache_key = f"user_{payload.sender_id}"
+        if not entity_cache.get(user_cache_key):
+            stmt = insert(models.User).values(
+                id=payload.sender_id,
+                name=payload.sender_name
+            ).on_conflict_do_nothing(index_elements=['id'])
+            await db.execute(stmt)
+            cache_updates.append(user_cache_key)
+
+        # Convert JS timestamp (unix seconds) to Datetime
+        dt = datetime.fromtimestamp(payload.timestamp, tz=timezone.utc)
+
+        # 3. Save Message
+        msg = models.Message(
+            id=payload.message_id,
+            group_id=payload.group_id,
+            sender_id=payload.sender_id,
+            content=payload.content,
+            timestamp=dt,
+            is_media=payload.is_media,
+            quoted_msg_id=payload.quoted_msg_id
+        )
+        db.add(msg)
+
         await db.commit()
 
         # 4. Update Cache only after successful commit

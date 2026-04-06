@@ -57,12 +57,16 @@ def test_ingest_message_caching(mock_send_task):
     assert mock_db.add.call_count == 1  # msg
     assert mock_db.commit.call_count == 1
 
+    # Assert Celery task dispatch was triggered
+    mock_send_task.assert_called_once_with("enrich_message", args=["msg1"])
+
     # Check cache is updated
     assert entity_cache.get("group_grp1") is True
     assert entity_cache.get("user_usr1") is True
 
     # Reset mocks
     mock_db.reset_mock()
+    mock_send_task.reset_mock()
 
     # Second request (simulate existing message for idempotency check)
     mock_db.get.return_value = MagicMock() # Mock returning an existing message

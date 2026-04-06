@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.7] - 2026-04-03
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity post-optimizations. Ensured robust exception handling for database operations during webhook ingestion by aligning the UPSERT logic within the primary transaction block. Re-verified all tests pass.
+* **Code Pruning:** Addressed Vulture warnings by asserting on the mock in the unit tests and pruned codebase of transient `__pycache__` artifacts to reduce entropy.
+* **Upgrades:** Safely bumped minor and patch versions for Node.js (`dotenv`) and Python backend dependencies.
+
 ## [1.0.4] - 2026-03-31
 
 ### Assured & Pruned

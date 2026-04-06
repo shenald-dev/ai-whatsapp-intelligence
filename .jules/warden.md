@@ -44,3 +44,10 @@ Observed that all codebase paths are fully aligned and Vulture reports no active
 
 Alignment / Deferred:
 Bumping safe patch version for python dependencies `aiohttp` and `charset-normalizer`. All tests passed successfully post-update.
+## 2026-04-03 — Assessment & Lifecycle
+
+Observation / Pruned:
+Observed unaligned transaction handling in `backend/app/main.py` where UPSERT execution logic could fail without rolling back the primary transaction gracefully. Addressed Vulture warnings by utilizing mocked variables in tests. Pruned codebase of transient `__pycache__` artifacts to reduce entropy.
+
+Alignment / Deferred:
+Aligned database inserts securely within the `try...except` block with `db.commit()`. Safely upgraded Python backend minor/patch versions and node's `dotenv` to the latest patch version. No regressions detected; tests perfectly pass.
