@@ -109,3 +109,11 @@ The webhook `ingest_message` endpoint previously checked for the existence of gr
 
 Action:
 Refactored the entity creation logic to use PostgreSQL's native UPSERT capability (`insert(...).on_conflict_do_nothing()`). This offloads the concurrency safety to the database level, preventing `IntegrityError` exceptions while maintaining correct data state. Always use `ON CONFLICT DO NOTHING` (or `DO UPDATE`) for inserts in high-concurrency or webhook architectures rather than application-level get-check-add patterns.
+
+## 2026-04-06 — Resolved Message Upsert IntegrityError
+
+Learning:
+Even though groups and users were updated to use upserts during ingestion, messages were still added via `db.add()`, which could throw an `IntegrityError` if a message payload was delivered multiple times during concurrent webhook events (where the idempotency `db.get()` check completes simultaneously across workers).
+
+Action:
+Replaced the `db.add()` call in the message ingestion endpoint with a native PostgreSQL UPSERT `insert(...).on_conflict_do_nothing(index_elements=['id']).returning(models.Message.id)`. Using `.scalar()`, we confirm if the message was successfully inserted (vs conflict), allowing the early return and avoiding redundant Celery task triggers, while ensuring `db.commit()` is called even if returning early to persist previous user/group inserts.
