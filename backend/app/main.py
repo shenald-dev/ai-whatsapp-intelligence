@@ -92,45 +92,52 @@ async def ingest_message(
     if existing_msg:
         return {"status": "success", "message_id": payload.message_id, "detail": "Already ingested"}
 
-    # Tracking if we need to cache these after commit
-    cache_updates = []
-
-    # 1. Ensure Group exists
-    group_cache_key = f"group_{payload.group_id}"
-    if not entity_cache.get(group_cache_key):
-        stmt = insert(models.Group).values(
-            id=payload.group_id,
-            name=payload.group_name
-        ).on_conflict_do_nothing(index_elements=['id'])
-        await db.execute(stmt)
-        cache_updates.append(group_cache_key)
-
-    # 2. Ensure User exists
-    user_cache_key = f"user_{payload.sender_id}"
-    if not entity_cache.get(user_cache_key):
-        stmt = insert(models.User).values(
-            id=payload.sender_id,
-            name=payload.sender_name
-        ).on_conflict_do_nothing(index_elements=['id'])
-        await db.execute(stmt)
-        cache_updates.append(user_cache_key)
-
-    # Convert JS timestamp (unix seconds) to Datetime
-    dt = datetime.fromtimestamp(payload.timestamp, tz=timezone.utc)
-
-    # 3. Save Message
-    msg = models.Message(
-        id=payload.message_id,
-        group_id=payload.group_id,
-        sender_id=payload.sender_id,
-        content=payload.content,
-        timestamp=dt,
-        is_media=payload.is_media,
-        quoted_msg_id=payload.quoted_msg_id
-    )
-    db.add(msg)
-    
     try:
+        # Tracking if we need to cache these after commit
+        cache_updates = []
+
+        # 1. Ensure Group exists
+        group_cache_key = f"group_{payload.group_id}"
+        if not entity_cache.get(group_cache_key):
+            stmt = insert(models.Group).values(
+                id=payload.group_id,
+                name=payload.group_name
+            ).on_conflict_do_nothing(index_elements=['id'])
+            await db.execute(stmt)
+            cache_updates.append(group_cache_key)
+
+        # 2. Ensure User exists
+        user_cache_key = f"user_{payload.sender_id}"
+        if not entity_cache.get(user_cache_key):
+            stmt = insert(models.User).values(
+                id=payload.sender_id,
+                name=payload.sender_name
+            ).on_conflict_do_nothing(index_elements=['id'])
+            await db.execute(stmt)
+            cache_updates.append(user_cache_key)
+
+        # Convert JS timestamp (unix seconds) to Datetime
+        dt = datetime.fromtimestamp(payload.timestamp, tz=timezone.utc)
+
+        # 3. Save Message
+        msg_stmt = insert(models.Message).values(
+            id=payload.message_id,
+            group_id=payload.group_id,
+            sender_id=payload.sender_id,
+            content=payload.content,
+            timestamp=dt,
+            is_media=payload.is_media,
+            quoted_msg_id=payload.quoted_msg_id
+        ).on_conflict_do_nothing(index_elements=['id']).returning(models.Message.id)
+
+        result = await db.execute(msg_stmt)
+        inserted_id = result.scalar()
+
+        if not inserted_id:
+            # Message was not inserted due to conflict (already exists concurrently)
+            await db.commit()
+            return {"status": "success", "message_id": payload.message_id, "detail": "Already ingested"}
+
         await db.commit()
 
         # 4. Update Cache only after successful commit
@@ -142,6 +149,6 @@ async def ingest_message(
         raise HTTPException(status_code=500, detail=str(e))
         
     # Trigger a Celery task to run AI enrichment asynchronously
-    await asyncio.to_thread(celery_app.send_task, "enrich_message", args=[msg.id])
+    await asyncio.to_thread(celery_app.send_task, "enrich_message", args=[payload.message_id])
     
-    return {"status": "success", "message_id": msg.id}
+    return {"status": "success", "message_id": payload.message_id}

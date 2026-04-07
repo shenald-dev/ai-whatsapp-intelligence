@@ -109,3 +109,9 @@ The webhook `ingest_message` endpoint previously checked for the existence of gr
 
 Action:
 Refactored the entity creation logic to use PostgreSQL's native UPSERT capability (`insert(...).on_conflict_do_nothing()`). This offloads the concurrency safety to the database level, preventing `IntegrityError` exceptions while maintaining correct data state. Always use `ON CONFLICT DO NOTHING` (or `DO UPDATE`) for inserts in high-concurrency or webhook architectures rather than application-level get-check-add patterns.
+
+## 2025-04-07 — PostgreSQL UPSERT for Idempotent Ingestion
+
+Learning: Ingestion webhooks (`/api/v1/ingest`) were using a vulnerable `db.get()` check followed by `db.add()` which could trigger `IntegrityError` under concurrent webhook deliveries. The pattern of caching must also be synchronized carefully when rolling back transactions.
+
+Action: Ensure database entities with idempotent constraints are created using `sqlalchemy.dialects.postgresql.insert(...).on_conflict_do_nothing().returning(...)`. Check the `scalar()` to safely exit during race conditions and place all database IO strictly inside `try...except` to prevent unhandled rollback scenarios.

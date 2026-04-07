@@ -32,6 +32,11 @@ def test_ingest_message_caching(mock_send_task):
     mock_db.get.return_value = None
     mock_db.add = MagicMock()
 
+    # Mock db.execute to return a MagicMock with scalar() returning the message ID
+    mock_execute_result = MagicMock()
+    mock_execute_result.scalar.return_value = "msg1"
+    mock_db.execute.return_value = mock_execute_result
+
     # Override dependencies
     app.dependency_overrides[get_db] = lambda: mock_db
     app.dependency_overrides[get_api_key] = lambda: "valid-key"
@@ -53,16 +58,19 @@ def test_ingest_message_caching(mock_send_task):
 
     # Assert DB methods were called
     assert mock_db.get.call_count == 1 # msg idempotency check
-    assert mock_db.execute.call_count == 2 # group upsert, user upsert
-    assert mock_db.add.call_count == 1  # msg
+    assert mock_db.execute.call_count == 3 # group upsert, user upsert, message upsert
+    assert mock_db.add.call_count == 0  # msg add no longer used
     assert mock_db.commit.call_count == 1
 
     # Check cache is updated
     assert entity_cache.get("group_grp1") is True
     assert entity_cache.get("user_usr1") is True
 
+    mock_send_task.assert_called_once_with("enrich_message", args=["msg1"])
+
     # Reset mocks
     mock_db.reset_mock()
+    mock_send_task.reset_mock()
 
     # Second request (simulate existing message for idempotency check)
     mock_db.get.return_value = MagicMock() # Mock returning an existing message
