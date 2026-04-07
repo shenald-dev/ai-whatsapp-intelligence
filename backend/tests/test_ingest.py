@@ -30,7 +30,7 @@ def test_ingest_message_caching(mock_send_task):
     mock_db = AsyncMock()
     # Mock db.get to return None (so it adds to db)
     mock_db.get.return_value = None
-    mock_db.add = MagicMock()
+    mock_db.execute.return_value = MagicMock(scalar=MagicMock(return_value="msg1"))
 
     # Override dependencies
     app.dependency_overrides[get_db] = lambda: mock_db
@@ -53,9 +53,9 @@ def test_ingest_message_caching(mock_send_task):
 
     # Assert DB methods were called
     assert mock_db.get.call_count == 1 # msg idempotency check
-    assert mock_db.execute.call_count == 2 # group upsert, user upsert
-    assert mock_db.add.call_count == 1  # msg
+    assert mock_db.execute.call_count == 3 # group upsert, user upsert, message upsert
     assert mock_db.commit.call_count == 1
+    mock_send_task.assert_called_once_with("enrich_message", args=["msg1"])
 
     # Check cache is updated
     assert entity_cache.get("group_grp1") is True
@@ -63,15 +63,34 @@ def test_ingest_message_caching(mock_send_task):
 
     # Reset mocks
     mock_db.reset_mock()
+    mock_send_task.reset_mock()
 
-    # Second request (simulate existing message for idempotency check)
+    # Second request (simulate existing message for idempotency check via db.get)
     mock_db.get.return_value = MagicMock() # Mock returning an existing message
     response = client.post("/api/v1/ingest", json=payload)
     assert response.status_code == 200
     assert response.json().get("detail") == "Already ingested"
 
-    # Assert DB get and add were NOT called further
+    # Assert DB get and execute were NOT called further
     assert mock_db.get.call_count == 1 # Only the idempotency check
     assert mock_db.execute.call_count == 0
-    assert mock_db.add.call_count == 0
     assert mock_db.commit.call_count == 0
+
+    # Reset mocks
+    mock_db.reset_mock()
+    mock_send_task.reset_mock()
+    entity_cache.cache.clear()
+
+    # Third request (simulate concurrent duplicate idempotency check via UPSERT)
+    mock_db.get.return_value = None
+    mock_db.execute.return_value = MagicMock(scalar=MagicMock(return_value=None))
+
+    response = client.post("/api/v1/ingest", json=payload)
+    assert response.status_code == 200
+    assert response.json().get("detail") == "Already ingested"
+
+    # Assert DB methods were called up to the UPSERT, but send_task was not
+    assert mock_db.get.call_count == 1
+    assert mock_db.execute.call_count == 3
+    assert mock_db.commit.call_count == 1
+    mock_send_task.assert_not_called()
