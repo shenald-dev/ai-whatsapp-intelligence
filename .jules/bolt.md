@@ -114,3 +114,11 @@ Refactored the entity creation logic to use PostgreSQL's native UPSERT capabilit
 Learning: Concurrent duplicate payload deliveries to webhook endpoints (like `/api/v1/ingest`) can cause `IntegrityError` exceptions and redundant background tasks when using the traditional `db.get()` then `db.add()` pattern, even if an idempotency check is present, because the check and insert are not atomic.
 
 Action: Always use PostgreSQL's native UPSERT via `sqlalchemy.dialects.postgresql.insert(...).on_conflict_do_nothing().returning(...)` executed with `db.execute()` instead of `db.add()` for concurrent-safe entity creation in webhook ingestion pipelines.
+
+## 2024-03-24 — Fix transaction scoping when handling database insertion race conditions
+
+Learning:
+When handling UPSERT queries inside FastAPI endpoints where the result is used to check for concurrent inserts (e.g. idempotency where the UPSERT `.scalar()` returns `None`), earlier updates (such as UPSERTs on parent objects like User and Group models) will not be committed to the database or written to cache if you short-circuit early and forget to call `db.commit()` beforehand.
+
+Action:
+Ensure that `db.commit()` is called *before* short-circuiting a request handling logic due to early return condition resulting from database race conditions resolving smoothly, and ensure that cache states update accordingly.
