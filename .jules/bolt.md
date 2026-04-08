@@ -109,7 +109,19 @@ The webhook `ingest_message` endpoint previously checked for the existence of gr
 
 Action:
 Refactored the entity creation logic to use PostgreSQL's native UPSERT capability (`insert(...).on_conflict_do_nothing()`). This offloads the concurrency safety to the database level, preventing `IntegrityError` exceptions while maintaining correct data state. Always use `ON CONFLICT DO NOTHING` (or `DO UPDATE`) for inserts in high-concurrency or webhook architectures rather than application-level get-check-add patterns.
+## 2024-05-24 — Prevent IntegrityError Race Conditions in Webhooks
 
-2024-04-07 — Concurrent UPSERT for Webhooks
+Learning: Concurrent duplicate payload deliveries to webhook endpoints (like `/api/v1/ingest`) can cause `IntegrityError` exceptions and redundant background tasks when using the traditional `db.get()` then `db.add()` pattern, even if an idempotency check is present, because the check and insert are not atomic.
+
+Action: Always use PostgreSQL's native UPSERT via `sqlalchemy.dialects.postgresql.insert(...).on_conflict_do_nothing().returning(...)` executed with `db.execute()` instead of `db.add()` for concurrent-safe entity creation in webhook ingestion pipelines.
+
+## 2024-03-24 — Fix transaction scoping when handling database insertion race conditions
+
+Learning:
+When handling UPSERT queries inside FastAPI endpoints where the result is used to check for concurrent inserts (e.g. idempotency where the UPSERT `.scalar()` returns `None`), earlier updates (such as UPSERTs on parent objects like User and Group models) will not be committed to the database or written to cache if you short-circuit early and forget to call `db.commit()` beforehand.
+
+Action:
+Ensure that `db.commit()` is called *before* short-circuiting a request handling logic due to early return condition resulting from database race conditions resolving smoothly, and ensure that cache states update accordingly.
+## 2024-04-07 — Concurrent UPSERT for Webhooks
 Learning: Under high concurrent load, duplicate webhook deliveries bypassed the db.get() check and caused IntegrityError exceptions by using db.add().
 Action: Replaced db.add() with an ON CONFLICT DO NOTHING UPSERT in the /api/v1/ingest endpoint to guarantee atomic concurrent idempotency.

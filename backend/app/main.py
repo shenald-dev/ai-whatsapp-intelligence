@@ -26,7 +26,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="AI WhatsApp Intelligence API",
     description="Backend API for ingesting, analyzing, and retrieving WhatsApp group intelligence.",
-    version="1.0.6",
+    version="1.0.7",
     lifespan=lifespan
 )
 
@@ -92,6 +92,7 @@ async def ingest_message(
     if existing_msg:
         return {"status": "success", "message_id": payload.message_id, "detail": "Already ingested"}
 
+
     # Tracking if we need to cache these after commit
     cache_updates = []
 
@@ -118,6 +119,7 @@ async def ingest_message(
     # Convert JS timestamp (unix seconds) to Datetime
     dt = datetime.fromtimestamp(payload.timestamp, tz=timezone.utc)
 
+
     try:
         # 3. Save Message using UPSERT to prevent concurrent IntegrityErrors
         stmt = insert(models.Message).values(
@@ -133,21 +135,21 @@ async def ingest_message(
         result = await db.execute(stmt)
         inserted_id = result.scalar()
 
-        if inserted_id is None:
-            # Concurrent duplicate handled via UPSERT. We still commit so parent
-            # objects (Group/User) are saved, then short-circuit
-            await db.commit()
-            return {"status": "success", "message_id": payload.message_id, "detail": "Already ingested"}
-
         await db.commit()
 
         # 4. Update Cache only after successful commit
         for key in cache_updates:
             entity_cache.put(key)
 
+        if inserted_id is None:
+            # Concurrent duplicate handled via UPSERT. We still commit so parent
+            # objects (Group/User) are saved, then short-circuit
+            return {"status": "success", "message_id": payload.message_id, "detail": "Already ingested"}
+
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
         
     # Trigger a Celery task to run AI enrichment asynchronously
     await asyncio.to_thread(celery_app.send_task, "enrich_message", args=[inserted_id])

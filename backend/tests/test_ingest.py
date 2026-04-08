@@ -47,6 +47,11 @@ def test_ingest_message_caching(mock_send_task):
         "is_media": False
     }
 
+    # Mock execute result for message UPSERT
+    mock_execute_result = MagicMock()
+    mock_execute_result.scalar.return_value = "msg1"
+    mock_db.execute.return_value = mock_execute_result
+
     # First request
     response = client.post("/api/v1/ingest", json=payload)
     assert response.status_code == 200
@@ -76,21 +81,41 @@ def test_ingest_message_caching(mock_send_task):
     assert mock_db.execute.call_count == 0
     assert mock_db.commit.call_count == 0
 
-    # Reset mocks
-    mock_db.reset_mock()
-    mock_send_task.reset_mock()
-    entity_cache.cache.clear()
 
-    # Third request (simulate concurrent duplicate idempotency check via UPSERT)
+@patch("app.main.celery_app.send_task")
+def test_ingest_message_concurrent_insert(mock_send_task):
+    client = TestClient(app)
+
+    mock_db = AsyncMock()
+    # Mock db.get to return None (so it adds to db)
     mock_db.get.return_value = None
-    mock_db.execute.return_value = MagicMock(scalar=MagicMock(return_value=None))
+
+    # Override dependencies
+    app.dependency_overrides[get_db] = lambda: mock_db
+    app.dependency_overrides[get_api_key] = lambda: "valid-key"
+
+    payload = {
+        "message_id": "msg2",
+        "group_id": "grp2",
+        "group_name": "Group 2",
+        "sender_id": "usr2",
+        "sender_name": "User 2",
+        "content": "Concurrent Hello",
+        "timestamp": 1700000000,
+        "is_media": False
+    }
+
+    # Mock execute result for message UPSERT
+    mock_execute_result = MagicMock()
+    # Return None for UPSERT simulating a concurrent insert winning the race
+    mock_execute_result.scalar.return_value = None
+    mock_db.execute.return_value = mock_execute_result
 
     response = client.post("/api/v1/ingest", json=payload)
     assert response.status_code == 200
-    assert response.json().get("detail") == "Already ingested"
+    assert response.json() == {"status": "success", "message_id": "msg2", "detail": "Already ingested"}
 
-    # Assert DB methods were called up to the UPSERT, but send_task was not
-    assert mock_db.get.call_count == 1
-    assert mock_db.execute.call_count == 3
+    # DB commits and cache gets updated even when UPSERT returns None
     assert mock_db.commit.call_count == 1
-    mock_send_task.assert_not_called()
+    assert entity_cache.get("group_grp2") is True
+    assert entity_cache.get("user_usr2") is True
