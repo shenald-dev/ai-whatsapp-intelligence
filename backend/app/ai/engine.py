@@ -37,25 +37,6 @@ class AIEngine:
             partial_variables={"format_instructions": self.parser.get_format_instructions()},
         )
 
-    async def analyze_message(self, content: str) -> dict:
-        """Runs the message through the LLM to extract metadata."""
-        if not content.strip() or len(content) < 5:
-            return {"sentiment": "neutral", "classification": "other"}
-
-        if not self.llm:
-            # Mock mode if no API key
-            return {
-                "sentiment": "neutral",
-                "classification": "discussion"
-            }
-
-        try:
-            chain = self.prompt | self.llm | self.parser
-            result: MessageAnalysis = await chain.ainvoke({"message": content})
-            return result.model_dump()
-        except Exception as e:
-            logger.error(f"AI Analysis Error: {e}")
-            return {"sentiment": "neutral", "classification": "other"}
 
     def analyze_message_sync(self, content: str) -> dict:
         """Runs the message through the LLM to extract metadata (synchronous)."""
