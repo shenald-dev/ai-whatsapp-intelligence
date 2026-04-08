@@ -1,9 +1,8 @@
-<div align="center">
   <img src="./assets/logo.png" alt="AI WhatsApp Intelligence Logo" width="200" style="border-radius: 20px" />
 
-  **A fully automated, real-time intelligence hub for your WhatsApp groups.**  
+  **A fully automated, real-time intelligence hub for your WhatsApp groups.**
   *Extract decisions, track sentiment, surface tasks, and generate insights autonomously using LangChain and LLMs.*
-  
+
   [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
   [![FastAPI](https://img.shields.io/badge/FastAPI-0.110-009688.svg)](https://fastapi.tiangolo.com/)
   [![Next.js](https://img.shields.io/badge/Next.js-14-black.svg)](https://nextjs.org)
