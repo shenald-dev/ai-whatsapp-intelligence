@@ -122,3 +122,7 @@ When handling UPSERT queries inside FastAPI endpoints where the result is used t
 
 Action:
 Ensure that `db.commit()` is called *before* short-circuiting a request handling logic due to early return condition resulting from database race conditions resolving smoothly, and ensure that cache states update accordingly.
+
+## 2026-04-08 — Optimize Celery worker memory constraints
+Learning: In synchronous celery workers, repeatedly calling `asyncio.run()` for executing asynchronous LLM calls introduces significant memory overhead and event loop lifecycle costs, which degrades worker performance under high message ingestion load.
+Action: Implemented synchronous versions of AI client methods (e.g., using LangChain's `.invoke()`) to avoid wrapping asynchronous network calls within synchronous contexts. Future synchronous Celery workers should natively prefer synchronous library clients to eliminate event loop initialization overhead.

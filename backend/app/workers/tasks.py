@@ -35,7 +35,7 @@ def process_message(message_id: str):
         session.commit()
 
         # Run AI analysis (async block within sync celery task)
-        analysis = asyncio.run(ai_engine.analyze_message(content))
+        analysis = ai_engine.analyze_message_sync(content)
 
         # Re-acquire the message in a new transaction
         msg = session.query(Message).filter(Message.id == message_id).first()
