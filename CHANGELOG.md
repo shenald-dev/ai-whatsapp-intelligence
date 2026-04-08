@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.8] - 2026-04-04
+
+### Assure, Prune, and Sync
+* **Code Pruning:** Eliminated unused async method `analyze_message` from AI engine, reducing technical debt and resolving static analysis warnings.
+
 ## [1.0.4] - 2026-03-31
 
 ### Assured & Pruned

@@ -126,3 +126,9 @@ Ensure that `db.commit()` is called *before* short-circuiting a request handling
 ## 2026-04-08 — Optimize Celery worker memory constraints
 Learning: In synchronous celery workers, repeatedly calling `asyncio.run()` for executing asynchronous LLM calls introduces significant memory overhead and event loop lifecycle costs, which degrades worker performance under high message ingestion load.
 Action: Implemented synchronous versions of AI client methods (e.g., using LangChain's `.invoke()`) to avoid wrapping asynchronous network calls within synchronous contexts. Future synchronous Celery workers should natively prefer synchronous library clients to eliminate event loop initialization overhead.
+
+2026-04-04 — Dead Code in AI Engine
+Learning:
+The `analyze_message` async method in the AI engine was flagged by `vulture` as unused because Celery workers use the sync `analyze_message_sync` method.
+Action:
+Removed the dead code block to improve maintainability and resolve the static analysis warning.

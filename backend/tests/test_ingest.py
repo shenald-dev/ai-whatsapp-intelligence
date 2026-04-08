@@ -61,6 +61,7 @@ def test_ingest_message_caching(mock_send_task):
     assert mock_db.execute.call_count == 3 # group upsert, user upsert, message upsert
     assert mock_db.add.call_count == 0  # no longer using add
     assert mock_db.commit.call_count == 1
+    mock_send_task.assert_called_once_with("enrich_message", args=["msg1"])
 
     # Check cache is updated
     assert entity_cache.get("group_grp1") is True
@@ -118,3 +119,4 @@ def test_ingest_message_concurrent_insert(mock_send_task):
     assert mock_db.commit.call_count == 1
     assert entity_cache.get("group_grp2") is True
     assert entity_cache.get("user_usr2") is True
+    mock_send_task.assert_not_called()
