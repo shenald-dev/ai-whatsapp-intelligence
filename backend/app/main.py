@@ -95,6 +95,7 @@ async def ingest_message(
     # Tracking if we need to cache these after commit
     cache_updates = []
 
+
     try:
         # 1. Ensure Group exists
         group_cache_key = f"group_{payload.group_id}"
@@ -119,8 +120,8 @@ async def ingest_message(
         # Convert JS timestamp (unix seconds) to Datetime
         dt = datetime.fromtimestamp(payload.timestamp, tz=timezone.utc)
 
-        # 3. Save Message
-        msg = models.Message(
+        # 3. Save Message with native UPSERT to avoid race conditions
+        stmt = insert(models.Message).values(
             id=payload.message_id,
             group_id=payload.group_id,
             sender_id=payload.sender_id,
@@ -128,8 +129,20 @@ async def ingest_message(
             timestamp=dt,
             is_media=payload.is_media,
             quoted_msg_id=payload.quoted_msg_id
-        )
-        db.add(msg)
+        ).on_conflict_do_nothing(index_elements=['id']).returning(models.Message.id)
+
+        result = await db.execute(stmt)
+        inserted_id = result.scalar()
+
+        # If inserted_id is None, it means the message was already inserted by a concurrent request
+        if not inserted_id:
+            await db.commit()
+
+            # Still update cache for parent entities
+            for key in cache_updates:
+                entity_cache.put(key)
+
+            return {"status": "success", "message_id": payload.message_id, "detail": "Already ingested"}
 
         await db.commit()
 
@@ -142,6 +155,6 @@ async def ingest_message(
         raise HTTPException(status_code=500, detail=str(e))
         
     # Trigger a Celery task to run AI enrichment asynchronously
-    await asyncio.to_thread(celery_app.send_task, "enrich_message", args=[msg.id])
+    await asyncio.to_thread(celery_app.send_task, "enrich_message", args=[inserted_id])
     
-    return {"status": "success", "message_id": msg.id}
+    return {"status": "success", "message_id": inserted_id}

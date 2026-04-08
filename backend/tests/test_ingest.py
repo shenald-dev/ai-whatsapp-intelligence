@@ -47,14 +47,19 @@ def test_ingest_message_caching(mock_send_task):
         "is_media": False
     }
 
+    # Mock execute result for message UPSERT
+    mock_execute_result = MagicMock()
+    mock_execute_result.scalar.return_value = "msg1"
+    mock_db.execute.return_value = mock_execute_result
+
     # First request
     response = client.post("/api/v1/ingest", json=payload)
     assert response.status_code == 200
 
     # Assert DB methods were called
     assert mock_db.get.call_count == 1 # msg idempotency check
-    assert mock_db.execute.call_count == 2 # group upsert, user upsert
-    assert mock_db.add.call_count == 1  # msg
+    assert mock_db.execute.call_count == 3 # group upsert, user upsert, message upsert
+    assert mock_db.add.call_count == 0  # no longer using add
     assert mock_db.commit.call_count == 1
 
     # Assert Celery task dispatch was triggered
@@ -74,7 +79,7 @@ def test_ingest_message_caching(mock_send_task):
     assert response.status_code == 200
     assert response.json().get("detail") == "Already ingested"
 
-    # Assert DB get and add were NOT called further
+    # Assert DB get and execute were NOT called further
     assert mock_db.get.call_count == 1 # Only the idempotency check
     assert mock_db.execute.call_count == 0
     assert mock_db.add.call_count == 0
