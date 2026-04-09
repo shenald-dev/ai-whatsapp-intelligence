@@ -132,3 +132,11 @@ Learning:
 The `analyze_message` async method in the AI engine was flagged by `vulture` as unused because Celery workers use the sync `analyze_message_sync` method.
 Action:
 Removed the dead code block to improve maintainability and resolve the static analysis warning.
+
+## 2026-04-10 — Defensive programming when parsing third-party objects
+
+Learning:
+When parsing deep object references from third-party webhook payloads or library returns (like `msg.getQuotedMessage()` in `whatsapp-web.js`), assuming the presence of nested properties (e.g. `msg.id._serialized`) can cause runtime crashes if the payload structure changes unexpectedly or is partially malformed.
+
+Action:
+Applied strict optional chaining (`?.`) when extracting properties from third-party payload structures in the `whatsapp-web.js` collector. Future integrations handling external event objects must use defensive access patterns rather than rigid property lookups to improve reliability and prevent unhandled promise rejections.
