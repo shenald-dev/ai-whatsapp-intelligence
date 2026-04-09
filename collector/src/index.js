@@ -7,14 +7,16 @@ require('dotenv').config();
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000/api/v1/ingest';
 const API_KEY = process.env.API_KEY;
 
-if (!API_KEY) {
-    throw new Error('API_KEY environment variable is not set');
+if (require.main === module) {
+    if (!API_KEY) {
+        throw new Error('API_KEY environment variable is not set');
+    }
+
+    console.log('🚀 AI WhatsApp Intelligence Collector Starting...');
+    console.log(`📡 Backend URL: ${BACKEND_URL}`);
 }
 
 const ALLOWED_GROUPS = process.env.ALLOWED_GROUPS ? process.env.ALLOWED_GROUPS.split(',') : [];
-
-console.log('🚀 AI WhatsApp Intelligence Collector Starting...');
-console.log(`📡 Backend URL: ${BACKEND_URL}`);
 
 // Initialize client with safe session storage
 const client = new Client({
@@ -94,4 +96,8 @@ async function forwardToBackend(payload) {
 }
 
 // Start the client
-client.initialize();
+if (require.main === module) {
+    client.initialize();
+}
+
+module.exports = { forwardToBackend };
