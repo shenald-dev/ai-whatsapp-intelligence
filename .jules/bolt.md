@@ -132,3 +132,6 @@ Learning:
 The `analyze_message` async method in the AI engine was flagged by `vulture` as unused because Celery workers use the sync `analyze_message_sync` method.
 Action:
 Removed the dead code block to improve maintainability and resolve the static analysis warning.
+2024-04-09 — Collector Quoted Message Null Ref
+Learning: 'msg.getQuotedMessage()' in whatsapp-web.js can resolve successfully but not have an '.id' causing a runtime crash if optional chaining isn't strictly applied.
+Action: Always apply optional chaining (e.g. '?.id?._serialized') when parsing deep object references from third-party WhatsApp payload structures.
