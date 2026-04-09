@@ -37,3 +37,11 @@ The Celery worker `process_message` task was manually managing the asyncio event
 
 Action:
 Refactored the synchronous to asynchronous execution bridge in the Celery worker to use `asyncio.run()`. This cleanly handles event loop creation and teardown. Future asynchronous calls within synchronous contexts should prefer `asyncio.run()` to prevent event loop lifecycle issues.
+
+## 2024-05-20 — Implemented in-memory caching to optimize ingestion throughput
+
+Learning:
+The message ingestion endpoint was performing redundant database queries to check for the existence of Users and Groups for every single incoming message. In high-volume WhatsApp groups, this creates a significant I/O bottleneck and unnecessary database load, as most messages come from a small set of already-known entities.
+
+Action:
+Implemented a size-limited `SimpleLRUCache` using `collections.OrderedDict` within the ingestion layer. This cache stores the existence of User and Group IDs, allowing the system to skip database `SELECT` queries for known entities. The cache is populated upon discovery from the database and updated after successful new entity commits, ensuring a balance between performance and consistency.

@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 import os
 from datetime import datetime
+from collections import OrderedDict
 
 from .db.database import engine, Base, get_db
 from .db import models
@@ -50,6 +51,31 @@ async def startup():
 async def root():
     return {"status": "online", "service": "awi_backend"}
 
+# Global in-memory caches to track existing users and groups
+# This avoids unnecessary DB queries for every message in high-volume environments
+# Using a simple LRU-style eviction with OrderedDict to prevent unbounded memory growth
+class SimpleLRUCache:
+    def __init__(self, capacity: int = 10000):
+        self.cache = OrderedDict()
+        self.capacity = capacity
+
+    def __contains__(self, key):
+        if key in self.cache:
+            self.cache.move_to_end(key)
+            return True
+        return False
+
+    def add(self, key):
+        if key in self.cache:
+            self.cache.move_to_end(key)
+        else:
+            if len(self.cache) >= self.capacity:
+                self.cache.popitem(last=False)
+            self.cache[key] = True
+
+_GROUP_CACHE = SimpleLRUCache(capacity=5000)
+_USER_CACHE = SimpleLRUCache(capacity=10000)
+
 # Ingestion Webhook used by the Node.js Collector
 @app.post("/api/v1/ingest")
 async def ingest_message(
@@ -58,16 +84,22 @@ async def ingest_message(
     api_key: str = Depends(get_api_key)
 ):
     # 1. Ensure Group exists
-    group = await db.get(models.Group, payload.group_id)
-    if not group:
-        group = models.Group(id=payload.group_id, name=payload.group_name)
-        db.add(group)
+    if payload.group_id not in _GROUP_CACHE:
+        group = await db.get(models.Group, payload.group_id)
+        if not group:
+            group = models.Group(id=payload.group_id, name=payload.group_name)
+            db.add(group)
+        else:
+            _GROUP_CACHE.add(payload.group_id)
 
     # 2. Ensure User exists
-    user = await db.get(models.User, payload.sender_id)
-    if not user:
-        user = models.User(id=payload.sender_id, name=payload.sender_name)
-        db.add(user)
+    if payload.sender_id not in _USER_CACHE:
+        user = await db.get(models.User, payload.sender_id)
+        if not user:
+            user = models.User(id=payload.sender_id, name=payload.sender_name)
+            db.add(user)
+        else:
+            _USER_CACHE.add(payload.sender_id)
 
     # Convert JS timestamp (unix seconds) to Datetime
     dt = datetime.fromtimestamp(payload.timestamp)
@@ -86,6 +118,9 @@ async def ingest_message(
     
     try:
         await db.commit()
+        # Update caches after successful commit
+        _GROUP_CACHE.add(payload.group_id)
+        _USER_CACHE.add(payload.sender_id)
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
