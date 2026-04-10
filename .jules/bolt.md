@@ -132,3 +132,11 @@ Learning:
 The `analyze_message` async method in the AI engine was flagged by `vulture` as unused because Celery workers use the sync `analyze_message_sync` method.
 Action:
 Removed the dead code block to improve maintainability and resolve the static analysis warning.
+
+## 2026-04-10 — Robust deep object resolution for 3rd party APIs
+
+Learning:
+When parsing deep object references from third-party WhatsApp payload structures (e.g., `msg.getQuotedMessage()` in `whatsapp-web.js`), the object or nested properties (`.id._serialized`) can sometimes be null or missing due to API quirks or message deletion, leading to fatal `TypeError` runtime crashes.
+
+Action:
+Always apply strict optional chaining (`?.id?._serialized || null`) and a `try/catch` block when fetching and unwrapping external objects to prevent the entire listener/collector process from crashing.

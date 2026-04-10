@@ -56,6 +56,16 @@ client.on('message', async (msg) => {
 
         const contact = await msg.getContact();
         
+        let quoted_msg_id = null;
+        if (msg.hasQuotedMsg) {
+            try {
+                const quotedMsg = await msg.getQuotedMessage();
+                quoted_msg_id = quotedMsg?.id?._serialized || null;
+            } catch (err) {
+                console.error('⚠️ Error retrieving quoted message:', err.message);
+            }
+        }
+
         // Construct the payload for the AI backend
         const payload = {
             message_id: msg.id._serialized,
@@ -66,7 +76,7 @@ client.on('message', async (msg) => {
             content: msg.body,
             timestamp: msg.timestamp,
             is_media: msg.hasMedia,
-            quoted_msg_id: msg.hasQuotedMsg ? (await msg.getQuotedMessage()).id._serialized : null,
+            quoted_msg_id: quoted_msg_id,
         };
 
         // Forward to backend asynchronously
@@ -94,4 +104,11 @@ async function forwardToBackend(payload) {
 }
 
 // Start the client
-client.initialize();
+if (require.main === module) {
+    client.initialize();
+}
+
+module.exports = {
+    client,
+    forwardToBackend
+};
