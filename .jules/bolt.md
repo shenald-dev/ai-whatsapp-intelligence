@@ -132,3 +132,10 @@ Learning:
 The `analyze_message` async method in the AI engine was flagged by `vulture` as unused because Celery workers use the sync `analyze_message_sync` method.
 Action:
 Removed the dead code block to improve maintainability and resolve the static analysis warning.
+2026-05-18 — Added strict optional chaining in WhatsApp message payload parsing
+
+Learning:
+When parsing deep object references from third-party WhatsApp payload structures (e.g., `msg.getQuotedMessage()` in `whatsapp-web.js`), blindly accessing properties like `.id._serialized` can cause runtime crashes if the object or properties are missing (which can happen under certain edge cases or API changes).
+
+Action:
+Always apply strict optional chaining (e.g., `?.id?._serialized`) to safely parse nested properties from third-party webhook payloads or SDK responses, preventing unhandled exceptions in the Node.js event loop.

@@ -50,7 +50,7 @@ client.on('message', async (msg) => {
         if (!chat.isGroup) return;
 
         // Filter by allowed groups if configured
-        if (ALLOWED_GROUPS.length > 0 && !ALLOWED_GROUPS.includes(chat.id._serialized)) {
+        if (ALLOWED_GROUPS.length > 0 && !ALLOWED_GROUPS.includes(chat?.id?._serialized)) {
             return;
         }
 
@@ -58,15 +58,15 @@ client.on('message', async (msg) => {
         
         // Construct the payload for the AI backend
         const payload = {
-            message_id: msg.id._serialized,
-            group_id: chat.id._serialized,
+            message_id: msg?.id?._serialized,
+            group_id: chat?.id?._serialized,
             group_name: chat.name,
-            sender_id: contact.id._serialized,
+            sender_id: contact?.id?._serialized,
             sender_name: contact.pushname || contact.name || 'Unknown',
             content: msg.body,
             timestamp: msg.timestamp,
             is_media: msg.hasMedia,
-            quoted_msg_id: msg.hasQuotedMsg ? (await msg.getQuotedMessage()).id._serialized : null,
+            quoted_msg_id: msg.hasQuotedMsg ? (await msg.getQuotedMessage())?.id?._serialized : null,
         };
 
         // Forward to backend asynchronously
@@ -93,5 +93,13 @@ async function forwardToBackend(payload) {
     }
 }
 
+// Export for testing
+module.exports = {
+    client,
+    forwardToBackend
+};
+
 // Start the client
-client.initialize();
+if (require.main === module) {
+    client.initialize();
+}
