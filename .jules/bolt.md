@@ -132,3 +132,11 @@ Learning:
 The `analyze_message` async method in the AI engine was flagged by `vulture` as unused because Celery workers use the sync `analyze_message_sync` method.
 Action:
 Removed the dead code block to improve maintainability and resolve the static analysis warning.
+
+## 2024-05-24 — Refactored Collector for Testability and Safety
+
+Learning:
+The main Node.js collector file (`collector/src/index.js`) had its top-level side-effects (e.g., `client.initialize()`) directly in the main file execution path, making it impossible to import and unit test its internal functions. Additionally, the event listener callbacks directly accessed deeply nested properties on potentially malformed objects (e.g., `msg.getQuotedMessage().id._serialized`), which could throw `TypeError`s and crash the listener process when a payload lacks expected fields.
+
+Action:
+Refactored `collector/src/index.js` to wrap side-effects inside an `if (require.main === module)` block to enable testability. Extracted the primary message handler logic into a named asynchronous function `processMessage(msg)` and applied strict optional chaining (e.g., `chat?.id?._serialized`) to all third-party payload extractions. Finally, established a local testing infrastructure in the `collector` directory using Node.js's built-in `node:test` runner. Future modifications to the collector should always ensure testability and robust payload extraction via optional chaining to prevent runtime crashes.

@@ -1,3 +1,4 @@
+<div align="center">
   <img src="./assets/logo.png" alt="AI WhatsApp Intelligence Logo" width="200" style="border-radius: 20px" />
 
   **A fully automated, real-time intelligence hub for your WhatsApp groups.**

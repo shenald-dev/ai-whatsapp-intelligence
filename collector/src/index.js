@@ -24,33 +24,15 @@ const client = new Client({
     }
 });
 
-client.on('qr', (qr) => {
-    console.log('\n📱 Scan this QR code with WhatsApp to log in:');
-    qrcode.generate(qr, { small: true });
-});
-
-client.on('ready', () => {
-    console.log('\n✅ Client is ready! Monitoring groups...');
-});
-
-client.on('authenticated', () => {
-    console.log('🔒 Authenticated successfully.');
-});
-
-client.on('auth_failure', msg => {
-    console.error('❌ Authentication failure', msg);
-});
-
-// Primary Message Listener
-client.on('message', async (msg) => {
+async function processMessage(msg) {
     try {
         const chat = await msg.getChat();
 
         // Only monitor group chats
-        if (!chat.isGroup) return;
+        if (!chat?.isGroup) return;
 
         // Filter by allowed groups if configured
-        if (ALLOWED_GROUPS.length > 0 && !ALLOWED_GROUPS.includes(chat.id._serialized)) {
+        if (ALLOWED_GROUPS.length > 0 && !ALLOWED_GROUPS.includes(chat?.id?._serialized)) {
             return;
         }
 
@@ -58,24 +40,24 @@ client.on('message', async (msg) => {
         
         // Construct the payload for the AI backend
         const payload = {
-            message_id: msg.id._serialized,
-            group_id: chat.id._serialized,
-            group_name: chat.name,
-            sender_id: contact.id._serialized,
-            sender_name: contact.pushname || contact.name || 'Unknown',
-            content: msg.body,
-            timestamp: msg.timestamp,
-            is_media: msg.hasMedia,
-            quoted_msg_id: msg.hasQuotedMsg ? (await msg.getQuotedMessage()).id._serialized : null,
+            message_id: msg?.id?._serialized,
+            group_id: chat?.id?._serialized,
+            group_name: chat?.name,
+            sender_id: contact?.id?._serialized,
+            sender_name: contact?.pushname || contact?.name || 'Unknown',
+            content: msg?.body,
+            timestamp: msg?.timestamp,
+            is_media: msg?.hasMedia,
+            quoted_msg_id: msg?.hasQuotedMsg ? (await msg.getQuotedMessage())?.id?._serialized : null,
         };
 
         // Forward to backend asynchronously
-        forwardToBackend(payload);
+        module.exports.forwardToBackend(payload);
         
     } catch (error) {
         console.error('⚠️ Error processing message:', error.message);
     }
-});
+}
 
 async function forwardToBackend(payload) {
     try {
@@ -86,12 +68,40 @@ async function forwardToBackend(payload) {
             },
             timeout: 5000 // 5 second timeout so we don't block
         });
-        console.log(`[SENT] ${payload.group_name} | ${payload.sender_name}: ${payload.content.substring(0, 30)}...`);
+        console.log(`[SENT] ${payload.group_name} | ${payload.sender_name}: ${payload.content?.substring(0, 30)}...`);
     } catch (error) {
         console.error(`[FAILED] Sending to backend: ${error.message}`);
         // Note: A production system would push this to a Redis retry queue here.
     }
 }
 
-// Start the client
-client.initialize();
+if (require.main === module) {
+    client.on('qr', (qr) => {
+        console.log('\n📱 Scan this QR code with WhatsApp to log in:');
+        qrcode.generate(qr, { small: true });
+    });
+
+    client.on('ready', () => {
+        console.log('\n✅ Client is ready! Monitoring groups...');
+    });
+
+    client.on('authenticated', () => {
+        console.log('🔒 Authenticated successfully.');
+    });
+
+    client.on('auth_failure', msg => {
+        console.error('❌ Authentication failure', msg);
+    });
+
+    // Primary Message Listener
+    client.on('message', processMessage);
+
+    // Start the client
+    client.initialize();
+}
+
+module.exports = {
+    client,
+    processMessage,
+    forwardToBackend
+};
