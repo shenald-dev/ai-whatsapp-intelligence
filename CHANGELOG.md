@@ -58,3 +58,6 @@ All notable changes to this project will be documented in this file.
 ### Assure, Prune, and Sync
 * **Lifecycle:** Verified system integrity post-optimizations. Pruned `__pycache__` artifacts to reduce codebase entropy. Verified static analysis with no dead code found.
 * **Upgrades:** Bumped safe minor/patch versions for node dependency `dotenv` and multiple python backend dependencies (`click`, `orjson`, `huggingface-hub`, `sqlalchemy`, etc).
+
+## [1.0.10] - 2026-04-11
+* **[Reliability]:** Added strict optional chaining for deep object parsing from WhatsApp to prevent crashes from missing nested properties.

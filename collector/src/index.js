@@ -58,15 +58,15 @@ client.on('message', async (msg) => {
         
         // Construct the payload for the AI backend
         const payload = {
-            message_id: msg.id._serialized,
-            group_id: chat.id._serialized,
-            group_name: chat.name,
-            sender_id: contact.id._serialized,
-            sender_name: contact.pushname || contact.name || 'Unknown',
-            content: msg.body,
-            timestamp: msg.timestamp,
-            is_media: msg.hasMedia,
-            quoted_msg_id: msg.hasQuotedMsg ? (await msg.getQuotedMessage()).id._serialized : null,
+            message_id: msg?.id?._serialized,
+            group_id: chat?.id?._serialized,
+            group_name: chat?.name,
+            sender_id: contact?.id?._serialized,
+            sender_name: contact?.pushname || contact?.name || 'Unknown',
+            content: msg?.body,
+            timestamp: msg?.timestamp,
+            is_media: msg?.hasMedia,
+            quoted_msg_id: msg?.hasQuotedMsg ? (await msg.getQuotedMessage())?.id?._serialized : null,
         };
 
         // Forward to backend asynchronously
@@ -86,12 +86,20 @@ async function forwardToBackend(payload) {
             },
             timeout: 5000 // 5 second timeout so we don't block
         });
-        console.log(`[SENT] ${payload.group_name} | ${payload.sender_name}: ${payload.content.substring(0, 30)}...`);
+        const contentStr = payload.content ? payload.content.substring(0, 30) : '';
+        console.log(`[SENT] ${payload.group_name} | ${payload.sender_name}: ${contentStr}...`);
     } catch (error) {
         console.error(`[FAILED] Sending to backend: ${error.message}`);
         // Note: A production system would push this to a Redis retry queue here.
     }
 }
 
-// Start the client
-client.initialize();
+if (require.main === module) {
+    // Start the client
+    client.initialize();
+}
+
+module.exports = {
+    client,
+    forwardToBackend
+};
