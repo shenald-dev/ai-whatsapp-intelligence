@@ -7,14 +7,7 @@ require('dotenv').config();
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000/api/v1/ingest';
 const API_KEY = process.env.API_KEY;
 
-if (!API_KEY) {
-    throw new Error('API_KEY environment variable is not set');
-}
-
 const ALLOWED_GROUPS = process.env.ALLOWED_GROUPS ? process.env.ALLOWED_GROUPS.split(',') : [];
-
-console.log('🚀 AI WhatsApp Intelligence Collector Starting...');
-console.log(`📡 Backend URL: ${BACKEND_URL}`);
 
 // Initialize client with safe session storage
 const client = new Client({
@@ -41,32 +34,39 @@ client.on('auth_failure', msg => {
     console.error('❌ Authentication failure', msg);
 });
 
-// Primary Message Listener
-client.on('message', async (msg) => {
+async function handleMessage(msg) {
     try {
         const chat = await msg.getChat();
 
         // Only monitor group chats
-        if (!chat.isGroup) return;
+        if (!chat?.isGroup) return;
 
         // Filter by allowed groups if configured
-        if (ALLOWED_GROUPS.length > 0 && !ALLOWED_GROUPS.includes(chat.id._serialized)) {
+        const groupId = chat?.id?._serialized;
+        if (ALLOWED_GROUPS.length > 0 && (!groupId || !ALLOWED_GROUPS.includes(groupId))) {
             return;
         }
 
         const contact = await msg.getContact();
         
+        // Safely extract quoted message ID
+        let quotedMsgId = null;
+        if (msg.hasQuotedMsg) {
+            const quotedMsg = await msg.getQuotedMessage();
+            quotedMsgId = quotedMsg?.id?._serialized || null;
+        }
+
         // Construct the payload for the AI backend
         const payload = {
-            message_id: msg.id._serialized,
-            group_id: chat.id._serialized,
-            group_name: chat.name,
-            sender_id: contact.id._serialized,
-            sender_name: contact.pushname || contact.name || 'Unknown',
-            content: msg.body,
-            timestamp: msg.timestamp,
-            is_media: msg.hasMedia,
-            quoted_msg_id: msg.hasQuotedMsg ? (await msg.getQuotedMessage()).id._serialized : null,
+            message_id: msg?.id?._serialized,
+            group_id: groupId,
+            group_name: chat?.name || 'Unknown Group',
+            sender_id: contact?.id?._serialized,
+            sender_name: contact?.pushname || contact?.name || 'Unknown',
+            content: msg?.body || '',
+            timestamp: msg?.timestamp,
+            is_media: Boolean(msg?.hasMedia),
+            quoted_msg_id: quotedMsgId,
         };
 
         // Forward to backend asynchronously
@@ -75,7 +75,10 @@ client.on('message', async (msg) => {
     } catch (error) {
         console.error('⚠️ Error processing message:', error.message);
     }
-});
+}
+
+// Primary Message Listener
+client.on('message', handleMessage);
 
 async function forwardToBackend(payload) {
     try {
@@ -93,5 +96,19 @@ async function forwardToBackend(payload) {
     }
 }
 
-// Start the client
-client.initialize();
+if (require.main === module) {
+    if (!API_KEY) {
+        throw new Error('API_KEY environment variable is not set');
+    }
+
+    console.log('🚀 AI WhatsApp Intelligence Collector Starting...');
+    console.log(`📡 Backend URL: ${BACKEND_URL}`);
+
+    // Start the client
+    client.initialize();
+}
+
+module.exports = {
+    handleMessage,
+    forwardToBackend
+};

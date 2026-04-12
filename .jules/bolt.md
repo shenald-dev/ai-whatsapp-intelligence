@@ -132,3 +132,9 @@ Learning:
 The `analyze_message` async method in the AI engine was flagged by `vulture` as unused because Celery workers use the sync `analyze_message_sync` method.
 Action:
 Removed the dead code block to improve maintainability and resolve the static analysis warning.
+
+## 2026-04-12 — WhatsApp Payload Resilience
+Learning:
+Deeply nested objects from third-party libraries (like `msg.getQuotedMessage().id._serialized` in `whatsapp-web.js`) frequently cause crashes if optional chaining is omitted. The collector script was entirely untestable due to top-level side effects (initialization calls on import).
+Action:
+Always apply strict optional chaining when extracting data from external payloads. Extract core processing logic into pure/testable functions and wrap side-effects in `if (require.main === module)` guards to enable unit testing using Node.js built-in test runners.
