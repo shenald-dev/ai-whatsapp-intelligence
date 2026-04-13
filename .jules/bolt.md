@@ -132,3 +132,11 @@ Learning:
 The `analyze_message` async method in the AI engine was flagged by `vulture` as unused because Celery workers use the sync `analyze_message_sync` method.
 Action:
 Removed the dead code block to improve maintainability and resolve the static analysis warning.
+
+## 2026-04-13 — Fix runtime crash risk in collector message parsing
+
+Learning:
+When parsing deep object references from third-party WhatsApp payload structures (e.g., `msg.getQuotedMessage()` in `whatsapp-web.js`), failing to use optional chaining can result in runtime crashes if the object or properties are missing, leading to unreliable data collection.
+
+Action:
+Updated `collector/src/index.js` to use strict optional chaining (e.g., `?.id?._serialized`) when parsing WhatsApp messages to prevent runtime crashes. Also improved testability by wrapping `client.initialize()` in an `if (require.main === module)` block and added initial tests.
