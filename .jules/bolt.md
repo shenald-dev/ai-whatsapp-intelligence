@@ -132,3 +132,11 @@ Learning:
 The `analyze_message` async method in the AI engine was flagged by `vulture` as unused because Celery workers use the sync `analyze_message_sync` method.
 Action:
 Removed the dead code block to improve maintainability and resolve the static analysis warning.
+
+## 2026-04-13 — Optional Chaining & Testability in Collector
+
+Learning:
+The `whatsapp-web.js` webhook payload construction directly accessed deep properties of third-party API objects without safety checks (e.g., `msg.getQuotedMessage().id._serialized`). Missing objects or properties resulted in unhandled runtime crashes under load. Furthermore, top-level side effects (like `client.initialize()`) broke standard module imports in the Node test environment, preventing automated unit tests.
+
+Action:
+Refactored the payload extraction in `collector/src/index.js` to strictly use optional chaining (`?.`) when parsing deep API objects, effectively preventing unhandled promise rejections on malformed messages. Wrapped side-effects in `if (require.main === module)` and exposed the API forwarder for isolated node unit testing, completing test coverage for the component without requiring external test runners.

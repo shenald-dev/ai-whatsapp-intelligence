@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.10] - 2026-04-13
+
+### Assure, Prune, and Sync
+* **Code Quality:** Refactored `collector/src/index.js` to use strict optional chaining on deep object access to prevent runtime crashes, wrapped side-effects in `require.main === module` for testability, and added node test coverage.
+* **Upgrades:** Synced minor/patch version updates for dependencies in Python backend and Node.js collector and bumped version string to `1.0.10`.
+
 ## [1.0.9] - 2026-04-09
 
 ### Assure, Prune, and Sync
