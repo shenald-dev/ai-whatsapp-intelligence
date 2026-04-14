@@ -132,3 +132,6 @@ Learning:
 The `analyze_message` async method in the AI engine was flagged by `vulture` as unused because Celery workers use the sync `analyze_message_sync` method.
 Action:
 Removed the dead code block to improve maintainability and resolve the static analysis warning.
+YYYY-MM-DD — Safe and Testable Initialization
+Learning: Node.js scripts executing long-running clients automatically crash tests due to timeout.
+Action: Wrap entry points with `if (require.main === module)` when developing index scripts for libraries/agents to improve testability.
