@@ -132,3 +132,11 @@ Learning:
 The `analyze_message` async method in the AI engine was flagged by `vulture` as unused because Celery workers use the sync `analyze_message_sync` method.
 Action:
 Removed the dead code block to improve maintainability and resolve the static analysis warning.
+
+## 2026-04-14 — Safely Parse Missing WhatsApp Web JS Quotes
+
+Learning:
+When parsing message metadata from `whatsapp-web.js`, if a message specifies `hasQuotedMsg` but the quoted message object fails to resolve correctly (e.g. `await msg.getQuotedMessage()` returns undefined or is missing `id._serialized`), the collector crashes with a TypeError (`Cannot read properties of undefined (reading 'id')`), stopping the ingestion pipeline. Furthermore, running tests on the collector script previously spawned the client and hung the test process because side effects ran automatically on import.
+
+Action:
+Replaced direct property access on `msg.getQuotedMessage()` with strict optional chaining and a nullish coalescing fallback (`(await msg.getQuotedMessage())?.id?._serialized ?? null`) to prevent runtime crashes. Wrapped the `client.initialize()` call within an `if (require.main === module)` block to prevent side effects on module import, and exported the client and `forwardToBackend` to enable safe unit testing.

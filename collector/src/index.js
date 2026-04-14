@@ -66,7 +66,7 @@ client.on('message', async (msg) => {
             content: msg.body,
             timestamp: msg.timestamp,
             is_media: msg.hasMedia,
-            quoted_msg_id: msg.hasQuotedMsg ? (await msg.getQuotedMessage()).id._serialized : null,
+            quoted_msg_id: msg.hasQuotedMsg ? (await msg.getQuotedMessage())?.id?._serialized ?? null : null,
         };
 
         // Forward to backend asynchronously
@@ -94,4 +94,11 @@ async function forwardToBackend(payload) {
 }
 
 // Start the client
-client.initialize();
+if (require.main === module) {
+    client.initialize();
+}
+
+module.exports = {
+    client,
+    forwardToBackend
+};
