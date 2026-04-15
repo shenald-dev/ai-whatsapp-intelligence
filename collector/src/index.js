@@ -11,7 +11,11 @@ if (!API_KEY) {
     throw new Error('API_KEY environment variable is not set');
 }
 
-const ALLOWED_GROUPS = process.env.ALLOWED_GROUPS ? process.env.ALLOWED_GROUPS.split(',') : [];
+function parseAllowedGroups(envVar) {
+    return new Set(envVar ? envVar.split(',') : []);
+}
+
+const ALLOWED_GROUPS = parseAllowedGroups(process.env.ALLOWED_GROUPS);
 
 console.log('🚀 AI WhatsApp Intelligence Collector Starting...');
 console.log(`📡 Backend URL: ${BACKEND_URL}`);
@@ -50,7 +54,7 @@ client.on('message', async (msg) => {
         if (!chat.isGroup) return;
 
         // Filter by allowed groups if configured
-        if (ALLOWED_GROUPS.length > 0 && !ALLOWED_GROUPS.includes(chat.id._serialized)) {
+        if (ALLOWED_GROUPS.size > 0 && !ALLOWED_GROUPS.has(chat.id._serialized)) {
             return;
         }
 
@@ -66,7 +70,7 @@ client.on('message', async (msg) => {
             content: msg.body,
             timestamp: msg.timestamp,
             is_media: msg.hasMedia,
-            quoted_msg_id: msg.hasQuotedMsg ? (await msg.getQuotedMessage()).id._serialized : null,
+            quoted_msg_id: msg.hasQuotedMsg ? (await msg.getQuotedMessage())?.id?._serialized : null,
         };
 
         // Forward to backend asynchronously
@@ -94,4 +98,11 @@ async function forwardToBackend(payload) {
 }
 
 // Start the client
-client.initialize();
+if (require.main === module) {
+    client.initialize();
+}
+
+module.exports = {
+    parseAllowedGroups,
+    forwardToBackend
+};

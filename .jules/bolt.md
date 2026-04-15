@@ -132,3 +132,11 @@ Learning:
 The `analyze_message` async method in the AI engine was flagged by `vulture` as unused because Celery workers use the sync `analyze_message_sync` method.
 Action:
 Removed the dead code block to improve maintainability and resolve the static analysis warning.
+
+## 2026-04-10 — Optimized ALLOWED_GROUPS filtering and enhanced optional chaining
+
+Learning:
+The collector node script used `Array.includes()` for checking if a group chat is allowed, which operates in O(N) time. Since this check runs for every incoming message, an array approach scales poorly with large configurations. In addition, nested object traversals for `getQuotedMessage` lacked optional chaining, making it susceptible to crashes when objects were missing. The client logic lacked modular testability by running on import.
+
+Action:
+Refactored the `ALLOWED_GROUPS` configuration parser to return a JavaScript `Set`, making membership checks `O(1)`. Added strict optional chaining `?.` for WhatsApp message lookups. Extracted logic and wrapped the initialization in an `if (require.main === module)` block to enable headless testing.
