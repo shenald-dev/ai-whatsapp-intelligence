@@ -7,14 +7,11 @@ require('dotenv').config();
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000/api/v1/ingest';
 const API_KEY = process.env.API_KEY;
 
-if (!API_KEY) {
-    throw new Error('API_KEY environment variable is not set');
+function parseAllowedGroups(envVar) {
+    return new Set(envVar ? envVar.split(',') : []);
 }
 
-const ALLOWED_GROUPS = process.env.ALLOWED_GROUPS ? process.env.ALLOWED_GROUPS.split(',') : [];
-
-console.log('🚀 AI WhatsApp Intelligence Collector Starting...');
-console.log(`📡 Backend URL: ${BACKEND_URL}`);
+const ALLOWED_GROUPS = parseAllowedGroups(process.env.ALLOWED_GROUPS);
 
 // Initialize client with safe session storage
 const client = new Client({
@@ -50,23 +47,24 @@ client.on('message', async (msg) => {
         if (!chat.isGroup) return;
 
         // Filter by allowed groups if configured
-        if (ALLOWED_GROUPS.length > 0 && !ALLOWED_GROUPS.includes(chat.id._serialized)) {
+        if (ALLOWED_GROUPS.size > 0 && !ALLOWED_GROUPS.has(chat?.id?._serialized)) {
             return;
         }
 
         const contact = await msg.getContact();
         
         // Construct the payload for the AI backend
+        const quotedMsg = msg.hasQuotedMsg ? await msg.getQuotedMessage() : null;
         const payload = {
-            message_id: msg.id._serialized,
-            group_id: chat.id._serialized,
-            group_name: chat.name,
-            sender_id: contact.id._serialized,
-            sender_name: contact.pushname || contact.name || 'Unknown',
+            message_id: msg?.id?._serialized,
+            group_id: chat?.id?._serialized,
+            group_name: chat?.name,
+            sender_id: contact?.id?._serialized,
+            sender_name: contact?.pushname || contact?.name || 'Unknown',
             content: msg.body,
             timestamp: msg.timestamp,
             is_media: msg.hasMedia,
-            quoted_msg_id: msg.hasQuotedMsg ? (await msg.getQuotedMessage()).id._serialized : null,
+            quoted_msg_id: quotedMsg?.id?._serialized || null,
         };
 
         // Forward to backend asynchronously
@@ -93,5 +91,19 @@ async function forwardToBackend(payload) {
     }
 }
 
-// Start the client
-client.initialize();
+if (require.main === module) {
+    if (!API_KEY) {
+        throw new Error('API_KEY environment variable is not set');
+    }
+
+    console.log('🚀 AI WhatsApp Intelligence Collector Starting...');
+    console.log(`📡 Backend URL: ${BACKEND_URL}`);
+
+    // Start the client
+    client.initialize();
+}
+
+module.exports = {
+    forwardToBackend,
+    parseAllowedGroups,
+};

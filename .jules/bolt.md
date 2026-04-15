@@ -132,3 +132,11 @@ Learning:
 The `analyze_message` async method in the AI engine was flagged by `vulture` as unused because Celery workers use the sync `analyze_message_sync` method.
 Action:
 Removed the dead code block to improve maintainability and resolve the static analysis warning.
+
+## 2026-04-15 — O(1) Allowed Groups & Safe Optional Chaining in Collector
+
+Learning:
+In high-volume WhatsApp group monitoring, filtering `ALLOWED_GROUPS` using an array `.includes()` creates an (N)$ lookup on the hot path for every incoming message. Additionally, deep property accesses on WhatsApp objects (like `msg.id._serialized`) risk runtime crashes if the object shape changes or properties are unexpectedly missing. Unwrapped top-level initializations prevent proper unit testing.
+
+Action:
+Refactored `ALLOWED_GROUPS` to be parsed into a JavaScript `Set` for (1)$ lookups using a new `parseAllowedGroups` function. Replaced deep property accesses with strict optional chaining (e.g., `msg?.id?._serialized`). Wrapped the main client initialization in an `if (require.main === module)` block and added native Node.js unit tests. Always prefer `Set` for inclusion checks and optional chaining for brittle third-party object interactions.
