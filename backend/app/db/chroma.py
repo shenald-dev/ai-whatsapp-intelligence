@@ -4,8 +4,6 @@ import chromadb
 
 logger = logging.getLogger(__name__)
 
-logger = logging.getLogger(__name__)
-
 CHROMA_HOST = os.getenv("CHROMA_HOST", "localhost")
 CHROMA_PORT = int(os.getenv("CHROMA_PORT", "8000"))
 
