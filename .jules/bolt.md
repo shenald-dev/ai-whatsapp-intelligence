@@ -132,3 +132,7 @@ Learning:
 The `analyze_message` async method in the AI engine was flagged by `vulture` as unused because Celery workers use the sync `analyze_message_sync` method.
 Action:
 Removed the dead code block to improve maintainability and resolve the static analysis warning.
+
+2024-05-24 — Node.js WhatsApp Collector Performance and Reliability
+Learning: Upgrading ALLOWED_GROUPS check to use Set.has() significantly improves event loop performance by reducing an O(N) array scan to O(1) in the hot-path message listener. Additionally, missing strict optional chaining on deep object references from third-party libraries (like `whatsapp-web.js` quoted messages) can crash the collector. Test isolation via `if (require.main === module)` for long-running clients is essential for testing Node.js services without hanging handles.
+Action: Always use `Set` for high-frequency inclusion checks in JavaScript event loops. Always defensively access deep nested properties using strict optional chaining `?.` when interfacing with uncontrolled third-party objects. Always wrap long-running client initializations in `require.main === module` for clean testability.
