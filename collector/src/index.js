@@ -49,6 +49,10 @@ client.on('auth_failure', msg => {
 // Primary Message Listener
 client.on('message', async (msg) => {
     try {
+        // Fast-path early returns to avoid expensive await msg.getChat()
+        if (!msg.from?.endsWith('@g.us')) return;
+        if (ALLOWED_GROUPS.size > 0 && !ALLOWED_GROUPS.has(msg.from)) return;
+
         const chat = await msg.getChat();
 
         // Only monitor group chats
