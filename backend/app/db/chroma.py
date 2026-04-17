@@ -44,3 +44,4 @@ def store_message_embedding(message_id: str, content: str, metadata: dict):
         )
     except Exception as e:
         logger.error(f"ChromaDB Error: {e}")
+        raise

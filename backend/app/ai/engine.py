@@ -56,7 +56,7 @@ class AIEngine:
             return result.model_dump()
         except Exception as e:
             logger.error(f"AI Analysis Error: {e}")
-            return {"sentiment": "neutral", "classification": "other"}
+            raise
 
 # Singleton
 ai_engine = AIEngine()

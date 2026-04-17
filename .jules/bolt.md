@@ -144,3 +144,11 @@ In `collector/src/index.js`, the primary message listener originally awaited `ms
 
 Action:
 Added an early return pattern in the message listener hot path using the raw string `msg.from` (e.g. checking `!msg.from?.endsWith('@g.us')` or `!ALLOWED_GROUPS.has(msg.from)`). This fast-path check prevents the expensive `await msg.getChat()` call from executing for irrelevant messages. Always prioritize fast, synchronous string matching over asynchronous API/database calls in hot-path event listeners to maintain high throughput.
+
+## 2026-04-17 — Fix Silent Error Swallowing in Sync Contexts & Ensure Transaction Isolation
+
+Learning:
+Exceptions raised during third-party client integrations (like LangChain LLM execution and ChromaDB client additions) were previously swallowed and replaced with dummy fallback data or silent logs. In background asynchronous task runners like Celery, swallowing exceptions prevents native task-retry mechanisms from firing and leads to silent data loss. Furthermore, performing an external API request (like ChromaDB inserts) *after* `session.commit()` created a split-brain transaction where a failed embedding insert wouldn't roll back the database mutation.
+
+Action:
+Removed dummy exception fallbacks inside `AIEngine.analyze_message_sync` and `store_message_embedding`, allowing exceptions to bubble up. Restructured the Celery background task `process_message` to execute `store_message_embedding` *before* `session.commit()`, and re-raised exceptions cleanly. Updated `enrich_message_task` decorator with `bind=True` and `max_retries=3` to handle the bubbling exceptions correctly via `self.retry()`.

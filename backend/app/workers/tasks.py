@@ -46,8 +46,6 @@ def process_message(message_id: str):
         msg.classification = analysis.get("classification")
         msg.is_analyzed = True
         
-        session.commit()
-
         # Store message in ChromaDB for semantic search
         metadata = {
             "group_id": group_id,
@@ -57,10 +55,12 @@ def process_message(message_id: str):
         }
         store_message_embedding(message_id, content, metadata)
 
+        session.commit()
+
         return {"status": "success", "message_id": message_id}
         
     except Exception as e:
         session.rollback()
-        return {"status": "error", "error": str(e)}
+        raise e
     finally:
         session.close()
