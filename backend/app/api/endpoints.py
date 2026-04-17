@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.sql import func
-from sqlalchemy import case
 from typing import List
 
 from ..db.database import get_db
@@ -24,12 +23,12 @@ async def get_group_stats(group_id: str, db: AsyncSession = Depends(get_db)):
     
     query = select(
         func.count(models.Message.id).label("total"),
-        func.coalesce(func.sum(case((models.Message.is_analyzed == True, 1), else_=0)), 0).label("analyzed"),  # noqa: E712
-        func.coalesce(func.sum(case((models.Message.sentiment == 'positive', 1), else_=0)), 0).label("positive"),
-        func.coalesce(func.sum(case((models.Message.sentiment == 'negative', 1), else_=0)), 0).label("negative"),
-        func.coalesce(func.sum(case((models.Message.sentiment == 'neutral', 1), else_=0)), 0).label("neutral"),
-        func.coalesce(func.sum(case((models.Message.classification == 'task', 1), else_=0)), 0).label("tasks"),
-        func.coalesce(func.sum(case((models.Message.classification == 'decision', 1), else_=0)), 0).label("decisions"),
+        func.count(models.Message.id).filter(models.Message.is_analyzed == True).label("analyzed"),  # noqa: E712
+        func.count(models.Message.id).filter(models.Message.sentiment == 'positive').label("positive"),
+        func.count(models.Message.id).filter(models.Message.sentiment == 'negative').label("negative"),
+        func.count(models.Message.id).filter(models.Message.sentiment == 'neutral').label("neutral"),
+        func.count(models.Message.id).filter(models.Message.classification == 'task').label("tasks"),
+        func.count(models.Message.id).filter(models.Message.classification == 'decision').label("decisions"),
     ).where(models.Message.group_id == group_id)
     
     result = await db.execute(query)
