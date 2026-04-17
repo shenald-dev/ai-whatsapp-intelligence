@@ -20,7 +20,10 @@ celery_app.conf.update(
 )
 
 # This will be called by FastAPI ingest endpoint
-@celery_app.task(name="enrich_message")
-def enrich_message_task(message_id: str):
+@celery_app.task(name="enrich_message", bind=True, max_retries=3)
+def enrich_message_task(self, message_id: str):
     from .tasks import process_message
-    return process_message(message_id)
+    try:
+        return process_message(message_id)
+    except Exception as exc:
+        raise self.retry(exc=exc, countdown=2 ** self.request.retries)
