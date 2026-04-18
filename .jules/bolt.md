@@ -152,3 +152,11 @@ Exceptions raised during third-party client integrations (like LangChain LLM exe
 
 Action:
 Removed dummy exception fallbacks inside `AIEngine.analyze_message_sync` and `store_message_embedding`, allowing exceptions to bubble up. Restructured the Celery background task `process_message` to execute `store_message_embedding` *before* `session.commit()`, and re-raised exceptions cleanly. Updated `enrich_message_task` decorator with `bind=True` and `max_retries=3` to handle the bubbling exceptions correctly via `self.retry()`.
+
+## 2024-05-24 — Refactor SQLAlchemy Aggregations for PostgreSQL
+
+Learning:
+In SQLAlchemy queries for PostgreSQL, using `func.coalesce(func.sum(case(...)), 0)` is verbose and less readable. PostgreSQL natively supports the `FILTER (WHERE ...)` clause for aggregate functions.
+
+Action:
+Replaced verbose `case` aggregations with `func.count().filter(...)` (e.g., `func.count(models.Message.id).filter(models.Message.is_analyzed == True)`) in backend queries. This results in cleaner Python code, generates standard SQL:2003 `COUNT(...) FILTER (WHERE ...)` queries, natively handles the default-to-0 case, and improves both readability and maintainability.
