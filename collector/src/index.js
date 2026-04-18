@@ -72,7 +72,7 @@ client.on('message', async (msg) => {
             group_name: chat.name,
             sender_id: contact.id._serialized,
             sender_name: contact.pushname || contact.name || 'Unknown',
-            content: msg.body,
+            content: msg.body || '',
             timestamp: msg.timestamp,
             is_media: msg.hasMedia,
             quoted_msg_id: msg.hasQuotedMsg ? (await msg.getQuotedMessage())?.id?._serialized : null,
@@ -95,7 +95,7 @@ async function forwardToBackend(payload) {
             },
             timeout: 5000 // 5 second timeout so we don't block
         });
-        console.log(`[SENT] ${payload.group_name} | ${payload.sender_name}: ${payload.content.substring(0, 30)}...`);
+        console.log(`[SENT] ${payload.group_name} | ${payload.sender_name}: ${(payload.content || '').substring(0, 30)}...`);
     } catch (error) {
         console.error(`[FAILED] Sending to backend: ${error.message}`);
         // Note: A production system would push this to a Redis retry queue here.

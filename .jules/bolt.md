@@ -160,3 +160,11 @@ In SQLAlchemy queries for PostgreSQL, using `func.coalesce(func.sum(case(...)), 
 
 Action:
 Replaced verbose `case` aggregations with `func.count().filter(...)` (e.g., `func.count(models.Message.id).filter(models.Message.is_analyzed == True)`) in backend queries. This results in cleaner Python code, generates standard SQL:2003 `COUNT(...) FILTER (WHERE ...)` queries, natively handles the default-to-0 case, and improves both readability and maintainability.
+
+## 2024-05-24 — Node.js Collector Correctness Fix & Backend Test Coverage
+
+Learning:
+In the Node.js `collector` service utilizing `whatsapp-web.js`, the `msg.body` attribute can occasionally be `undefined` (such as during system announcements or media-only messages). Passing an undefined body inside the JSON payload to the FastAPI webhook triggers a `422 Unprocessable Entity` because the Pydantic schema requires a string. Additionally, calling `.substring()` on an undefined body causes a runtime crash. Furthermore, the `backend/app/api/endpoints.py` router completely lacked unit tests.
+
+Action:
+Applied a defensive fallback `content: msg.body || ''` when constructing the JSON payload in `collector/src/index.js`, and safeguarded the `console.log` statement to prevent runtime crashes. Added `backend/tests/test_endpoints.py` to establish 100% test coverage for the `/groups` API routes using `pytest`, `TestClient`, and `AsyncMock` to isolate the endpoints from actual database queries.
