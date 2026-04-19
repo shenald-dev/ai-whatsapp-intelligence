@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.12] - 2026-04-18
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity post-optimizations of standard SQL FILTER usage in the dashboard. The `COUNT(id) FILTER (WHERE ...)` query resolves silent 0-row coalescing correctly and remains performant.
+* **Upgrades:** Checked minor/patch bumps for dependencies. Bumped version across projects to `1.0.12`.
+* **Pruning:** Added comprehensive unit tests for dashboard endpoint `get_group_stats` covering active elements and empty records. Removed `__pycache__` artifacts to reduce codebase entropy.
+
 ## [1.0.11] - 2026-04-17
 
 ### Assure, Prune, and Sync
