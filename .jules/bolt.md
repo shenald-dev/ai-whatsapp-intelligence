@@ -168,3 +168,11 @@ In the Node.js WhatsApp collector using `whatsapp-web.js`, `msg.body` can be `un
 
 Action:
 Always apply a fallback (e.g., `msg.body || ''`) when extracting text content from third-party message objects to prevent downstream validation errors and safeguard string operations.
+
+## 2026-04-19 — Replace ChromaDB `add` with `upsert` for idempotent background task retries
+
+Learning:
+The Celery background worker tasks were correctly configured with task-retry mechanisms (`max_retries=3`). However, within the Celery task, storing vectors in ChromaDB used `coll.add()`. Because ChromaDB throws an exception when adding a duplicate document ID, any network flake or downstream failure that caused a retry *after* the ChromaDB write succeeded would permanently block the retry from succeeding. This caused a retry failure loop and potential data desync on the SQL database level.
+
+Action:
+Refactored `store_message_embedding` in `backend/app/db/chroma.py` to use `coll.upsert()` instead of `coll.add()`. This makes the vector database injection fully idempotent and guarantees that Celery retries are safe. Always use `upsert` in decoupled, asynchronous architectures where components need to tolerate retry logic without failing on uniqueness constraints.
