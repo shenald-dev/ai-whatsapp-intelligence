@@ -160,3 +160,11 @@ In SQLAlchemy queries for PostgreSQL, using `func.coalesce(func.sum(case(...)), 
 
 Action:
 Replaced verbose `case` aggregations with `func.count().filter(...)` (e.g., `func.count(models.Message.id).filter(models.Message.is_analyzed == True)`) in backend queries. This results in cleaner Python code, generates standard SQL:2003 `COUNT(...) FILTER (WHERE ...)` queries, natively handles the default-to-0 case, and improves both readability and maintainability.
+
+## 2026-04-18 — Handle undefined message bodies in Node.js Collector
+
+Learning:
+In the Node.js WhatsApp collector using `whatsapp-web.js`, `msg.body` can be `undefined` (e.g., for system or media-only messages). Passing an undefined value causes a downstream validation error (e.g., FastAPI `422 Unprocessable Entity`) because the strictly-typed backend expects a string for the `content` field.
+
+Action:
+Always apply a fallback (e.g., `msg.body || ''`) when extracting text content from third-party message objects to prevent downstream validation errors and safeguard string operations.

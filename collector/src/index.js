@@ -72,7 +72,7 @@ client.on('message', async (msg) => {
             group_name: chat.name,
             sender_id: contact.id._serialized,
             sender_name: contact.pushname || contact.name || 'Unknown',
-            content: msg.body,
+            content: msg.body || '',
             timestamp: msg.timestamp,
             is_media: msg.hasMedia,
             quoted_msg_id: msg.hasQuotedMsg ? (await msg.getQuotedMessage())?.id?._serialized : null,
