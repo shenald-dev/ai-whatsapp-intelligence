@@ -93,11 +93,22 @@ async function forwardToBackend(payload) {
                 'Content-Type': 'application/json',
                 'X-API-Key': API_KEY
             },
-            timeout: 5000 // 5 second timeout so we don't block the event loop
+            timeout: 5000 // 5 second timeout so we don't block
         });
+        console.log(`[SENT] ${payload.group_name} | ${payload.sender_name}: ${(payload.content || '').substring(0, 30)}...`);
     } catch (error) {
-        console.error('⚠️ Error forwarding to backend:', error.message);
+        console.error(`[FAILED] Sending to backend: ${error.message}`);
+        // Note: A production system would push this to a Redis retry queue here.
     }
 }
 
-client.initialize();
+// Start the client only if run directly
+if (require.main === module) {
+    client.initialize();
+}
+
+module.exports = {
+    parseAllowedGroups,
+    forwardToBackend,
+    client // export for testing if needed
+};
