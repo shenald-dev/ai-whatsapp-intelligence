@@ -37,7 +37,7 @@ def store_message_embedding(message_id: str, content: str, metadata: dict):
         # Remove any keys where the value is None to prevent insertion errors.
         clean_metadata = {k: v for k, v in metadata.items() if v is not None}
 
-        coll.add(
+        coll.upsert(
             documents=[content],
             metadatas=[clean_metadata],
             ids=[message_id]

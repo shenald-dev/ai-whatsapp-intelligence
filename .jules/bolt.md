@@ -168,3 +168,11 @@ In the Node.js WhatsApp collector using `whatsapp-web.js`, `msg.body` can be `un
 
 Action:
 Always apply a fallback (e.g., `msg.body || ''`) when extracting text content from third-party message objects to prevent downstream validation errors and safeguard string operations.
+
+## 2026-04-19 — Make ChromaDB insertions idempotent
+
+Learning:
+In `backend/app/db/chroma.py`, the `store_message_embedding` function previously used `coll.add()` to insert new message embeddings into ChromaDB. However, because this function is called inside a Celery background task that could be retried (e.g. due to a transient failure during `session.commit()` *after* the ChromaDB insertion), a retry would attempt to insert the same message ID again. Using `add()` with an existing ID causes a duplicate ID exception, causing the task to fail continuously on retries.
+
+Action:
+Changed `coll.add()` to `coll.upsert()` in `store_message_embedding`. Always use idempotent operations like `upsert()` when interacting with external systems (like vector databases) from retryable background tasks to ensure safe execution under failure conditions.
