@@ -5,9 +5,15 @@ const proxyquire = require('proxyquire');
 // Mock axios so we don't make real network calls
 let axiosPostCalledWith = null;
 const axiosMock = {
-    post: async (url, payload, config) => {
-        axiosPostCalledWith = { url, payload, config };
-        return { status: 200 };
+    create: (config) => {
+        // Return a mock instance that captures the config passed to create
+        return {
+            defaults: config,
+            post: async (url, payload, reqConfig) => {
+                axiosPostCalledWith = { url, payload, config: { ...config, ...reqConfig } };
+                return { status: 200 };
+            }
+        };
     }
 };
 

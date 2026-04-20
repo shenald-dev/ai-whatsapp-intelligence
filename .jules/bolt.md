@@ -176,3 +176,11 @@ The Celery background worker tasks were correctly configured with task-retry mec
 
 Action:
 Refactored `store_message_embedding` in `backend/app/db/chroma.py` to use `coll.upsert()` instead of `coll.add()`. This makes the vector database injection fully idempotent and guarantees that Celery retries are safe. Always use `upsert` in decoupled, asynchronous architectures where components need to tolerate retry logic without failing on uniqueness constraints.
+
+## 2024-05-24 — Parallelize async operations and reuse TCP connections in Node.js webhook architectures
+
+Learning:
+In the Node.js WhatsApp collector hot path, `await`ing properties sequentially (`msg.getChat()`, then `msg.getContact()`, then `msg.getQuotedMessage()`) delays the construction of the webhook payload because each call blocks the event loop waiting for an IPC response from the Puppeteer instance. Additionally, `axios.post()` defaults to creating a new TCP/TLS connection for every webhook dispatch, which adds significant latency and overhead, severely impacting throughput during high message volume spikes.
+
+Action:
+Refactored the sequential `await`s to use `Promise.all()` to parallelize the asynchronous fetching of chat, contact, and quoted message details. Also, replaced the standalone `axios.post()` with an `axios.create()` instance configured with custom HTTP/HTTPS agents where `keepAlive: true`. Always use `Promise.all()` for independent async requests, and always enable `keepAlive` in Node.js clients sending high-volume webhook requests to reuse underlying TCP connections.

@@ -1,6 +1,8 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const axios = require('axios');
+const http = require('http');
+const https = require('https');
 require('dotenv').config();
 
 // Configuration
@@ -17,6 +19,7 @@ function parseAllowedGroups(envStr) {
 }
 
 const ALLOWED_GROUPS = parseAllowedGroups(process.env.ALLOWED_GROUPS);
+const MAX_CONCURRENT_REQUESTS = parseInt(process.env.MAX_CONCURRENT_REQUESTS || '100', 10);
 
 console.log('🚀 AI WhatsApp Intelligence Collector Starting...');
 console.log(`📡 Backend URL: ${BACKEND_URL}`);
@@ -53,18 +56,25 @@ client.on('message', async (msg) => {
         if (!msg.from?.endsWith('@g.us')) return;
         if (ALLOWED_GROUPS.size > 0 && !ALLOWED_GROUPS.has(msg.from)) return;
 
-        const chat = await msg.getChat();
-
-        // Only monitor group chats
-        if (!chat.isGroup) return;
-
-        // Filter by allowed groups if configured
-        if (ALLOWED_GROUPS.size > 0 && !ALLOWED_GROUPS.has(chat.id._serialized)) {
-            return;
-        }
-
-        const contact = await msg.getContact();
+        // Parallelize expensive asynchronous operations with error handling
+        const [chat, contact, quotedMsg] = await Promise.all([
+            msg.getChat().catch(e => {
+                console.error(`⚠️ Failed to fetch chat for ${msg.id._serialized}:`, e.message);
+                return null;
+            }),
+            msg.getContact().catch(e => {
+                console.error(`⚠️ Failed to fetch contact for ${msg.id._serialized}:`, e.message);
+                return null;
+            }),
+            (msg.hasQuotedMsg ? msg.getQuotedMessage() : Promise.resolve(null)).catch(e => {
+                console.error(`⚠️ Failed to fetch quoted msg for ${msg.id._serialized}:`, e.message);
+                return null;
+            })
+        ]);
         
+        // Ensure we have the minimum required entities
+        if (!chat || !contact) return;
+
         // Construct the payload for the AI backend
         const payload = {
             message_id: msg.id._serialized,
@@ -75,7 +85,7 @@ client.on('message', async (msg) => {
             content: msg.body || '',
             timestamp: msg.timestamp,
             is_media: msg.hasMedia,
-            quoted_msg_id: msg.hasQuotedMsg ? (await msg.getQuotedMessage())?.id?._serialized : null,
+            quoted_msg_id: quotedMsg?.id?._serialized || null,
         };
 
         // Forward to backend asynchronously
@@ -86,15 +96,20 @@ client.on('message', async (msg) => {
     }
 });
 
+// Configure axios instance with keepAlive and concurrency limit to reuse TCP connections
+const apiClient = axios.create({
+    httpAgent: new http.Agent({ keepAlive: true, maxSockets: MAX_CONCURRENT_REQUESTS }),
+    httpsAgent: new https.Agent({ keepAlive: true, maxSockets: MAX_CONCURRENT_REQUESTS }),
+    headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': API_KEY
+    },
+    timeout: 5000 // 5 second timeout so we don't block
+});
+
 async function forwardToBackend(payload) {
     try {
-        await axios.post(BACKEND_URL, payload, {
-            headers: {
-                'Content-Type': 'application/json',
-                'X-API-Key': API_KEY
-            },
-            timeout: 5000 // 5 second timeout so we don't block
-        });
+        await apiClient.post(BACKEND_URL, payload);
         console.log(`[SENT] ${payload.group_name} | ${payload.sender_name}: ${payload.content.substring(0, 30)}...`);
     } catch (error) {
         console.error(`[FAILED] Sending to backend: ${error.message}`);
