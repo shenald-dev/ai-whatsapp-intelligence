@@ -121,3 +121,4 @@ def test_get_recent_messages():
     assert data[0]["sentiment"] == "positive"
     assert data[0]["classification"] == "task"
     assert mock_db.execute.call_count == 1
+```
