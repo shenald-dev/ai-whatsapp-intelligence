@@ -59,3 +59,20 @@ test('forwardToBackend calls axios with correct payload and headers', async () =
     assert.strictEqual(axiosPostCalledWith.payload, payload);
     assert.strictEqual(axiosPostCalledWith.config.headers['X-API-Key'], 'test_key');
 });
+
+test('forwardToBackend handles payload with undefined content gracefully without crashing', async () => {
+    const payload = {
+        group_name: 'Test Group',
+        sender_name: 'Alice',
+        content: undefined
+    };
+
+    // Reset our mock state
+    axiosPostCalledWith = null;
+
+    // This should not throw an error (e.g., from .substring on undefined)
+    await forwardToBackend(payload);
+
+    assert.ok(axiosPostCalledWith !== null, 'axios.post was not called');
+    assert.strictEqual(axiosPostCalledWith.payload, payload);
+});
