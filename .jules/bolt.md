@@ -1,178 +1,310 @@
-## 2024-03-17 — Refactored group dashboard API to prevent OOM errors and reduce latency
+We are merging two versions of a markdown file: base (master) and head (PR).
+ The base branch (master) has the following sections (with dates and content):
+   - 2024-03-17: Refactored group dashboard API
+   - 2026-03-17: Missing Indexes on High Read Tables
+   - 2024-05-18: Refactored data seeding script to use asyncio.gather
+   - 2024-05-18: Enforce environment variables for sensitive credentials
+   - 2024-03-24: Fixed asyncio event loop deprecation in Celery worker (truncated in the base, but we have the full in the head? Actually, the base has a truncation note and then continues with more sections)
+   - Then it continues with:
+        ## 2024-05-24 — Parallelize async operations and reuse TCP connections in Node.js webhook architectures
+        ... (and then more sections until the end)
+
+ The head branch (PR) has:
+   - 2024-03-17: same as base
+   - 2026-03-17: same as base
+   - 2024-05-18: same as base (two entries: asyncio.gather and env vars)
+   - 2024-03-24: Fixed asyncio event loop deprecation in Celery worker (with more detail, and note: the base had a truncation but the head has the full section)
+   - Then:
+        ## 2024-05-24 — Refactor SQLAlchemy Aggregations for PostgreSQL
+        ... (this is a new section in the head that is not in the base? Actually, the base had a section for 2024-05-24 about Node.js webhook architectures, but the head has a different 2024-05-24 section about SQLAlchemy aggregations)
+   - Then:
+        ## 2026-04-18 — Handle undefined message bodies in Node.js Collector
+        ... (same in both)
+   - Then:
+        ## 2026-04-19 — ... (two different versions: base has "Replace ChromaDB `add` with `upsert`", head has "Make ChromaDB insertions idempotent")
+
+ However, note that the base branch also has a section for 2024-05-24 about Node.js webhook architectures, and the head branch does not have that? Actually, looking at the head branch provided, after the 2024-03-24 section, it goes to 2024-05-24 (Refactor SQLAlchemy Aggregations) and then 2026-04-18 and 2026-04-19.
+
+ But wait, the base branch had:
+   - 2024-03-24: Fixed asyncio event loop deprecation in Celery worker (truncated, but then continues with more content that we don't see because of truncation? Actually, the base branch provided in the problem has a truncation note and then continues with:
+        ... (truncated middle) ...
+        ## 2024-05-24 — Parallelize async operations and reuse TCP connections in Node.js webhook architectures
+        ... (and then more sections until the end)
+
+ However, the head branch provided in the problem does not have the Node.js webhook architectures section? Instead, it has a 2024-05-24 section about SQLAlchemy aggregations.
+
+ Let me re-read the problem:
+
+ Base branch (master) — the target:
+   ... (after the 2024-03-24 section, which is truncated) ...
+   ## 2024-05-24 — Parallelize async operations and reuse TCP connections in Node.js webhook architectures
+   ... (and then it continues until the end)
+
+ Head branch (fix/chromadb-idempotent-upsert-12615431947118469295) — the PR:
+   ... (after the 2024-03-24 section, which is not truncated and has more detail) ...
+   ## 2024-05-24 — Refactor SQLAlchemy Aggregations for PostgreSQL
+   ... (then 2026-04-18 and 2026-04-19)
+
+ So, we have a conflict in the 2024-05-24 section: base has one topic, head has another.
+
+ Also, note that the base branch has a section after 2024-05-24 (the Node.js webhook architectures) and then more sections? Actually, the base branch provided in the problem ends with the Node.js webhook architectures section? Let me check:
+
+ Base branch:
+   ... 
+   ## 2024-05-24 — Parallelize async operations and reuse TCP connections in Node.js webhook architectures
+   Learning:
+   ... 
+   Action:
+   ... 
+   (and then it ends? Actually, the problem says: "Output only the merged file content", and the base branch provided in the problem ends with that section? But wait, the base branch provided in the problem has a truncation note in the middle and then continues until the end? Actually, the base branch provided in the problem has:
+
+   ... (truncated middle) ...
+   ## 2024-03-24 — Fixed asyncio event loop deprecation in Celery worker
+   Learning:
+   ... 
+   Action:
+   ... 
+   ## 2024-05-24 — Parallelize async operations and reuse TCP connections in Node.js webhook architectures
+   ... 
+   (and then it stops? Actually, the problem says: "// ... 13593 characters truncated (middle section) ..." for the base, meaning that the base branch we are given is truncated in the middle? But then it shows the 2024-03-24 section and then the 2024-05-24 section? And then it ends? Actually, the base branch provided in the problem ends after the 2024-05-24 section? Let me see the exact text:
+
+   Base branch:
+   ```
+   ## 2024-03-17 — Refactored group dashboard API to prevent OOM errors and reduce latency
+   ... 
+   ## 2026-03-17 — Missing Indexes on High Read Tables
+   ... 
+   ## 2024-05-18 — Refactored data seeding script to use asyncio.gather
+   ... 
+   ## 2024-05-18 — Enforce environment variables for sensitive credentials
+   ... 
+   ## 2024-03-24 — Fixed asyncio event loop deprecation in Celery worker
+   Learning:
+   ... 
+   // ... 13593 characters truncated (middle section) ...
+   ls.Message.id).filter(models.Message.is_analyzed == True)`) in backend queries. This results in cleaner Python code, generates standard SQL:2003 `COUNT(...) FILTER (WHERE ...)` queries, natively handles the default-to-0 case, and improves both readability and maintainability.
+
+   ## 2026-04-18 — Handle undefined message bodies in Node.js Collector
+   ... 
+   ## 2026-04-19 — Replace ChromaDB `add` with `upsert` for idempotent background task retries
+   ... 
+   ## 2024-05-24 — Parallelize async operations and reuse TCP connections in Node.js webhook architectures
+   ... 
+   ```
+
+   So the base branch actually has:
+     - 2024-03-17
+     - 2026-03-17
+     - 2024-05-18 (two)
+     - 2024-03-24 (with a truncation note in the middle, but then it shows the end of that section? Actually, the truncation note is in the middle of the 2024-03-24 section? Then after the truncation, it shows the rest of the 2024-03-24 section? And then it has:
+          ## 2026-04-18 ...
+          ## 2026-04-19 ...
+          ## 2024-05-24 ...
 
-Learning:
-The API endpoint that computes group message statistics (`/groups/{group_id}/stats`) previously pulled all message records for a given group into memory to calculate counts in python. In a WhatsApp intelligence monitor handling large volumes of chat data, this would quickly lead to high memory consumption, garbage collection pauses, and eventually out-of-memory errors for groups with thousands of messages.
+   But wait, the truncation note says: "// ... 13593 characters truncated (middle section) ...", meaning that the 2024-03-24 section in the base branch is truncated in the middle, and then it shows the last part of that section? Then after that, it has the 2026-04-18 and 2026-04-19 sections, and then the 2024-05-24 section.
 
-Action:
-Refactored the dashboard API to push all group statistics aggregations (e.g., analyzed counts, sentiment breakdown, classification detection) down to the PostgreSQL database level using optimized `GROUP BY` and `CASE` aggregation queries (`func.sum(case(...))`). Ensure future metrics queries follow this pattern, shifting computational weight off the API nodes and taking advantage of SQL optimizations.
+   However, the head branch provided in the problem does not have the truncation note and has a full 2024-03-24 section, and then:
+        ## 2024-05-24 — Refactor SQLAlchemy Aggregations for PostgreSQL
+        ... 
+        ## 2026-04-18 ...
+        ## 2026-04-19 — Make ChromaDB insertions idempotent
 
-## 2026-03-17 — Missing Indexes on High Read Tables
+   So, to summarize the sections we have:
 
-Learning:
-The database model for `Message` tracks raw WhatsApp ingestion traffic. However, its primary access patterns (`get_recent_messages` and `get_group_stats`) filter intensely on `group_id` and order by `timestamp`, both of which were unindexed. The `Summary` table similarly lacked an index on `group_id`.
+   Base branch (master) has:
+     1. 2024-03-17
+     2. 2026-03-17
+     3. 2024-05-18 (asyncio.gather)
+     4. 2024-05-18 (env vars)
+     5. 2024-03-24 (with the truncation, but we have the end of it: the part about SQLAlchemy aggregations? Actually, the base branch shows after the truncation: 
+          "ls.Message.id).filter(models.Message.is_analyzed == True)`) in backend queries. This results in cleaner Python code, ..."
+        which is actually the beginning of the 2024-05-24 section? Wait, no, that doesn't match.
 
-Action:
-Added `index=True` to `group_id`, `sender_id`, and `timestamp` on the `Message` table, and `group_id` on the `Summary` table. Future model additions must be analyzed for their high-read patterns to determine optimal indices prior to production data scaling.
+   Let me read the base branch again:
 
-## 2024-05-18 — Refactored data seeding script to use asyncio.gather
+   After the 2024-03-24 section heading, it says:
+        Learning:
+        [truncated note] 
+        ls.Message.id).filter(models.Message.is_analyzed == True)`) in backend queries. This results in cleaner Python code, ... 
 
-Learning:
-The database seeding script (`backend/seed.py`) was running AI analysis tasks sequentially in a loop, creating an I/O-bound bottleneck due to the nature of `ai_engine.analyze_message` and causing significant delays.
+   This seems to be a mistake? Actually, the 2024-03-24 section is about fixing asyncio event loop deprecation in Celery worker, but the text after the truncation note is about SQLAlchemy aggregations? That doesn't belong.
 
-Action:
-Refactored the data seeding process to execute AI analysis concurrently using `asyncio.gather`. Future bulk processing operations that depend on I/O-bound tasks should follow this concurrent execution pattern.
+   Alternatively, the truncation note might be indicating that the entire middle of the file is truncated, and then it resumes at the 2024-05-24 section? But the heading says 2024-03-24.
 
-## 2024-05-18 — Enforce environment variables for sensitive credentials
+   This is confusing.
 
-Learning:
-Multiple modules in the project relied on hardcoded default values for critical secrets and infrastructure URLs (e.g. `DATABASE_URL`, `API_KEY`, `REDIS_URL`). This exposes secure defaults when environments are misconfigured and allows applications to startup pointing to incorrect, insecure development databases when running in a production or staging cluster.
+   However, note the problem says: 
+        "Base branch (master) — the target:"
 
-Action:
-Refactored the core configuration blocks to explicitly fail fast by raising a `ValueError` (or throwing an `Error` in Node.js) when required environment variables are absent. Always enforce explicit environment variables for sensitive credentials and connections, rejecting hardcoded fallbacks to guarantee predictable, secure deployments.
+   and then the content.
 
-## 2024-03-24 — Fixed asyncio event loop deprecation in Celery worker
+   And the head branch is provided similarly.
 
-Learning:
-The Celery worker `process_message` task was manually managing the asyncio event loop using `asyncio.get_event_loop()`, which throws deprecation warnings and can cause `RuntimeError` in newer Python versions (3.10+) when called outside the main thread without an existing loop.
+   Given the complexity, I think we should rely on the fact that the head branch (PR) is the one we are merging in, and we are to prefer the head branch for conflicts, but also keep all changes from both.
 
-Action:
-Refactored the synchronous to asynchronous execution bridge in the Celery worker to use `asyncio.run()`. This cleanly handles event loop creation and teardown. Future asynchronous calls within synchronous contexts should prefer `asyncio.run()` to prevent event loop lifecycle issues.
+   Let's list all the sections we see in both, by date and heading:
 
-## 2024-05-18 — Use SimpleLRUCache to reduce database I/O for entity existence checks
+   Base branch (master) sections (as given in the problem, ignoring the truncation note as a marker that the middle is missing but we have the end of the 2024-03-24 section and then the following sections):
 
-Learning:
-The webhook `ingest_message` endpoint made redundant DB calls to check if a group or user existed for every message, unnecessarily hitting the database during high-traffic message ingestion events and causing a database bottleneck.
+     - 2024-03-17: Refactored group dashboard API
+     - 2026-03-17: Missing Indexes on High Read Tables
+     - 2024-05-18: Refactored data seeding script to use asyncio.gather
+     - 2024-05-18: Enforce environment variables for sensitive credentials
+     - 2024-03-24: Fixed asyncio event loop deprecation in Celery worker   [but note: the content shown after the truncation note is actually about SQLAlchemy? This seems inconsistent. However, the problem states that the base branch has a truncation in the middle, so the 2024-03-24 section might be incomplete in the base branch we are given? But then it shows the end of that section? Actually, the text after the truncation note is: 
+          "ls.Message.id).filter(models.Message.is_analyzed == True)`) in backend queries. This results in cleaner Python code, ..."
+        which is clearly about SQLAlchemy aggregations, not about the Celery event loop.
 
-Action:
-Implemented an in-memory `SimpleLRUCache` (via `collections.OrderedDict`) to keep track of known `group_id` and `user_id`s, reducing DB `get` and `add` operations for frequently seen entities. Crucially, cache entries are only populated after a successful database commit to prevent cache poisoning on rollback. We should continue caching frequently checked, immutable (or rarely mutating) identities across APIs.
+     This suggests that the truncation note might be misplaced? Or perhaps the 2024-03-24 section in the base branch is actually the SQLAlchemy section? But the heading says 2024-03-24.
 
-## 2024-05-18 — Activated Celery Background Task for AI Enrichment
+   Alternatively, the base branch might have two sections with the same date? But that's unlikely.
 
-Learning:
-The webhook `ingest_message` endpoint successfully saved messages to the database but merely had a placeholder comment `# NOTE: Here we would trigger a Celery task...` instead of actually executing the background processing step. This caused the core AI enrichment functionality to be skipped during message ingestion.
+   Let me look at the head branch: it has a 2024-03-24 section that is about fixing asyncio event loop deprecation in Celery worker (with more detail) and then a 2024-05-24 section about SQLAlchemy aggregations.
 
-Action:
-Imported `celery_app` from `.workers.celery_config` and called `celery_app.send_task("enrich_message", args=[msg.id])` to properly trigger the AI background task after committing a new message to the database. Additionally, added a `unittest.mock.patch` for `app.main.celery_app.send_task` in the `test_ingest_message_caching` test to avoid requiring a real Redis backend during automated test runs. Always ensure that the functional loop of features is completed, and asynchronous hooks are actually invoked.
+   And the base branch, after the truncation note, shows text that matches the head branch's 2024-05-24 section? 
 
-## 2026-03-27 — Integrated ChromaDB & Fixed Early Connection Crashes
+   Specifically, the base branch after the truncation note says:
+        ls.Message.id).filter(models.Message.is_analyzed == True)`) in backend queries. This results in cleaner Python code, generates standard SQL:2003 `COUNT(...) FILTER (WHERE ...)` queries, natively handles the default-to-0 case, and improves both readability and maintainability.
 
-Learning:
-The project's README specifies a vector database (ChromaDB) for semantic search, and `backend/app/db/chroma.py` was created. However, it was not being utilized by any pipelines. Furthermore, importing `chromadb` instantiated a connection at the module level. If the ChromaDB server was down (or in a test environment where it isn't required), simply running tests or importing modules would trigger a `ValueError: Could not connect to a Chroma server` and crash the application entirely.
+   And the head branch's 2024-05-24 section (Refactor SQLAlchemy Aggregations for PostgreSQL) has:
+        Action:
+        Replaced verbose `case` aggregations with `func.count().filter(...)` (e.g., `func.count(models.Message.id).filter(models.Message.is_analyzed == True)`) in backend queries. This results in cleaner Python code, generates standard SQL:2003 `COUNT(...) FILTER (WHERE ...)` queries, natively handles the default-to-0 case, and improves both readability and maintainability.
 
-Action:
-Refactored `backend/app/db/chroma.py` to use lazy initialization, instantiating the connection and collection only when a query or insertion is made. Integrated ChromaDB into the Celery task (`backend/app/workers/tasks.py`) and seeding script (`backend/seed.py`) to actively index message content and extracted metadata (`group_id`, `sender_id`, `sentiment`, `classification`). Always decouple external connection logic from module imports to prevent catastrophic application startup failures.
+   So it matches.
 
-## 2025-03-28 — DB Connection Exhaustion in Celery Tasks
+   Therefore, I think the base branch provided in the problem has:
+        - The 2024-03-24 section is truncated in the middle, and then it shows the beginning of the 2024-05-24 section? But wait, the heading after the truncation note is not shown? Actually, the base branch provided in the problem does not show a heading for the SQLAlchemy section? It just shows the content.
 
-Learning:
-Celery workers holding synchronous database transactions open while waiting for external LLM API calls causes database connection pool exhaustion under load, significantly degrading performance and reliability.
+   Actually, the base branch provided in the problem has:
 
-Action:
-Always release or commit database transactions (e.g. `session.commit()`) before blocking on slow external network I/O in worker tasks, then re-acquire the required objects if necessary afterwards.
+        ## 2024-03-24 — Fixed asyncio event loop deprecation in Celery worker
+        Learning:
+        [truncation note]
+        ls.Message.id).filter(models.Message.is_analyzed == True)`) in backend queries. ... 
 
-## 2025-05-18 — Added webhook idempotency to prevent redundant processing
+        ## 2026-04-18 — Handle undefined message bodies in Node.js Collector
+        ...
 
-Learning:
-The webhook ingestion endpoint `ingest_message` lacked an idempotency check for incoming messages. If a message payload was delivered multiple times (which is common in webhook architectures, e.g. due to retries or network blips), the endpoint would attempt to process and save the duplicate message, leading to a `500 IntegrityError` or wasted database cycles and background task triggers.
+   This is problematic because the content under the 2024-03-24 section is not about Celery worker but about SQLAlchemy.
 
-Action:
-Added a preemptive idempotency check at the beginning of the `ingest_message` handler in `backend/app/main.py`. The endpoint now verifies if `payload.message_id` already exists in the database. If it does, it immediately returns a `200 OK` with a detail message ("Already ingested"), bypassing further database operations and background tasks. This prevents duplicate errors, reduces unnecessary I/O, and improves system resilience. Future webhook handlers should always include idempotency checks.
+   Given the confusion, I will assume that the base branch (master) as provided in the problem has the following sections (by heading):
 
-## 2026-03-29 — Fixed Timing Attack Vulnerability in API Key Comparison
+        ## 2024-03-17 — ...
+        ## 2026-03-17 — ...
+        ## 2024-05-18 — ... (asyncio.gather)
+        ## 2024-05-18 — ... (env vars)
+        ## 2024-03-24 — Fixed asyncio event loop deprecation in Celery worker   [but the content we see after the truncation note is actually from a different section?]
+        ## 2026-04-18 — ...
+        ## 2026-04-19 — Replace ChromaDB `add` with `upsert` ...
+        ## 2024-05-24 — Parallelize async operations and reuse TCP connections in Node.js webhook architectures
 
-Learning:
-The `get_api_key` dependency function in `backend/app/main.py` was previously using a standard equality operator (`==`) to verify the API key. This exposed the endpoint to timing attacks, where an attacker could theoretically measure the time taken to reject an invalid key and use that information to guess the correct key character by character. Additionally, `datetime.fromtimestamp()` was creating naive datetime objects, which can lead to timezone drift issues when saved to PostgreSQL.
+   And the head branch (PR) has:
 
-Action:
-Refactored `get_api_key` to use `secrets.compare_digest()` for constant-time comparison, mitigating timing attacks. Also updated the timestamp conversion to use `tz=timezone.utc` to ensure timezone-aware datetime objects are stored in the database correctly.
+        ## 2024-03-17 — ... (same)
+        ## 2026-03-17 — ... (same)
+        ## 2024-05-18 — ... (asyncio.gather) [same]
+        ## 2024-05-18 — ... (env vars) [same]
+        ## 2024-03-24 — Fixed asyncio event loop deprecation in Celery worker   [with full content, not truncated]
+        ## 2024-05-24 — Refactor SQLAlchemy Aggregations for PostgreSQL
+        ## 2026-04-18 — Handle undefined message bodies in Node.js Collector   [same]
+        ## 2026-04-19 — Make ChromaDB insertions idempotent   [different wording but same idea]
 
-## 2026-04-01 — Refactored Celery task dispatch to avoid blocking async event loop
+   Now, note that the base branch has a section for 2024-05-24 about Node.js webhook architectures, and the head branch has a section for 2024-05-24 about SQLAlchemy aggregations.
 
-Learning:
-In the FastAPI backend, the message ingestion webhook `/api/v1/ingest` was using `celery_app.send_task` synchronously to trigger AI enrichment background tasks. Since this endpoint is an asynchronous coroutine (`async def`), calling a synchronous I/O-bound method directly blocks the event loop, preventing the server from handling other concurrent requests and causing severe performance degradation and latency spikes during high message volume.
+   Also, the base branch has a section for 2026-04-19 about ChromaDB upsert (with a specific action about using upsert in the ChromaDB task to prevent retry loops), and the head branch has a section for 2026-04-19 about making ChromaDB insertions idempotent (which is essentially the same change: using upsert).
 
-Action:
-Refactored the synchronous Celery task dispatch to run in a separate thread using `await asyncio.to_thread(celery_app.send_task, "enrich_message", args=[msg.id])`. Future synchronous I/O operations from third-party libraries within async endpoints must similarly be offloaded to threads to maintain ASGI server responsiveness.
+   How to merge:
 
-## 2024-04-01 — Replace print statements with proper logging
+   We want to keep all changes from both branches.
 
-Learning:
-The codebase was using raw `print()` statements for error reporting in some critical modules (`backend/app/db/chroma.py`, `backend/app/ai/engine.py`), which bypasses standard log formatting, structured logging, and log routing tools, making it harder to debug in production.
+   For sections that are the same in both (like 2024-03-17, 2026-03-17, the two 2024-05-18 sections, 2026-04-18), we can take either (they are identical).
 
-Action:
-Ensure the standard Python `logging` module is used with module-level loggers (`logger = logging.getLogger(__name__)`) for all application events and errors instead of `print()` statements.
+   For the 2024-03-24 section:
+        Base: has a truncated version (but we are given the content after the truncation note, which we now believe is actually misplaced? However, the problem states the base branch has that truncation note and then shows that content. But we also know that the head branch has a full 2024-03-24 section about Celery worker.
+        Since the head branch has the full and correct section for 2024-03-24 (about Celery worker), and the base branch's version of that section is truncated and then shows unrelated content (which we now think belongs to a later section), we should take the head branch's version for the 2024-03-24 section.
 
-## 2026-04-03 — Webhook Concurrency & Upsert Race Condition
+        However, note: the base branch's provided content for 2024-03-24 section is incomplete and then shows content that we believe is from 2024-05-24. So we cannot trust the base branch's 2024-03-24 section beyond the heading and the learning part (which is truncated). Therefore, we take the head branch's 2024-03-24 section.
 
-Learning:
-The webhook `ingest_message` endpoint previously checked for the existence of groups and users (`db.get()`), and if missing, created them (`db.add()`). During a high-concurrency event (e.g. initial group ingestion where multiple messages are delivered simultaneously), this get-check-add pattern causes a race condition. Multiple webhook handlers see that a group/user does not exist and attempt to `db.add()` the same ID simultaneously. Only the first commit succeeds, while subsequent handlers crash with a `500 IntegrityError` (UniqueViolation).
+   For the 2024-05-24 section:
+        Base: has a section about Node.js webhook architectures (Parallelize async operations and reuse TCP connections)
+        Head: has a section about SQLAlchemy aggregations (Refactor SQLAlchemy Aggregations for PostgreSQL)
 
-Action:
-Refactored the entity creation logic to use PostgreSQL's native UPSERT capability (`insert(...).on_conflict_do_nothing()`). This offloads the concurrency safety to the database level, preventing `IntegrityError` exceptions while maintaining correct data state. Always use `ON CONFLICT DO NOTHING` (or `DO UPDATE`) for inserts in high-concurrency or webhook architectures rather than application-level get-check-add patterns.
-## 2024-05-24 — Prevent IntegrityError Race Conditions in Webhooks
+        These are two different changes. We want to keep both.
 
-Learning: Concurrent duplicate payload deliveries to webhook endpoints (like `/api/v1/ingest`) can cause `IntegrityError` exceptions and redundant background tasks when using the traditional `db.get()` then `db.add()` pattern, even if an idempotency check is present, because the check and insert are not atomic.
+        But note: they have the same date and the same heading format? Actually, the headings are different:
 
-Action: Always use PostgreSQL's native UPSERT via `sqlalchemy.dialects.postgresql.insert(...).on_conflict_do_nothing().returning(...)` executed with `db.execute()` instead of `db.add()` for concurrent-safe entity creation in webhook ingestion pipelines.
+          Base: "## 2024-05-24 — Parallelize async operations and reuse TCP connections in Node.js webhook architectures"
+          Head: "## 2024-05-24 — Refactor SQLAlchemy Aggregations for PostgreSQL"
 
-## 2024-03-24 — Fix transaction scoping when handling database insertion race conditions
+        So they are two distinct sections that happen to have the same date. We should keep both.
 
-Learning:
-When handling UPSERT queries inside FastAPI endpoints where the result is used to check for concurrent inserts (e.g. idempotency where the UPSERT `.scalar()` returns `None`), earlier updates (such as UPSERTs on parent objects like User and Group models) will not be committed to the database or written to cache if you short-circuit early and forget to call `db.commit()` beforehand.
+        However, in a markdown file, we cannot have two sections with the same heading? Actually, we can, but it would be confusing. But the problem does not say that the headings must be unique. We are to merge the content.
 
-Action:
-Ensure that `db.commit()` is called *before* short-circuiting a request handling logic due to early return condition resulting from database race conditions resolving smoothly, and ensure that cache states update accordingly.
+        But note: the base branch and head branch both have a section for 2024-05-24, but with different descriptions. We should keep both sections.
 
-## 2026-04-08 — Optimize Celery worker memory constraints
-Learning: In synchronous celery workers, repeatedly calling `asyncio.run()` for executing asynchronous LLM calls introduces significant memory overhead and event loop lifecycle costs, which degrades worker performance under high message ingestion load.
-Action: Implemented synchronous versions of AI client methods (e.g., using LangChain's `.invoke()`) to avoid wrapping asynchronous network calls within synchronous contexts. Future synchronous Celery workers should natively prefer synchronous library clients to eliminate event loop initialization overhead.
+        How? We can have two sections with the same date? Or we can change the heading of one? But the problem says: keep all meaningful changes.
 
-2026-04-04 — Dead Code in AI Engine
-Learning:
-The `analyze_message` async method in the AI engine was flagged by `vulture` as unused because Celery workers use the sync `analyze_message_sync` method.
-Action:
-Removed the dead code block to improve maintainability and resolve the static analysis warning.
+        Since the changes are in different parts of the file (and the base branch has one 2024-05-24 section and the head branch has a different 2024-05-24 section), we should keep both.
 
-2024-05-24 — Node.js WhatsApp Collector Performance and Reliability
-Learning: Upgrading ALLOWED_GROUPS check to use Set.has() significantly improves event loop performance by reducing an O(N) array scan to O(1) in the hot-path message listener. Additionally, missing strict optional chaining on deep object references from third-party libraries (like `whatsapp-web.js` quoted messages) can crash the collector. Test isolation via `if (require.main === module)` for long-running clients is essential for testing Node.js services without hanging handles.
-Action: Always use `Set` for high-frequency inclusion checks in JavaScript event loops. Always defensively access deep nested properties using strict optional chaining `?.` when interfacing with uncontrolled third-party objects. Always wrap long-running client initializations in `require.main === module` for clean testability.
+        However, in the base branch, the 2024-05-24 section (Node.js webhook) comes after the 2026-04-19 section? Actually, in the base branch:
 
-## 2024-05-24 — Add early returns in WhatsApp collector hot path
+          ... 
+          ## 2026-04-19 — Replace ChromaDB `add` with `upsert` ...
+          ## 2024-05-24 — Parallelize async operations and reuse TCP connections in Node.js webhook architectures
 
-Learning:
-In `collector/src/index.js`, the primary message listener originally awaited `msg.getChat()` on every incoming message *before* checking if the message was from a monitored group. Under heavy load or a large number of unmonitored incoming messages, this caused severe event loop blocking and memory allocation.
+        In the head branch:
 
-Action:
-Added an early return pattern in the message listener hot path using the raw string `msg.from` (e.g. checking `!msg.from?.endsWith('@g.us')` or `!ALLOWED_GROUPS.has(msg.from)`). This fast-path check prevents the expensive `await msg.getChat()` call from executing for irrelevant messages. Always prioritize fast, synchronous string matching over asynchronous API/database calls in hot-path event listeners to maintain high throughput.
+          ... 
+          ## 2024-03-24 — ... 
+          ## 2024-05-24 — Refactor SQLAlchemy Aggregations for PostgreSQL
+          ## 2026-04-18 — ...
+          ## 2026-04-19 — ...
 
-## 2026-04-17 — Fix Silent Error Swallowing in Sync Contexts & Ensure Transaction Isolation
+        So the order is different.
 
-Learning:
-Exceptions raised during third-party client integrations (like LangChain LLM execution and ChromaDB client additions) were previously swallowed and replaced with dummy fallback data or silent logs. In background asynchronous task runners like Celery, swallowing exceptions prevents native task-retry mechanisms from firing and leads to silent data loss. Furthermore, performing an external API request (like ChromaDB inserts) *after* `session.commit()` created a split-brain transaction where a failed embedding insert wouldn't roll back the database mutation.
+        We must preserve the order of sections as they appear in the base branch? Or we can reorder? The problem doesn't specify.
 
-Action:
-Removed dummy exception fallbacks inside `AIEngine.analyze_message_sync` and `store_message_embedding`, allowing exceptions to bubble up. Restructured the Celery background task `process_message` to execute `store_message_embedding` *before* `session.commit()`, and re-raised exceptions cleanly. Updated `enrich_message_task` decorator with `bind=True` and `max_retries=3` to handle the bubbling exceptions correctly via `self.retry()`.
+        But note: the base branch (master) is the target, and we are merging the PR into it. Typically, we would keep the order of the base branch and insert the new sections from the PR in the appropriate place.
 
-## 2024-05-24 — Refactor SQLAlchemy Aggregations for PostgreSQL
+        However, the PR (head branch) has a 2024-05-24 section that is about SQLAlchemy, and the base branch already has a 2024-05-24 section (about Node.js). We want to keep both.
 
-Learning:
-In SQLAlchemy queries for PostgreSQL, using `func.coalesce(func.sum(case(...)), 0)` is verbose and less readable. PostgreSQL natively supports the `FILTER (WHERE ...)` clause for aggregate functions.
+        How to order? By date, they are the same. But we can order by the time of the change? Not given.
 
-Action:
-Replaced verbose `case` aggregations with `func.count().filter(...)` (e.g., `func.count(models.Message.id).filter(models.Message.is_analyzed == True)`) in backend queries. This results in cleaner Python code, generates standard SQL:2003 `COUNT(...) FILTER (WHERE ...)` queries, natively handles the default-to-0 case, and improves both readability and maintainability.
+        Alternatively, we can keep the base branch's order and then insert the PR's new sections in the order they appear in the PR, but avoiding duplicates.
 
-## 2026-04-18 — Handle undefined message bodies in Node.js Collector
+        However, the problem says: "Keep ALL meaningful changes from BOTH branches"
 
-Learning:
-In the Node.js WhatsApp collector using `whatsapp-web.js`, `msg.body` can be `undefined` (e.g., for system or media-only messages). Passing an undefined value causes a downstream validation error (e.g., FastAPI `422 Unprocessable Entity`) because the strictly-typed backend expects a string for the `content` field.
+        And: "If both branches modified the same lines differently, prefer the HEAD branch (PR) unless base has an obvious bug fix"
 
-Action:
-Always apply a fallback (e.g., `msg.body || ''`) when extracting text content from third-party message objects to prevent downstream validation errors and safeguard string operations.
+        Here, the two 2024-05-24 sections are not modifying the same lines; they are two different sections that happen to have the same date. So we should keep both.
 
-## 2026-04-19 — Make ChromaDB insertions idempotent
+        But note: in the base branch, after the 2026-04-19 section, there is the 2024-05-24 section (Node.js). In the head branch, the 2024-05-24 section (SQLAlchemy) comes right after the 2024-03-24 section and before the 2026-04-18 section.
 
-Learning:
-In `backend/app/db/chroma.py`, the `store_message_embedding` function previously used `coll.add()` to insert new message embeddings into ChromaDB. However, because this function is called inside a Celery background task that could be retried (e.g. due to a transient failure during `session.commit()` *after* the ChromaDB insertion), a retry would attempt to insert the same message ID again. Using `add()` with an existing ID causes a duplicate ID exception, causing the task to fail continuously on retries.
+        We have to decide where to put the SQLAlchemy section from the head branch.
 
-Action:
-Changed `coll.add()` to `coll.upsert()` in `store_message_embedding`. Always use idempotent operations like `upsert()` when interacting with external systems (like vector databases) from retryable background tasks to ensure safe execution under failure conditions.
+        Since the base branch does not have the SQLAlchemy section at all, we should insert it in the head branch's relative position? Or we can put it after the base branch's 2024-05-24 section? 
+
+        However, the problem does not specify the order. But to be safe, we can follow the order of the head branch for the sections that are only in the head branch, and keep the base branch's order for the sections that are only in the base branch, and for common sections we take the head branch's version (if there was a conflict) or either (if same).
+
+        But note: the base branch has a section for 2024-05-24 (Node.js) and the head branch has a section for 2024-05-24 (SQLAlchemy). They are different.
+
+        Approach:
+
+        We will go through the base branch and the head branch and merge by section heading.
+
+        However, the problem does not require us to preserve the exact order of the base branch? But typically in a merge, we keep the base branch's order and insert the new sections from the PR in the order they appear in the PR at the point where they diverge.
+
+        Given the complexity and the fact that the problem says "Output only the merged file content", and we are to prefer the head branch for conflicts, I propose:
+
+        We will create a list of sections from the base branch, and then for each section in the head branch that is not in the base branch (by heading), we insert it in the position it appears in the head branch relative to the sections that are common.
+
+        But note: the head branch has a section that the base branch does not have: the 2024-05-24 (SQLAlchemy) section.
+
+        And the base branch has a section that the head branch does not have: the 2024-05-24 (Node.js webhook) section? Actually, wait: the head branch does not have the Node.js webhook section? Let me check the head branch provided in the problem:
+
+          Head branch:
+            ... 
+            ## 2024-03-24 — Fixed asyncio event loop deprecation in Celery worker
+            ... 
+            ## 2024-05-24 — Refactor SQLAlchemy Aggregations for PostgreSQL
+            ## 2026-04-18 — Handle undefined message bodies in Node.js Collector
+            ## 2026-04-19 — Make ChromaDB insert
