@@ -19,6 +19,7 @@ function parseAllowedGroups(envStr) {
 }
 
 const ALLOWED_GROUPS = parseAllowedGroups(process.env.ALLOWED_GROUPS);
+const MAX_CONCURRENT_REQUESTS = parseInt(process.env.MAX_CONCURRENT_REQUESTS || '100', 10);
 
 console.log('🚀 AI WhatsApp Intelligence Collector Starting...');
 console.log(`📡 Backend URL: ${BACKEND_URL}`);
@@ -55,13 +56,25 @@ client.on('message', async (msg) => {
         if (!msg.from?.endsWith('@g.us')) return;
         if (ALLOWED_GROUPS.size > 0 && !ALLOWED_GROUPS.has(msg.from)) return;
 
-        // Parallelize expensive asynchronous operations
+        // Parallelize expensive asynchronous operations with error handling
         const [chat, contact, quotedMsg] = await Promise.all([
-            msg.getChat(),
-            msg.getContact(),
-            msg.hasQuotedMsg ? msg.getQuotedMessage() : Promise.resolve(null)
+            msg.getChat().catch(e => {
+                console.error(`⚠️ Failed to fetch chat for ${msg.id._serialized}:`, e.message);
+                return null;
+            }),
+            msg.getContact().catch(e => {
+                console.error(`⚠️ Failed to fetch contact for ${msg.id._serialized}:`, e.message);
+                return null;
+            }),
+            (msg.hasQuotedMsg ? msg.getQuotedMessage() : Promise.resolve(null)).catch(e => {
+                console.error(`⚠️ Failed to fetch quoted msg for ${msg.id._serialized}:`, e.message);
+                return null;
+            })
         ]);
         
+        // Ensure we have the minimum required entities
+        if (!chat || !contact) return;
+
         // Construct the payload for the AI backend
         const payload = {
             message_id: msg.id._serialized,
@@ -83,10 +96,10 @@ client.on('message', async (msg) => {
     }
 });
 
-// Configure axios instance with keepAlive to reuse TCP connections
+// Configure axios instance with keepAlive and concurrency limit to reuse TCP connections
 const apiClient = axios.create({
-    httpAgent: new http.Agent({ keepAlive: true }),
-    httpsAgent: new https.Agent({ keepAlive: true }),
+    httpAgent: new http.Agent({ keepAlive: true, maxSockets: MAX_CONCURRENT_REQUESTS }),
+    httpsAgent: new https.Agent({ keepAlive: true, maxSockets: MAX_CONCURRENT_REQUESTS }),
     headers: {
         'Content-Type': 'application/json',
         'X-API-Key': API_KEY

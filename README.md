@@ -20,7 +20,7 @@ Perfect for teams, communities, and digital agencies who need to extract the "si
 
 ### 🚀 Key Features
 
-* **📡 Headless WhatsApp Collector:** Uses `whatsapp-web.js` to securely listen to groups without draining your phone battery.
+* **📡 Headless WhatsApp Collector:** Uses `whatsapp-web.js` to securely listen to groups without draining your phone battery. Now features HTTP Keep-Alive connection pooling for enhanced webhook dispatch throughput and lower latency.
 * **🤖 Cognitive AI Engine:** Powered by LangChain and OpenRouter (Anthropic Haiku / OpenAI).
 * **🎯 Message Classification:** Automatically flags messages as `Task`, `Decision`, `Question`, or `Announcement`.
 * **🧠 Vector Memory:** Integrates **ChromaDB** for semantic search and topic tracking over time.
