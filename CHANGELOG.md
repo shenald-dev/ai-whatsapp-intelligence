@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.13] - 2026-04-20
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity post-optimizations. Re-verified robust backend and node tests properly pass.
+* **Upgrades:** Bumped patch version for node dependency `axios` to `^1.15.1`, and python dependencies `pydantic`, `filelock`, and `pydantic-settings`. Bumped project versions to `1.0.13`.
+* **Pruning:** Removed `__pycache__` artifacts to reduce codebase entropy.
+
 ## [1.0.12] - 2026-04-18
 
 ### Assure, Prune, and Sync
