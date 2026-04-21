@@ -28,8 +28,6 @@ def test_ingest_message_caching(mock_send_task):
     client = TestClient(app)
 
     mock_db = AsyncMock()
-    # Mock db.get to return None (so it adds to db)
-    mock_db.get.return_value = None
     mock_db.add = MagicMock()
 
     # Override dependencies
@@ -57,7 +55,6 @@ def test_ingest_message_caching(mock_send_task):
     assert response.status_code == 200
 
     # Assert DB methods were called
-    assert mock_db.get.call_count == 1 # msg idempotency check
     assert mock_db.execute.call_count == 3 # group upsert, user upsert, message upsert
     assert mock_db.add.call_count == 0  # no longer using add
     assert mock_db.commit.call_count == 1
@@ -69,26 +66,29 @@ def test_ingest_message_caching(mock_send_task):
 
     # Reset mocks
     mock_db.reset_mock()
+    mock_send_task.reset_mock()
 
-    # Second request (simulate existing message for idempotency check)
-    mock_db.get.return_value = MagicMock() # Mock returning an existing message
+    # Second request (simulate existing message for idempotency check via UPSERT)
+    mock_execute_result.scalar.return_value = None
+    mock_db.execute.return_value = mock_execute_result
+
     response = client.post("/api/v1/ingest", json=payload)
     assert response.status_code == 200
     assert response.json().get("detail") == "Already ingested"
 
-    # Assert DB get and execute were NOT called further
-    assert mock_db.get.call_count == 1 # Only the idempotency check
-    assert mock_db.execute.call_count == 0
-    assert mock_db.add.call_count == 0
-    assert mock_db.commit.call_count == 0
+    # Assert DB execute was called for UPSERT but celery wasn't called
+    # NOTE: Since the first request already inserted group and user into the cache,
+    # entity_cache.get() will return True for them on the second request.
+    # Therefore, ONLY the message UPSERT will be executed! Thus call_count == 1.
+    assert mock_db.execute.call_count == 1
+    assert mock_db.commit.call_count == 1
+    mock_send_task.assert_not_called()
 
 @patch("app.main.celery_app.send_task")
 def test_ingest_message_concurrent_insert(mock_send_task):
     client = TestClient(app)
 
     mock_db = AsyncMock()
-    # Mock db.get to return None (so it adds to db)
-    mock_db.get.return_value = None
 
     # Override dependencies
     app.dependency_overrides[get_db] = lambda: mock_db
