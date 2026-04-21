@@ -184,3 +184,11 @@ In the Node.js WhatsApp collector hot path, `await`ing properties sequentially (
 
 Action:
 Refactored the sequential `await`s to use `Promise.all()` to parallelize the asynchronous fetching of chat, contact, and quoted message details. Also, replaced the standalone `axios.post()` with an `axios.create()` instance configured with custom HTTP/HTTPS agents where `keepAlive: true`. Always use `Promise.all()` for independent async requests, and always enable `keepAlive` in Node.js clients sending high-volume webhook requests to reuse underlying TCP connections.
+
+## 2026-04-21 — Eliminate duplicate DB read check in webhook hot-path
+
+Learning:
+In `backend/app/main.py`, the `ingest_message` webhook contained an explicit idempotency check using `await db.get(models.Message, payload.message_id)`. However, later in the function, it performed an UPSERT (`insert(...).on_conflict_do_nothing()`) and manually handled early returns when the UPSERT returned `None`. This meant that the initial `db.get` read was entirely redundant, adding a full network round-trip overhead to the critical hot path of webhook ingestion.
+
+Action:
+Removed the initial `db.get` pre-check from the `ingest_message` webhook. Relying natively on the PostgreSQL `ON CONFLICT DO NOTHING` statement avoids race conditions and eliminates the duplicate query overhead, making the hot path leaner and more efficient. Always trust native database constraints and UPSERTs instead of speculative application-level reads.
