@@ -37,6 +37,8 @@ class AIEngine:
             partial_variables={"format_instructions": self.parser.get_format_instructions()},
         )
 
+        self.chain = self.prompt | self.llm | self.parser if self.llm else None
+
 
     def analyze_message_sync(self, content: str) -> dict:
         """Runs the message through the LLM to extract metadata (synchronous)."""
@@ -51,8 +53,7 @@ class AIEngine:
             }
 
         try:
-            chain = self.prompt | self.llm | self.parser
-            result: MessageAnalysis = chain.invoke({"message": content})
+            result: MessageAnalysis = self.chain.invoke({"message": content})
             return result.model_dump()
         except Exception as e:
             logger.error(f"AI Analysis Error: {e}")
