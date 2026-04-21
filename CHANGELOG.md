@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.14] - 2026-04-22
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity post-optimizations of the hot path eliminating the redundant db.get read check on webhook ingestion. Verified robust passing tests for idempotent db.execute behavior in duplicate message cases.
+* **Upgrades:** Bumped patch version for node dependency `axios` to `^1.15.2` and python dependencies `idna`, `posthog`, and `psycopg2-binary`.
+* **Pruning:** Pruned `__pycache__` artifacts to reduce codebase entropy.
+
 ## [1.0.13] - 2026-04-20
 
 ### Assure, Prune, and Sync
