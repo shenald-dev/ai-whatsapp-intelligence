@@ -1,7 +1,8 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi.testclient import TestClient
-from app.main import app, entity_cache, SimpleLRUCache, get_api_key
+from app.main import app, entity_cache, SimpleLRUCache
+from app.api.auth import get_api_key
 from app.db.database import get_db
 
 @pytest.fixture(autouse=True)

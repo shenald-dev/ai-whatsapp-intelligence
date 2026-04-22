@@ -197,3 +197,11 @@ Removed the initial `db.get` pre-check from the `ingest_message` webhook. Relyin
 Learning: Building LangChain `RunnableSequence` objects dynamically inside the hot-path execution method for each message ingestion generates unnecessary memory allocation and CPU overhead, decreasing worker throughput.
 
 Action: Pre-compile and store LangChain chains in the class `__init__` constructor when possible, reusing the sequence for all incoming invocations instead of recreating it on every request.
+
+## 2026-04-22 — Secure dashboard endpoints and modularize authentication logic
+
+Learning:
+Dashboard endpoints in `backend/app/api/endpoints.py` were previously unprotected and completely open to unauthenticated requests. Additionally, authentication logic was tightly coupled within `main.py`, making it difficult to re-use across router modules without introducing circular dependencies.
+
+Action:
+Extracted API key authentication logic into a new dedicated module `backend/app/api/auth.py`. Added `dependencies=[Depends(get_api_key)]` to the dashboard `APIRouter` to properly secure all analytics endpoints against unauthorized access. Updated test files with `app.dependency_overrides` to simulate authentication cleanly during test execution. Always ensure that sensitive internal endpoints are explicitly protected and auth logic is modularized.
