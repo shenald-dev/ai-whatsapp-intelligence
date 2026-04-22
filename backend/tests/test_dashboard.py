@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 from fastapi.testclient import TestClient
 from app.main import app
 from app.db.database import get_db
+from app.api.auth import get_api_key
 
 @pytest.fixture(autouse=True)
 def cleanup():
@@ -28,6 +29,7 @@ def test_get_group_stats():
     mock_db.execute.return_value = mock_execute_result
 
     app.dependency_overrides[get_db] = lambda: mock_db
+    app.dependency_overrides[get_api_key] = lambda: "valid-key"
 
     response = client.get("/api/v1/dashboard/groups/grp1/stats")
     assert response.status_code == 200
@@ -61,6 +63,7 @@ def test_get_group_stats_empty():
     mock_db.execute.return_value = mock_execute_result
 
     app.dependency_overrides[get_db] = lambda: mock_db
+    app.dependency_overrides[get_api_key] = lambda: "valid-key"
 
     response = client.get("/api/v1/dashboard/groups/grp2/stats")
     assert response.status_code == 200

@@ -7,8 +7,9 @@ from typing import List
 from ..db.database import get_db
 from ..db import models
 from .schemas import MessageResponse
+from .auth import get_api_key
 
-router = APIRouter(prefix="/api/v1/dashboard", tags=["Dashboard"])
+router = APIRouter(prefix="/api/v1/dashboard", tags=["Dashboard"], dependencies=[Depends(get_api_key)])
 
 @router.get("/groups", response_model=List[dict])
 async def get_groups(db: AsyncSession = Depends(get_db)):
