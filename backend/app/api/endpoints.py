@@ -24,7 +24,7 @@ async def get_group_stats(group_id: str, db: AsyncSession = Depends(get_db)):
     
     query = select(
         func.count(models.Message.id).label("total"),
-        func.count(models.Message.id).filter(models.Message.is_analyzed == True).label("analyzed"),  # noqa: E712
+        func.count(models.Message.id).filter(models.Message.is_analyzed.is_(True)).label("analyzed"),
         func.count(models.Message.id).filter(models.Message.sentiment == 'positive').label("positive"),
         func.count(models.Message.id).filter(models.Message.sentiment == 'negative').label("negative"),
         func.count(models.Message.id).filter(models.Message.sentiment == 'neutral').label("neutral"),

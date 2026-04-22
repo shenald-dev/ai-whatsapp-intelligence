@@ -205,3 +205,11 @@ Dashboard endpoints in `backend/app/api/endpoints.py` were previously unprotecte
 
 Action:
 Extracted API key authentication logic into a new dedicated module `backend/app/api/auth.py`. Added `dependencies=[Depends(get_api_key)]` to the dashboard `APIRouter` to properly secure all analytics endpoints against unauthorized access. Updated test files with `app.dependency_overrides` to simulate authentication cleanly during test execution. Always ensure that sensitive internal endpoints are explicitly protected and auth logic is modularized.
+
+## 2026-04-23 — Optimize Database Performance and Reliability
+
+Learning:
+Unbounded or unconfigured database connection pools can lead to connection exhaustion and dropped connection errors, especially under burst loads of webhook requests. Furthermore, querying ordered by timestamp for specific groups can cause slow sequential scans if not explicitly indexed. Lastly, `vulture` and other static analysis tools will flag `== True` boolean filters, which can be cleanly resolved using SQLAlchemy's `.is_(True)`.
+
+Action:
+Configured SQLAlchemy engines in both `database.py` and `tasks.py` with `pool_size=20`, `max_overflow=10`, and `pool_pre_ping=True` to improve resilience against burst traffic and stale connections. Added a composite index `(group_id, timestamp)` to the `Message` model to optimize dashboard retrieval queries. Refactored `== True` boolean comparisons in queries to use `.is_(True)` for cleaner static analysis.

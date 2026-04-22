@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Boolean, DateTime, Text, ForeignKey
+from sqlalchemy import Column, String, Boolean, DateTime, Text, ForeignKey, Index
 from sqlalchemy.sql import func
 from .database import Base
 
@@ -32,3 +32,7 @@ class Message(Base):
     sentiment = Column(String, nullable=True) # positive, negative, neutral
     classification = Column(String, nullable=True) # question, task, announcement, discussion
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        Index("ix_messages_group_id_timestamp", "group_id", "timestamp"),
+    )
