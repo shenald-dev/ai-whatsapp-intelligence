@@ -6,6 +6,8 @@ import secrets
 API_KEY_NAME = "X-API-Key"
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
 
+# The API key is sourced from the API_KEY environment variable.
+# It should be a strong, secret value injected by the deployment environment.
 API_KEY = os.getenv("API_KEY")
 if not API_KEY:
     raise ValueError("API_KEY environment variable is not set")
