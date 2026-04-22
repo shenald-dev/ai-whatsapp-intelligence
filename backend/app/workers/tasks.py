@@ -14,7 +14,12 @@ SYNC_DB_URL = os.getenv("SYNC_DATABASE_URL")
 if not SYNC_DB_URL:
     raise ValueError("SYNC_DATABASE_URL environment variable is not set")
 
-engine = create_engine(SYNC_DB_URL)
+engine = create_engine(
+    SYNC_DB_URL,
+    pool_size=20,
+    max_overflow=10,
+    pool_pre_ping=True
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def process_message(message_id: str):
