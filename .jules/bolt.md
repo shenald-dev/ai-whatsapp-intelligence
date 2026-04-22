@@ -192,3 +192,8 @@ In `backend/app/main.py`, the `ingest_message` webhook contained an explicit ide
 
 Action:
 Removed the initial `db.get` pre-check from the `ingest_message` webhook. Relying natively on the PostgreSQL `ON CONFLICT DO NOTHING` statement avoids race conditions and eliminates the duplicate query overhead, making the hot path leaner and more efficient. Always trust native database constraints and UPSERTs instead of speculative application-level reads.
+## 2026-04-22 — Pre-compile LangChain chains to reduce runtime overhead
+
+Learning: Building LangChain `RunnableSequence` objects dynamically inside the hot-path execution method for each message ingestion generates unnecessary memory allocation and CPU overhead, decreasing worker throughput.
+
+Action: Pre-compile and store LangChain chains in the class `__init__` constructor when possible, reusing the sequence for all incoming invocations instead of recreating it on every request.
