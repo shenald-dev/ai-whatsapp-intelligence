@@ -213,3 +213,27 @@ Unbounded or unconfigured database connection pools can lead to connection exhau
 
 Action:
 Configured SQLAlchemy engines in both `database.py` and `tasks.py` with `pool_size=20`, `max_overflow=10`, and `pool_pre_ping=True` to improve resilience against burst traffic and stale connections. Added a composite index `(group_id, timestamp)` to the `Message` model to optimize dashboard retrieval queries. Refactored `== True` boolean comparisons in queries to use `.is_(True)` for cleaner static analysis.
+
+## 2024-05-24 — Remove Redundant Database Indexes
+
+Learning:
+In SQLAlchemy, explicitly setting `index=True` on columns that are already marked as `primary_key=True` is redundant because the primary key constraint automatically creates a unique index. Similarly, creating a separate index for a column (like `group_id`) that is already the leading column of a composite index (like `(group_id, timestamp)`) wastes disk space and degrades write performance without adding any query benefit.
+
+Action:
+Removed the redundant `index=True` configurations on `id` columns for `Message`, `Group`, and `User` models, and removed the single-column `group_id` index. Ensured the explicit composite index `Index("ix_messages_group_id_timestamp", "group_id", "timestamp")` remained intact to handle dashboard retrieval queries.
+
+## 2024-05-24 — Enforce String Bounds in Pydantic Ingestion Schemas
+
+Learning:
+The `MessageIngest` schema lacked `max_length` bounds on its string properties. Unbounded payloads can lead to memory exhaustion and database column saturation attacks when processing external webhooks.
+
+Action:
+Added `Field(..., max_length=X)` to all string fields in `MessageIngest` (e.g., `255` for short identifiers and `65536` for message content) to harden the ingestion endpoint.
+
+## 2024-05-24 — Optimize Database Query by Primary Key
+
+Learning:
+Using `session.query(Model).filter(Model.id == pk).first()` is less efficient than `session.get(Model, pk)` because the latter automatically checks the SQLAlchemy identity map first, preventing a database round-trip if the object is already loaded in the session.
+
+Action:
+Replaced the `query.filter` pattern with `session.get` in `backend/app/workers/tasks.py` for fetching `Message` instances.
