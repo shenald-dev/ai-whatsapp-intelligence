@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.16] - 2026-04-24
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity post-optimizations of database indexes (removing redundant primary key/composite indexes) and hardening Pydantic schemas against unbounded inputs. Verified database lookup queries use efficient `session.get()` bypassing redundant fetches. Tests correctly pass validating database queries and schemas.
+* **Upgrades:** Audited minor/patch bumps. All backend (`pyproject.toml`) and collector (`package.json`) dependencies remain safely up to date.
+* **Pruning:** Pruned `__pycache__` artifacts to reduce codebase entropy.
+
 ## [1.0.15] - 2026-04-23
 
 ### Assure, Prune, and Sync
