@@ -71,3 +71,30 @@ def test_get_group_stats_empty():
     assert data["total_messages"] == 0
     assert data["ai_analyzed"] == 0
     assert data["tasks_detected"] == 0
+
+def test_get_recent_messages_pagination():
+    client = TestClient(app)
+    mock_db = AsyncMock()
+
+    mock_execute_result = MagicMock()
+    mock_execute_result.scalars.return_value.all.return_value = [
+        MagicMock(id="msg1", content="Hello", sentiment="neutral", classification="discussion")
+    ]
+    mock_db.execute.return_value = mock_execute_result
+
+    app.dependency_overrides[get_db] = lambda: mock_db
+    app.dependency_overrides[get_api_key] = lambda: "valid-key"
+
+    response = client.get("/api/v1/dashboard/groups/grp1/messages?limit=10&offset=20")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["id"] == "msg1"
+
+def test_get_recent_messages_limit_validation():
+    client = TestClient(app)
+    app.dependency_overrides[get_api_key] = lambda: "valid-key"
+
+    # limit > 100 should be rejected by validation
+    response = client.get("/api/v1/dashboard/groups/grp1/messages?limit=200")
+    assert response.status_code == 422

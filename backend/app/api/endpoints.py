@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.sql import func
@@ -57,12 +57,18 @@ async def get_group_stats(group_id: str, db: AsyncSession = Depends(get_db)):
     }
 
 @router.get("/groups/{group_id}/messages", response_model=List[MessageResponse])
-async def get_recent_messages(group_id: str, limit: int = 50, db: AsyncSession = Depends(get_db)):
+async def get_recent_messages(
+    group_id: str,
+    limit: int = Query(50, ge=1, le=100, description="Max messages to fetch"),
+    offset: int = Query(0, ge=0, description="Pagination offset"),
+    db: AsyncSession = Depends(get_db)
+):
     """Fetch recent messages with their AI analysis attached."""
     result = await db.execute(
         select(models.Message)
         .where(models.Message.group_id == group_id)
         .order_by(models.Message.timestamp.desc())
         .limit(limit)
+        .offset(offset)
     )
     return result.scalars().all()
