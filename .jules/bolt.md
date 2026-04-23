@@ -237,3 +237,11 @@ Using `session.query(Model).filter(Model.id == pk).first()` is less efficient th
 
 Action:
 Replaced the `query.filter` pattern with `session.get` in `backend/app/workers/tasks.py` for fetching `Message` instances.
+
+## 2026-04-23 — Add Pagination and Bounds Validation to Messages API
+
+Learning:
+The `/groups/{group_id}/messages` endpoint allowed unbounded payload limits, creating a vector for database CPU and memory exhaustion attacks via an excessively large `limit` parameter, and lacked pagination capabilities for handling large datasets.
+
+Action:
+Added `fastapi.Query` constraints to enforce a maximum limit (e.g., `le=100`) and introduced an `offset` parameter to safely paginate large sets of message records. Updated backend unit tests to verify bounds validation and pagination logic.
