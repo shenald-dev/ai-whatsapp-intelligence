@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.15] - 2026-04-23
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity post-optimizations that secured dashboard API endpoints and prevented circular dependencies by moving `get_api_key` to a dedicated `auth.py` module. Re-verified robust backend and node tests properly pass.
+* **Upgrades:** Bumped patch version for python dependencies `certifi`, `idna`, `click`, `typer`, and `onnxruntime`. Node.js dependencies remain up to date.
+* **Pruning:** Pruned `__pycache__` artifacts to reduce codebase entropy.
+
 ## [1.0.14] - 2026-04-22
 
 ### Assure, Prune, and Sync
