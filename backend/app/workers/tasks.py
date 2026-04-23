@@ -26,7 +26,7 @@ def process_message(message_id: str):
     """Celery task worker to enrich a message with AI."""
     session = SessionLocal()
     try:
-        msg = session.query(Message).filter(Message.id == message_id).first()
+        msg = session.get(Message, message_id)
         if not msg or msg.is_analyzed or not msg.content:
             return {"status": "skipped", "reason": "Not found, analyzed, or empty"}
 
@@ -42,7 +42,7 @@ def process_message(message_id: str):
         analysis = ai_engine.analyze_message_sync(content)
 
         # Re-acquire the message in a new transaction
-        msg = session.query(Message).filter(Message.id == message_id).first()
+        msg = session.get(Message, message_id)
         if not msg:
             return {"status": "error", "reason": "Message deleted during analysis"}
 
