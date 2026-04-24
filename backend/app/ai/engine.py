@@ -3,7 +3,8 @@ import logging
 from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain.output_parsers import PydanticOutputParser
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+from typing import Literal
 
 logger = logging.getLogger(__name__)
 
@@ -12,8 +13,19 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 BASE_URL = "https://openrouter.ai/api/v1"
 
 class MessageAnalysis(BaseModel):
-    sentiment: str = Field(description="The sentiment of the message: positive, negative, or neutral")
-    classification: str = Field(description="One of: question, task, announcement, discussion, or other")
+    sentiment: Literal["positive", "negative", "neutral"] = Field(
+        description="The sentiment of the message"
+    )
+    classification: Literal["question", "task", "decision", "announcement", "discussion", "other"] = Field(
+        description="The classification of the message"
+    )
+
+    @field_validator("sentiment", "classification", mode="before")
+    @classmethod
+    def lowercase_values(cls, v: str) -> str:
+        if isinstance(v, str):
+            return v.lower().strip()
+        return v
 
 class AIEngine:
     def __init__(self):
