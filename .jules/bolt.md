@@ -245,3 +245,11 @@ The `/groups/{group_id}/messages` endpoint allowed unbounded payload limits, cre
 
 Action:
 Added `fastapi.Query` constraints to enforce a maximum limit (e.g., `le=100`) and introduced an `offset` parameter to safely paginate large sets of message records. Updated backend unit tests to verify bounds validation and pagination logic.
+
+## 2026-04-24 — Enforce Pydantic Output Validation for AI Schema
+
+Learning:
+The `MessageAnalysis` Pydantic model used plain `str` fields, leaving output unrestricted and susceptible to hallucinations, especially omitting the 'decision' classification which caused a discrepancy since the dashboard specifically counts 'decisions'.
+
+Action:
+Refactored `MessageAnalysis` fields to use `typing.Literal` with explicit values (including 'decision'). Also added a `mode="before"` `field_validator` to lowercase string values before validation, increasing robustness against LLM capitalization variations.
