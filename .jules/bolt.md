@@ -253,3 +253,10 @@ The `MessageAnalysis` Pydantic model used plain `str` fields, leaving output unr
 
 Action:
 Refactored `MessageAnalysis` fields to use `typing.Literal` with explicit values (including 'decision'). Also added a `mode="before"` `field_validator` to lowercase string values before validation, increasing robustness against LLM capitalization variations.
+## 2025-04-25 — FastAPI Background Tasks Optimization
+
+Learning:
+Using `asyncio.to_thread` for dispatching external IO operations (like Celery jobs) from endpoint handlers can block the API response.
+
+Action:
+Use `BackgroundTasks` instead of `asyncio.to_thread` to natively enqueue tasks in the background, significantly reducing API latency by returning the HTTP response immediately.
