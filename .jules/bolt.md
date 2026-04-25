@@ -253,3 +253,10 @@ The `MessageAnalysis` Pydantic model used plain `str` fields, leaving output unr
 
 Action:
 Refactored `MessageAnalysis` fields to use `typing.Literal` with explicit values (including 'decision'). Also added a `mode="before"` `field_validator` to lowercase string values before validation, increasing robustness against LLM capitalization variations.
+## 2026-04-25 — Optimize Webhook Event Loop with BackgroundTasks
+
+Learning:
+In FastAPI, using `await asyncio.to_thread` to dispatch a long-running or external IO task (like enqueueing a Celery job) from an endpoint handler causes the webhook response to be blocked until that thread dispatch finishes. This delays the HTTP response and unnecessarily blocks the caller's event loop.
+
+Action:
+Replaced `await asyncio.to_thread` with `BackgroundTasks.add_task(...)` in the `/api/v1/ingest` webhook endpoint. This allows FastAPI to return the successful HTTP response immediately, and natively enqueues the Celery dispatch task into the background execution pool post-response. Always use FastAPI's `BackgroundTasks` for post-response operations to optimize API latency and free the client quickly.
