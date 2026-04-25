@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+
+## [1.0.17] - 2026-04-25
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity post-optimizations enforcing strict Pydantic validation (using `Literal`) for AI message analysis. Re-verified robust backend and node tests properly pass.
+* **Upgrades:** Bumped patch version for node dependency `whatsapp-web.js` to `^1.34.7` and python backend dependencies via poetry update.
+* **Pruning:** Pruned `__pycache__` artifacts to reduce codebase entropy.
+
 ## [1.0.16] - 2026-04-24
 
 ### Assure, Prune, and Sync

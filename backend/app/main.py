@@ -25,7 +25,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="AI WhatsApp Intelligence API",
     description="Backend API for ingesting, analyzing, and retrieving WhatsApp group intelligence.",
-    version="1.0.16",
+    version="1.0.17",
     lifespan=lifespan
 )
 
@@ -139,6 +139,9 @@ async def ingest_message(
         return {"status": "success", "message_id": payload.message_id, "detail": "Already ingested"}
         
     # Trigger a Celery task to run AI enrichment asynchronously
+
     background_tasks.add_task(safe_send_task, "enrich_message", args=[inserted_id])
+
+
     
     return {"status": "success", "message_id": inserted_id}
