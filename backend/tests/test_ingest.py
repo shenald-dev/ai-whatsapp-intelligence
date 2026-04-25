@@ -24,7 +24,7 @@ def test_lru_cache():
     assert cache.get("3") is True
 
 
-@patch("app.main.celery_app.send_task")
+@patch("app.main.safe_send_task")
 def test_ingest_message_caching(mock_send_task):
     client = TestClient(app)
 
@@ -85,7 +85,7 @@ def test_ingest_message_caching(mock_send_task):
     assert mock_db.commit.call_count == 1
     mock_send_task.assert_not_called()
 
-@patch("app.main.celery_app.send_task")
+@patch("app.main.safe_send_task")
 def test_ingest_message_concurrent_insert(mock_send_task):
     client = TestClient(app)
 

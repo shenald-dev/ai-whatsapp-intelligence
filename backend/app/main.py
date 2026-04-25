@@ -5,6 +5,7 @@ import os
 from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 import collections
+import logging
 from sqlalchemy.dialects.postgresql import insert
 
 from .db.database import engine, get_db
@@ -61,6 +62,14 @@ class SimpleLRUCache:
 
 # Cache for entity existence checks
 entity_cache = SimpleLRUCache(1000)
+
+logger = logging.getLogger(__name__)
+
+def safe_send_task(*args, **kwargs):
+    try:
+        celery_app.send_task(*args, **kwargs)
+    except Exception as e:
+        logger.error(f"Failed to dispatch Celery task: {e}")
 
 @app.get("/")
 async def root():
@@ -130,6 +139,6 @@ async def ingest_message(
         return {"status": "success", "message_id": payload.message_id, "detail": "Already ingested"}
         
     # Trigger a Celery task to run AI enrichment asynchronously
-    background_tasks.add_task(celery_app.send_task, "enrich_message", args=[inserted_id])
+    background_tasks.add_task(safe_send_task, "enrich_message", args=[inserted_id])
     
     return {"status": "success", "message_id": inserted_id}
