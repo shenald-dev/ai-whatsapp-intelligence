@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 import os
@@ -71,6 +71,7 @@ async def root():
 @app.post("/api/v1/ingest")
 async def ingest_message(
     payload: MessageIngest, 
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     _api_key: str = Depends(get_api_key)
 ):
@@ -130,6 +131,6 @@ async def ingest_message(
         return {"status": "success", "message_id": payload.message_id, "detail": "Already ingested"}
         
     # Trigger a Celery task to run AI enrichment asynchronously
-    await asyncio.to_thread(celery_app.send_task, "enrich_message", args=[inserted_id])
+    background_tasks.add_task(celery_app.send_task, "enrich_message", args=[inserted_id])
     
     return {"status": "success", "message_id": inserted_id}
