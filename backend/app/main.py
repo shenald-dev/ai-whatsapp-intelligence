@@ -140,7 +140,10 @@ async def ingest_message(
         
     # Trigger a Celery task to run AI enrichment asynchronously
 
+
     background_tasks.add_task(safe_send_task, "enrich_message", args=[inserted_id])
+
+
 
 
     
