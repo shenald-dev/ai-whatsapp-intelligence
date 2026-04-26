@@ -268,3 +268,19 @@ Unbounded limit queries on the `/groups` API endpoint and missing timestamp limi
 
 Action:
 To prevent application crashes and 500 Internal Server errors caused by out-of-range values passed to `datetime.fromtimestamp()`, enforce integer bounds on timestamp fields in Pydantic schemas (e.g., `timestamp: int = Field(..., ge=0, le=4102444800)`). Also enforce constraints for paginated endpoints via `fastapi.Query`.
+
+## 2026-04-26 — Enforce single-responsibility patches
+
+Learning:
+Bundling multiple disjointed improvements (such as adding database indexes and truncating payload strings) into a single commit violates the core directive of focusing on ONE meaningful improvement per run.
+
+Action:
+Strictly adhere to the rule of focusing on ONE meaningful improvement per run to ensure patches remain small, safe, and easily reviewable.
+
+## 2026-04-26 — Prevent unprocessable entity by truncating payloads
+
+Learning:
+When constructing message payloads in the Node.js collector, string fields can exceed the `max_length` bounds defined in the backend's Pydantic schema, causing `422 Unprocessable Entity` validation failures and data loss.
+
+Action:
+Truncate string fields (e.g., using `.substring(0, max_length)`) in the Node.js collector to explicitly match the backend's schema limits.
