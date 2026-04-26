@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.18] - 2026-04-26
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity post-optimizations enforcing strict validation bounds on timestamps and pagination constraints to the API to prevent crashes and DB memory exhaustion. Re-verified robust backend and node tests properly pass.
+* **Upgrades:** Bumped safe patch version for python backend dependency `typer` to its latest minor/patch versions via poetry update.
+* **Pruning:** Pruned `__pycache__` artifacts to reduce codebase entropy.
 
 ## [1.0.17] - 2026-04-25
 
