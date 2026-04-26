@@ -98,3 +98,31 @@ def test_get_recent_messages_limit_validation():
     # limit > 100 should be rejected by validation
     response = client.get("/api/v1/dashboard/groups/grp1/messages?limit=200")
     assert response.status_code == 422
+
+def test_get_groups_pagination():
+    client = TestClient(app)
+    mock_db = AsyncMock()
+
+    mock_execute_result = MagicMock()
+    mock_execute_result.scalars.return_value.all.return_value = [
+        MagicMock(id="grp1", name="Group 1"),
+        MagicMock(id="grp2", name="Group 2")
+    ]
+    mock_db.execute.return_value = mock_execute_result
+
+    app.dependency_overrides[get_db] = lambda: mock_db
+    app.dependency_overrides[get_api_key] = lambda: "valid-key"
+
+    response = client.get("/api/v1/dashboard/groups?limit=2&offset=0")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 2
+    assert data[0]["id"] == "grp1"
+
+def test_get_groups_limit_validation():
+    client = TestClient(app)
+    app.dependency_overrides[get_api_key] = lambda: "valid-key"
+
+    # limit > 100 should be rejected by validation
+    response = client.get("/api/v1/dashboard/groups?limit=150")
+    assert response.status_code == 422

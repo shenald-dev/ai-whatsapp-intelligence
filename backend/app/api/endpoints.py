@@ -12,9 +12,18 @@ from .auth import get_api_key
 router = APIRouter(prefix="/api/v1/dashboard", tags=["Dashboard"], dependencies=[Depends(get_api_key)])
 
 @router.get("/groups", response_model=List[dict])
-async def get_groups(db: AsyncSession = Depends(get_db)):
+async def get_groups(
+    limit: int = Query(50, ge=1, le=100, description="Max groups to fetch"),
+    offset: int = Query(0, ge=0, description="Pagination offset"),
+    db: AsyncSession = Depends(get_db)
+):
     """Fetch all monitored groups."""
-    result = await db.execute(select(models.Group))
+    result = await db.execute(
+        select(models.Group)
+        .order_by(models.Group.created_at.desc())
+        .limit(limit)
+        .offset(offset)
+    )
     groups = result.scalars().all()
     return [{"id": g.id, "name": g.name} for g in groups]
 

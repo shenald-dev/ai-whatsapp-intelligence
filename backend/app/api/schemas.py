@@ -8,7 +8,7 @@ class MessageIngest(BaseModel):
     sender_id: str = Field(..., max_length=255)
     sender_name: str = Field(..., max_length=255)
     content: str = Field(..., max_length=65536)
-    timestamp: int
+    timestamp: int = Field(..., ge=0, le=4102444800)
     is_media: bool
     quoted_msg_id: Optional[str] = Field(None, max_length=255)
 
