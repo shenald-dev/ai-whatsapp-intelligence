@@ -260,3 +260,11 @@ Using `asyncio.to_thread` for dispatching external IO operations (like Celery jo
 
 Action:
 Use `BackgroundTasks` instead of `asyncio.to_thread` to natively enqueue tasks in the background, significantly reducing API latency by returning the HTTP response immediately.
+
+## 2026-04-26 — Prevent timestamp crashes and unbounded group payload delivery
+
+Learning:
+Unbounded limit queries on the `/groups` API endpoint and missing timestamp limits in Pydantic schemas can lead to unbounded payload delivery, DB memory exhaustion, and 500 errors (if `datetime.fromtimestamp()` encounters timestamps out-of-range, such as milliseconds rather than seconds).
+
+Action:
+To prevent application crashes and 500 Internal Server errors caused by out-of-range values passed to `datetime.fromtimestamp()`, enforce integer bounds on timestamp fields in Pydantic schemas (e.g., `timestamp: int = Field(..., ge=0, le=4102444800)`). Also enforce constraints for paginated endpoints via `fastapi.Query`.

@@ -121,3 +121,21 @@ def test_ingest_message_concurrent_insert(mock_send_task):
     assert entity_cache.get("group_grp2") is True
     assert entity_cache.get("user_usr2") is True
     mock_send_task.assert_not_called()
+
+def test_ingest_message_timestamp_validation():
+    client = TestClient(app)
+    app.dependency_overrides[get_api_key] = lambda: "valid-key"
+
+    payload_large_timestamp = {
+        "message_id": "msg1",
+        "group_id": "grp1",
+        "group_name": "Group 1",
+        "sender_id": "usr1",
+        "sender_name": "User 1",
+        "content": "Hello",
+        "timestamp": 5000000000, # Beyond max limit
+        "is_media": False
+    }
+
+    response = client.post("/api/v1/ingest", json=payload_large_timestamp)
+    assert response.status_code == 422
