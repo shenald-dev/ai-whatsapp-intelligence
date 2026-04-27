@@ -75,17 +75,26 @@ client.on('message', async (msg) => {
         // Ensure we have the minimum required entities
         if (!chat || !contact) return;
 
+        function safeTruncate(str, maxLen, fieldName) {
+            const val = str || '';
+            if (val.length > maxLen) {
+                console.warn(`⚠️ Warning: Truncating ${fieldName} to ${maxLen} characters.`);
+                return val.substring(0, maxLen);
+            }
+            return val;
+        }
+
         // Construct the payload for the AI backend
         const payload = {
-            message_id: msg.id._serialized,
-            group_id: chat.id._serialized,
-            group_name: chat.name,
-            sender_id: contact.id._serialized,
-            sender_name: contact.pushname || contact.name || 'Unknown',
-            content: msg.body || '',
+            message_id: safeTruncate(msg.id._serialized, 255, 'message_id'),
+            group_id: safeTruncate(chat.id._serialized, 255, 'group_id'),
+            group_name: safeTruncate(chat.name, 255, 'group_name'),
+            sender_id: safeTruncate(contact.id._serialized, 255, 'sender_id'),
+            sender_name: safeTruncate(contact.pushname || contact.name || 'Unknown', 255, 'sender_name'),
+            content: safeTruncate(msg.body, 65536, 'content'),
             timestamp: msg.timestamp,
             is_media: msg.hasMedia,
-            quoted_msg_id: quotedMsg?.id?._serialized || null,
+            quoted_msg_id: quotedMsg?.id?._serialized ? safeTruncate(quotedMsg.id._serialized, 255, 'quoted_msg_id') : null,
         };
 
         // Forward to backend asynchronously
