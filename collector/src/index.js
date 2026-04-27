@@ -77,15 +77,15 @@ client.on('message', async (msg) => {
 
         // Construct the payload for the AI backend
         const payload = {
-            message_id: msg.id._serialized,
-            group_id: chat.id._serialized,
-            group_name: chat.name,
-            sender_id: contact.id._serialized,
-            sender_name: contact.pushname || contact.name || 'Unknown',
-            content: msg.body || '',
+            message_id: (msg.id._serialized || '').substring(0, 255),
+            group_id: (chat.id._serialized || '').substring(0, 255),
+            group_name: (chat.name || '').substring(0, 255),
+            sender_id: (contact.id._serialized || '').substring(0, 255),
+            sender_name: (contact.pushname || contact.name || 'Unknown').substring(0, 255),
+            content: (msg.body || '').substring(0, 65536),
             timestamp: msg.timestamp,
             is_media: msg.hasMedia,
-            quoted_msg_id: quotedMsg?.id?._serialized || null,
+            quoted_msg_id: quotedMsg?.id?._serialized ? quotedMsg.id._serialized.substring(0, 255) : null,
         };
 
         // Forward to backend asynchronously
