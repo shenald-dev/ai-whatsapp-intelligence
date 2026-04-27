@@ -9,6 +9,10 @@ require('dotenv').config();
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000/api/v1/ingest';
 const API_KEY = process.env.API_KEY;
 
+// Payload length constants
+const MAX_LENGTH_ID = 255;
+const MAX_LENGTH_CONTENT = 65536;
+
 if (!API_KEY) {
     throw new Error('API_KEY environment variable is not set');
 }
@@ -86,15 +90,15 @@ client.on('message', async (msg) => {
 
         // Construct the payload for the AI backend
         const payload = {
-            message_id: safeTruncate(msg.id._serialized, 255, 'message_id'),
-            group_id: safeTruncate(chat.id._serialized, 255, 'group_id'),
-            group_name: safeTruncate(chat.name, 255, 'group_name'),
-            sender_id: safeTruncate(contact.id._serialized, 255, 'sender_id'),
-            sender_name: safeTruncate(contact.pushname || contact.name || 'Unknown', 255, 'sender_name'),
-            content: safeTruncate(msg.body, 65536, 'content'),
+            message_id: safeTruncate(msg.id._serialized, MAX_LENGTH_ID, 'message_id'),
+            group_id: safeTruncate(chat.id._serialized, MAX_LENGTH_ID, 'group_id'),
+            group_name: safeTruncate(chat.name, MAX_LENGTH_ID, 'group_name'),
+            sender_id: safeTruncate(contact.id._serialized, MAX_LENGTH_ID, 'sender_id'),
+            sender_name: safeTruncate(contact.pushname || contact.name || 'Unknown', MAX_LENGTH_ID, 'sender_name'),
+            content: safeTruncate(msg.body, MAX_LENGTH_CONTENT, 'content'),
             timestamp: msg.timestamp,
             is_media: msg.hasMedia,
-            quoted_msg_id: quotedMsg?.id?._serialized ? safeTruncate(quotedMsg.id._serialized, 255, 'quoted_msg_id') : null,
+            quoted_msg_id: quotedMsg?.id?._serialized ? safeTruncate(quotedMsg.id._serialized, MAX_LENGTH_ID, 'quoted_msg_id') : null,
         };
 
         // Forward to backend asynchronously
