@@ -131,3 +131,11 @@ Observed codebase paths are fully aligned and the previous optimizations correct
 
 Alignment / Deferred:
 Checked dependency upgrades for Python backend (`poetry update`) and Node.js collector (`ncu -u --target minor` & `npm update`). Safely bumped Python backend dependencies `typer` to its latest minor/patch versions via Poetry. Verified the tests are fully passing. Bumped version to `1.0.18`.
+
+## 2026-04-26 — Assessment & Lifecycle
+
+Observation / Pruned:
+Observed slow queries for dashboard `/groups` endpoint due to missing indexes. Added `index=True` to the `Group.created_at` column in SQLAlchemy models and verified it via `class_mapper` in `backend/tests/test_db.py`.
+
+Alignment / Deferred:
+Deferred applying payload truncations in Node.js to a subsequent run to strictly honor the single-improvement-per-run rule.

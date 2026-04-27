@@ -7,7 +7,7 @@ class Group(Base):
 
     id = Column(String, primary_key=True)
     name = Column(String)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
 class User(Base):
     __tablename__ = "users"
