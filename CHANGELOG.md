@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 
 
+## [1.0.18] - 2026-04-28
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity post-optimizations ensuring robust handling of `undefined` message bodies in the node collector by applying a strict string fallback prior to Pydantic ingestion. Re-verified testing suites remain stable.
+* **Upgrades:** Audited and applied safe patch version updates for backend dependencies via Poetry. Node.js dependencies are up to date.
+* **Pruning:** Pruned unused `asyncio` import in `backend/app/main.py`. Removed `__pycache__` directories to reduce codebase entropy. Vulture static analysis cleanly reports no non-expected dead code.
+
 ## [1.0.17] - 2026-04-25
 
 ### Assure, Prune, and Sync
