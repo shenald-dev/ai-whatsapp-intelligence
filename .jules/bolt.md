@@ -284,3 +284,10 @@ When constructing message payloads in the Node.js collector, string fields can e
 
 Action:
 Truncate string fields (e.g., using `.substring(0, max_length)`) in the Node.js collector to explicitly match the backend's schema limits.
+## 2026-04-27 — Guard against undefined message bodies in Node.js webhook hot-path
+
+Learning:
+In the Node.js WhatsApp collector using `whatsapp-web.js`, `msg.body` can be `undefined` (e.g., for system or media-only messages). Passing an undefined value to the backend API without a fallback will cause `422 Unprocessable Entity` validation errors because the backend expects a string type.
+
+Action:
+Modified `collector/src/index.js` to always apply a fallback (e.g., `msg.body || ''`) when extracting text content from the WhatsApp message payload. Always ensure string paths extraction is safe against nullish objects to prevent upstream data ingestion failures.

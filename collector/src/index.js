@@ -91,7 +91,7 @@ client.on('message', async (msg) => {
             group_name: safeTruncate(chat.name, 255, 'group_name'),
             sender_id: safeTruncate(contact.id._serialized, 255, 'sender_id'),
             sender_name: safeTruncate(contact.pushname || contact.name || 'Unknown', 255, 'sender_name'),
-            content: safeTruncate(msg.body, 65536, 'content'),
+            content: safeTruncate(msg.body || '', 65536, 'content'),
             timestamp: msg.timestamp,
             is_media: msg.hasMedia,
             quoted_msg_id: quotedMsg?.id?._serialized ? safeTruncate(quotedMsg.id._serialized, 255, 'quoted_msg_id') : null,
