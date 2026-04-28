@@ -4,9 +4,11 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.db.database import get_db
 from app.api.auth import get_api_key
+from app.api.endpoints import stats_cache
 
 @pytest.fixture(autouse=True)
 def cleanup():
+    stats_cache.clear()
     yield
     app.dependency_overrides.clear()
 

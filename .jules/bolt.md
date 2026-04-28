@@ -291,3 +291,11 @@ In the Node.js WhatsApp collector using `whatsapp-web.js`, `msg.body` can be `un
 
 Action:
 Modified `collector/src/index.js` to always apply a fallback (e.g., `msg.body || ''`) when extracting text content from the WhatsApp message payload. Always ensure string paths extraction is safe against nullish objects to prevent upstream data ingestion failures.
+
+## 2026-04-28 — Prevent Memory Exhaustion with Bounded Caching
+
+Learning:
+Implementing a simple `dict` for TTL caching without a maximum capacity (e.g., in a FastAPI endpoint keyed by a user-supplied parameter like `group_id`) introduces a critical memory leak / DoS vulnerability. An attacker or natural long-term usage can query many unique keys, causing the dictionary to grow infinitely and eventually crashing the application with an Out-Of-Memory (OOM) error.
+
+Action:
+Always use a bounded cache structure (like a custom `collections.OrderedDict` implementation enforcing a capacity limit, or a production library like `cachetools.TTLCache`) when implementing in-memory caching to strictly limit the memory footprint.
