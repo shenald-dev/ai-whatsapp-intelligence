@@ -8,7 +8,12 @@ from app.api.endpoints import stats_cache
 
 @pytest.fixture(autouse=True)
 def cleanup():
-    stats_cache.clear()
+    import asyncio
+    try:
+        loop = asyncio.get_running_loop()
+        loop.create_task(stats_cache.clear())
+    except RuntimeError:
+        asyncio.run(stats_cache.clear())
     yield
     app.dependency_overrides.clear()
 

@@ -1,3 +1,4 @@
+import asyncio
 import collections
 import time
 from typing import Any, Optional, Dict
@@ -20,29 +21,33 @@ class BoundedTTLCache:
         self.cache: collections.OrderedDict[str, Dict[str, Any]] = collections.OrderedDict()
         self.capacity = capacity
         self.ttl = ttl_seconds
+        self._lock = asyncio.Lock()
 
-    def get(self, key: str) -> Optional[Any]:
-        if key in self.cache:
-            entry = self.cache[key]
-            if time.time() - entry['timestamp'] < self.ttl:
-                self.cache.move_to_end(key)
-                return entry['value']
-            else:
+    async def get(self, key: str) -> Optional[Any]:
+        async with self._lock:
+            if key in self.cache:
+                entry = self.cache[key]
+                if time.time() - entry['timestamp'] < self.ttl:
+                    self.cache.move_to_end(key)
+                    return entry['value']
+                else:
+                    del self.cache[key]
+            return None
+
+    async def set(self, key: str, value: Any) -> None:
+        async with self._lock:
+            if key in self.cache:
                 del self.cache[key]
-        return None
+            self.cache[key] = {
+                'value': value,
+                'timestamp': time.time()
+            }
+            if len(self.cache) > self.capacity:
+                self.cache.popitem(last=False)
 
-    def set(self, key: str, value: Any) -> None:
-        if key in self.cache:
-            del self.cache[key]
-        self.cache[key] = {
-            'value': value,
-            'timestamp': time.time()
-        }
-        if len(self.cache) > self.capacity:
-            self.cache.popitem(last=False)
-
-    def clear(self):
-        self.cache.clear()
+    async def clear(self):
+        async with self._lock:
+            self.cache.clear()
 
 stats_cache = BoundedTTLCache(capacity=100, ttl_seconds=30)
 
@@ -68,7 +73,7 @@ async def get_group_stats(group_id: str, db: AsyncSession = Depends(get_db)):
     """Fetch high-level stats for the dashboard using optimized SQL aggregations."""
     
     cache_key = f"stats_{group_id}"
-    cached_data = stats_cache.get(cache_key)
+    cached_data = await stats_cache.get(cache_key)
     if cached_data:
         return cached_data
 
@@ -106,7 +111,7 @@ async def get_group_stats(group_id: str, db: AsyncSession = Depends(get_db)):
         "decisions_detected": decisions_found
     }
 
-    stats_cache.set(cache_key, response_data)
+    await stats_cache.set(cache_key, response_data)
     return response_data
 
 @router.get("/groups/{group_id}/messages", response_model=List[MessageResponse])
