@@ -4,11 +4,13 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.db.database import get_db
 from app.api.auth import get_api_key
+from app.api.endpoints import stats_cache
 
 @pytest.fixture(autouse=True)
 def cleanup():
     yield
     app.dependency_overrides.clear()
+    stats_cache.clear()
 
 def test_get_group_stats():
     client = TestClient(app)
@@ -71,6 +73,45 @@ def test_get_group_stats_empty():
     assert data["total_messages"] == 0
     assert data["ai_analyzed"] == 0
     assert data["tasks_detected"] == 0
+
+def test_get_group_stats_caching():
+    client = TestClient(app)
+    mock_db = AsyncMock()
+
+    # Create a mock row object
+    mock_row = MagicMock()
+    mock_row.total = 5
+    mock_row.analyzed = 5
+    mock_row.positive = 5
+    mock_row.negative = 0
+    mock_row.neutral = 0
+    mock_row.tasks = 1
+    mock_row.decisions = 0
+
+    mock_execute_result = MagicMock()
+    mock_execute_result.first.return_value = mock_row
+    mock_db.execute.return_value = mock_execute_result
+
+    app.dependency_overrides[get_db] = lambda: mock_db
+    app.dependency_overrides[get_api_key] = lambda: "valid-key"
+
+    # First call should hit the database
+    response1 = client.get("/api/v1/dashboard/groups/grp_cache/stats")
+    assert response1.status_code == 200
+    data1 = response1.json()
+    assert data1["total_messages"] == 5
+
+    # Check that execute was called
+    assert mock_db.execute.call_count == 1
+
+    # Second call should return cached response and not hit the database
+    response2 = client.get("/api/v1/dashboard/groups/grp_cache/stats")
+    assert response2.status_code == 200
+    data2 = response2.json()
+    assert data2["total_messages"] == 5
+
+    # Check that execute call count is still 1
+    assert mock_db.execute.call_count == 1
 
 def test_get_recent_messages_pagination():
     client = TestClient(app)

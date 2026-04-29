@@ -1,3 +1,5 @@
+import time
+import collections
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -10,6 +12,34 @@ from .schemas import MessageResponse
 from .auth import get_api_key
 
 router = APIRouter(prefix="/api/v1/dashboard", tags=["Dashboard"], dependencies=[Depends(get_api_key)])
+
+class BoundedTTLCache:
+    def __init__(self, capacity: int, ttl: int):
+        self.capacity = capacity
+        self.ttl = ttl
+        self.cache = collections.OrderedDict()
+
+    def get(self, key: str):
+        if key not in self.cache:
+            return None
+        value, timestamp = self.cache[key]
+        if time.time() - timestamp > self.ttl:
+            del self.cache[key]
+            return None
+        self.cache.move_to_end(key)
+        return value
+
+    def put(self, key: str, value):
+        if key in self.cache:
+            self.cache.move_to_end(key)
+        self.cache[key] = (value, time.time())
+        if len(self.cache) > self.capacity:
+            self.cache.popitem(last=False)
+
+    def clear(self):
+        self.cache.clear()
+
+stats_cache = BoundedTTLCache(capacity=100, ttl=60)
 
 @router.get("/groups", response_model=List[dict])
 async def get_groups(
@@ -31,6 +61,11 @@ async def get_groups(
 async def get_group_stats(group_id: str, db: AsyncSession = Depends(get_db)):
     """Fetch high-level stats for the dashboard using optimized SQL aggregations."""
     
+    cache_key = f"stats_{group_id}"
+    cached_stats = stats_cache.get(cache_key)
+    if cached_stats is not None:
+        return cached_stats
+
     query = select(
         func.count(models.Message.id).label("total"),
         func.count(models.Message.id).filter(models.Message.is_analyzed.is_(True)).label("analyzed"),
@@ -52,7 +87,7 @@ async def get_group_stats(group_id: str, db: AsyncSession = Depends(get_db)):
     tasks_found = row.tasks if row else 0
     decisions_found = row.decisions if row else 0
 
-    return {
+    response_data = {
         "group_id": group_id,
         "total_messages": total,
         "ai_analyzed": analyzed,
@@ -64,6 +99,9 @@ async def get_group_stats(group_id: str, db: AsyncSession = Depends(get_db)):
         "tasks_detected": tasks_found,
         "decisions_detected": decisions_found
     }
+
+    stats_cache.put(cache_key, response_data)
+    return response_data
 
 @router.get("/groups/{group_id}/messages", response_model=List[MessageResponse])
 async def get_recent_messages(
