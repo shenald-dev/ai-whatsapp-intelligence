@@ -5,7 +5,6 @@ import os
 from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 import collections
-import asyncio
 from sqlalchemy.dialects.postgresql import insert
 
 from .db.database import engine, get_db
@@ -25,7 +24,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="AI WhatsApp Intelligence API",
     description="Backend API for ingesting, analyzing, and retrieving WhatsApp group intelligence.",
-    version="1.0.17",
+    version="1.0.18",
     lifespan=lifespan
 )
 
