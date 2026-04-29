@@ -14,6 +14,17 @@ from .auth import get_api_key
 router = APIRouter(prefix="/api/v1/dashboard", tags=["Dashboard"], dependencies=[Depends(get_api_key)])
 
 class BoundedTTLCache:
+    """
+    A thread-safe Bounded TTL Cache for API responses.
+    This implementation leverages the GIL in standard Python and the fact
+    that Uvicorn/FastAPI processes requests in a single-threaded async event loop,
+    making `collections.OrderedDict` operations atomic and thread-safe.
+
+    Invalidation strategy:
+    Relies purely on Time-To-Live (TTL) expiration to allow the cache to naturally
+    cycle out stale data without requiring complex pub/sub invalidation logic from
+    the background Celery workers.
+    """
     def __init__(self, capacity: int, ttl: int):
         self.capacity = capacity
         self.ttl = ttl
