@@ -298,3 +298,11 @@ Dashboard analytics endpoints (like `/groups/{group_id}/stats`) that rely on com
 
 Action:
 Introduced a `BoundedTTLCache` in `backend/app/api/endpoints.py` to temporarily cache response payloads for 60 seconds with a capacity limit. This significantly reduces API latency and protects the database from excessive load while keeping the analytics sufficiently real-time. Always use bounded, memory-safe caching mechanisms (e.g., using `collections.OrderedDict`) to prevent unbounded memory growth and DoS vulnerabilities.
+
+## 2024-04-30 — Improve JSON serialization performance in FastAPI
+
+Learning:
+The default JSON response class used by FastAPI (`JSONResponse`) relies on the standard library `json` module, which is comparatively slow when serializing large payloads, such as arrays of dashboard messages returned by the `/groups/{group_id}/messages` endpoint.
+
+Action:
+Switched the default response class of the FastAPI application to `ORJSONResponse` in `backend/app/main.py`. `orjson` is significantly faster at serializing Python objects into JSON and consumes less memory, directly reducing the API latency and CPU usage when returning large datasets. Note that `orjson` was already present in the dependency tree (required by `chromadb`).
