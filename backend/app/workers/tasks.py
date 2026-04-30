@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import os
+import logging
 from dotenv import load_dotenv
 
 from ..db.models import Message
@@ -8,6 +9,8 @@ from ..ai.engine import ai_engine
 from ..db.chroma import store_message_embedding
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 # Worker uses sync engine for simplicity within Celery
 SYNC_DB_URL = os.getenv("SYNC_DATABASE_URL")
@@ -61,7 +64,12 @@ def process_message(message_id: str):
 
         session.commit()
 
-        store_message_embedding(message_id, content, metadata)
+        try:
+            store_message_embedding(message_id, content, metadata)
+        except Exception as e:
+            logger.error(f"Failed to store embedding for message {message_id}: {e}")
+            # If embedding fails, raise to trigger Celery retry
+            raise e
 
         return {"status": "success", "message_id": message_id}
         
