@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.19] - 2026-04-29
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity post-optimizations introducing BoundedTTLCache to dashboard stats endpoint to reduce DB load. All codebase paths are correctly aligned.
+* **Upgrades:** Audited and applied safe patch version updates for backend dependencies (`fsspec`, `typer`, `huggingface-hub`, `posthog`) via Poetry. Node.js dependencies safely updated (`b4a`, `tar-stream`).
+* **Pruning:** Vulture static analysis cleanly reports no un-expected dead code. No further dead code pruning required.
+
 
 ## [1.0.18] - 2026-04-28
 
