@@ -298,3 +298,10 @@ Dashboard analytics endpoints (like `/groups/{group_id}/stats`) that rely on com
 
 Action:
 Introduced a `BoundedTTLCache` in `backend/app/api/endpoints.py` to temporarily cache response payloads for 60 seconds with a capacity limit. This significantly reduces API latency and protects the database from excessive load while keeping the analytics sufficiently real-time. Always use bounded, memory-safe caching mechanisms (e.g., using `collections.OrderedDict`) to prevent unbounded memory growth and DoS vulnerabilities.
+## 2024-05-01 — Task worker connection pooling optimization
+
+Learning:
+Holding database transactions open while making slow external API calls (like to ChromaDB or LangChain) in background workers quickly exhausts the database connection pool under load. In SQLAlchemy, `session.commit()` releases the connection back to the pool, but by default, `expire_on_commit=True` means accessing model attributes afterward triggers lazy loads, leading to `DetachedInstanceError` or new transactions if the session isn't explicitly configured otherwise.
+
+Action:
+Always extract required model attributes into local variables (or intermediate dictionaries, like the `metadata` payload) *before* calling `session.commit()`. Call `session.commit()` immediately after database state changes and *before* high-latency network I/O, provided the external operation can handle eventual consistency or idempotency.

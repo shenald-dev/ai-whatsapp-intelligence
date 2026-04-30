@@ -3,6 +3,7 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
+package-mode = false
 name = "awi-backend"
 version = "1.0.18"
 description = "AI Backend for WhatsApp Intelligence Monitor"
