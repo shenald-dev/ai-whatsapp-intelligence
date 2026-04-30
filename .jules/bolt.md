@@ -291,3 +291,10 @@ In the Node.js WhatsApp collector using `whatsapp-web.js`, `msg.body` can be `un
 
 Action:
 Modified `collector/src/index.js` to always apply a fallback (e.g., `msg.body || ''`) when extracting text content from the WhatsApp message payload. Always ensure string paths extraction is safe against nullish objects to prevent upstream data ingestion failures.
+## 2026-04-29 — Add Bounded TTLCache to high-latency dashboard endpoint
+
+Learning:
+Dashboard analytics endpoints (like `/groups/{group_id}/stats`) that rely on complex SQL aggregations (`func.count`) across large tables can become severe performance bottlenecks under high traffic or repeated loading.
+
+Action:
+Introduced a `BoundedTTLCache` in `backend/app/api/endpoints.py` to temporarily cache response payloads for 60 seconds with a capacity limit. This significantly reduces API latency and protects the database from excessive load while keeping the analytics sufficiently real-time. Always use bounded, memory-safe caching mechanisms (e.g., using `collections.OrderedDict`) to prevent unbounded memory growth and DoS vulnerabilities.
