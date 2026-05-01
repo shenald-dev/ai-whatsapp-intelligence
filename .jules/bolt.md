@@ -306,3 +306,11 @@ The default JSON response class used by FastAPI (`JSONResponse`) relies on the s
 
 Action:
 Switched the default response class of the FastAPI application to `ORJSONResponse` in `backend/app/main.py`. `orjson` is significantly faster at serializing Python objects into JSON and consumes less memory, directly reducing the API latency and CPU usage when returning large datasets. Note that `orjson` was already present in the dependency tree (required by `chromadb`).
+
+## 2026-05-01 — Avoid `MissingGreenlet` in FastAPI with AsyncSession
+
+Learning:
+When using `load_only` with asynchronous SQLAlchemy (`AsyncSession`), excluded columns are deferred. Because FastAPI serialization (like Pydantic's `from_attributes=True`) is synchronous, accessing these deferred columns triggers an implicit lazy load, which raises a `MissingGreenlet` error and crashes the endpoint.
+
+Action:
+Instead of `load_only` returning the full model instances with deferred fields, explicitly query just the required columns using `select(Model.col1, Model.col2)`. This returns Row objects natively instead of model instances, completely bypassing the deferred loading mechanism and avoiding the `MissingGreenlet` error while still yielding the performance benefits of a narrower query.

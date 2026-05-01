@@ -118,8 +118,8 @@ def test_get_recent_messages_pagination():
     mock_db = AsyncMock()
 
     mock_execute_result = MagicMock()
-    mock_execute_result.scalars.return_value.all.return_value = [
-        MagicMock(id="msg1", content="Hello", sentiment="neutral", classification="discussion")
+    mock_execute_result.all.return_value = [
+        ("msg1", "Hello", "neutral", "discussion")
     ]
     mock_db.execute.return_value = mock_execute_result
 
@@ -145,7 +145,7 @@ def test_get_groups_pagination():
     mock_db = AsyncMock()
 
     mock_execute_result = MagicMock()
-    mock_execute_result.scalars.return_value.all.return_value = [
+    mock_execute_result.all.return_value = [
         MagicMock(id="grp1", name="Group 1"),
         MagicMock(id="grp2", name="Group 2")
     ]
