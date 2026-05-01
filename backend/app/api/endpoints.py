@@ -60,12 +60,12 @@ async def get_groups(
 ):
     """Fetch all monitored groups."""
     result = await db.execute(
-        select(models.Group)
+        select(models.Group.id, models.Group.name)
         .order_by(models.Group.created_at.desc())
         .limit(limit)
         .offset(offset)
     )
-    groups = result.scalars().all()
+    groups = result.all()
     return [{"id": g.id, "name": g.name} for g in groups]
 
 @router.get("/groups/{group_id}/stats")
@@ -123,10 +123,10 @@ async def get_recent_messages(
 ):
     """Fetch recent messages with their AI analysis attached."""
     result = await db.execute(
-        select(models.Message)
+        select(models.Message.id, models.Message.content, models.Message.sentiment, models.Message.classification)
         .where(models.Message.group_id == group_id)
         .order_by(models.Message.timestamp.desc())
         .limit(limit)
         .offset(offset)
     )
-    return result.scalars().all()
+    return [MessageResponse.model_validate(dict(zip(['id', 'content', 'sentiment', 'classification'], row))) for row in result.all()]
