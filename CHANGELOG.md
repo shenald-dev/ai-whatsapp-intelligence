@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 
 
+## [1.0.20] - 2026-05-01
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity post-optimizations introducing `ORJSONResponse` in the FastAPI backend for faster JSON serialization payloads. Verified test suites and `vulture` static analysis still pass.
+* **Upgrades:** Audited dependencies across the platform. Applied safe minor/patch upgrades for Python dependencies (`fsspec`, `typer`, `huggingface-hub`, `posthog`). Verified Node packages are up-to-date.
+* **Pruning:** Pruned `__pycache__` directories to maintain codebase entropy.
+
 ## [1.0.18] - 2026-04-28
 
 ### Assure, Prune, and Sync
