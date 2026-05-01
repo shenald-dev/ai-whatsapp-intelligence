@@ -59,6 +59,7 @@ async def get_groups(
     db: AsyncSession = Depends(get_db)
 ):
     """Fetch all monitored groups."""
+    # Select specific columns natively to avoid MissingGreenlet deferred loads during serialization
     result = await db.execute(
         select(models.Group.id, models.Group.name)
         .order_by(models.Group.created_at.desc())
@@ -122,6 +123,7 @@ async def get_recent_messages(
     db: AsyncSession = Depends(get_db)
 ):
     """Fetch recent messages with their AI analysis attached."""
+    # Select specific columns natively to avoid MissingGreenlet deferred loads during serialization
     result = await db.execute(
         select(models.Message.id, models.Message.content, models.Message.sentiment, models.Message.classification)
         .where(models.Message.group_id == group_id)
