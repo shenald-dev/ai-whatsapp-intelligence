@@ -58,9 +58,10 @@ def process_message(message_id: str):
             "sentiment": msg.sentiment,
             "classification": msg.classification
         }
-        store_message_embedding(message_id, content, metadata)
 
         session.commit()
+
+        store_message_embedding(message_id, content, metadata)
 
         return {"status": "success", "message_id": message_id}
         

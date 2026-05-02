@@ -314,3 +314,8 @@ When using `load_only` with asynchronous SQLAlchemy (`AsyncSession`), excluded c
 
 Action:
 Instead of `load_only` returning the full model instances with deferred fields, explicitly query just the required columns using `select(Model.col1, Model.col2)`. This returns Row objects natively instead of model instances, completely bypassing the deferred loading mechanism and avoiding the `MissingGreenlet` error while still yielding the performance benefits of a narrower query.
+## 2026-05-02 — DB Connection Lock Contention During Network I/O
+
+Learning: Database connections were held locked unnecessarily during the high-latency network I/O calls to ChromaDB in the background workers, potentially causing connection pool exhaustion during traffic bursts.
+
+Action: Release database locks by calling `session.commit()` *before* initiating high-latency network I/O (like ChromaDB or AI API calls), provided post-commit operations are idempotent or failure is acceptable.
