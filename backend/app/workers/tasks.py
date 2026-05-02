@@ -59,9 +59,9 @@ def process_message(message_id: str):
             "classification": msg.classification
         }
 
-        session.commit()
-
         store_message_embedding(message_id, content, metadata)
+
+        session.commit()
 
         return {"status": "success", "message_id": message_id}
         
