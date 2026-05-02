@@ -30,5 +30,4 @@ orjson = "^3.11.8"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.1.1"
 ruff = "^0.3.4"
-vulture = "^2.16
-```
+vulture = "^2.16"
