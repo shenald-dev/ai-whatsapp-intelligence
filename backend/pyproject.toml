@@ -5,7 +5,7 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry]
 package-mode = false
 name = "awi-backend"
-version = "1.0.20"
+version = "1.0.18"
 description = "AI Backend for WhatsApp Intelligence Monitor"
 authors = ["shenald-dev <shenald@example.com>"]
 readme = "README.md"
@@ -25,7 +25,6 @@ redis = "^5.0.3"
 celery = "^5.3.6"
 python-dotenv = "^1.0.1"
 psycopg2-binary = "^2.9.9"
-orjson = "^3.11.8"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.1.1"

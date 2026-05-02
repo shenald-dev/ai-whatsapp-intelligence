@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import ORJSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 import os
 from datetime import datetime, timezone
@@ -24,8 +25,9 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="AI WhatsApp Intelligence API",
     description="Backend API for ingesting, analyzing, and retrieving WhatsApp group intelligence.",
-    version="1.0.18",
-    lifespan=lifespan
+    version="1.0.20",
+    lifespan=lifespan,
+    default_response_class=ORJSONResponse
 )
 
 # CORS Setup
