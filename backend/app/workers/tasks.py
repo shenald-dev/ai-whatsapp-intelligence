@@ -2,6 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
+import logging
 
 from ..db.models import Message
 from ..ai.engine import ai_engine
@@ -66,6 +67,7 @@ def process_message(message_id: str):
             store_message_embedding(message_id, content, metadata)
         except Exception as e:
             # Revert analysis state so the task can be safely retried
+            logging.error(f"Failed to store embedding for {message_id}: {e}")
             msg = session.get(Message, message_id)
             if msg:
                 msg.is_analyzed = False
