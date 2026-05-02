@@ -59,9 +59,20 @@ def process_message(message_id: str):
             "classification": msg.classification
         }
 
-        store_message_embedding(message_id, content, metadata)
-
+        # Commit early to release DB lock before network I/O
         session.commit()
+
+        try:
+            store_message_embedding(message_id, content, metadata)
+        except Exception as e:
+            # Revert analysis state so the task can be safely retried
+            msg = session.get(Message, message_id)
+            if msg:
+                msg.is_analyzed = False
+                msg.sentiment = None
+                msg.classification = None
+                session.commit()
+            raise e
 
         return {"status": "success", "message_id": message_id}
         
