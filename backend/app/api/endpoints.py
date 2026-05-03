@@ -129,4 +129,4 @@ async def get_recent_messages(
         .limit(limit)
         .offset(offset)
     )
-    return [MessageResponse.model_validate(dict(zip(['id', 'content', 'sentiment', 'classification'], row))) for row in result.all()]
+    return [MessageResponse(id=row[0], content=row[1], sentiment=row[2], classification=row[3]) for row in result.all()]

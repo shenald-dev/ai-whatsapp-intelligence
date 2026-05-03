@@ -319,3 +319,11 @@ Instead of `load_only` returning the full model instances with deferred fields, 
 Learning: Database connections were held locked unnecessarily during the high-latency network I/O calls to ChromaDB in the background workers, potentially causing connection pool exhaustion during traffic bursts.
 
 Action: Release database locks by calling `session.commit()` *before* initiating high-latency network I/O (like ChromaDB or AI API calls), provided post-commit operations are idempotent or failure is acceptable.
+
+## 2024-05-03 — Optimize Pydantic Serialization in Dashboard Endpoint
+
+Learning:
+In `backend/app/api/endpoints.py`, mapping SQLAlchemy `Row` objects to Pydantic models using `dict(zip([...], row))` within a list comprehension creates unnecessary intermediate dictionary allocations for every row returned. On hot paths or when returning large sets of data, this creates significant memory allocation overhead and slows down API latency. Furthermore, it silently ignores missing columns, potentially masking query bugs until later validation.
+
+Action:
+Refactored the `get_recent_messages` endpoint to instantiate `MessageResponse` directly using positional index access (e.g., `MessageResponse(id=row[0], content=row[1], ...)`). This avoids the overhead of intermediate dictionaries entirely, improving serialization performance and reducing memory usage on a frequently accessed route.
