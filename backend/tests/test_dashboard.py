@@ -146,8 +146,8 @@ def test_get_groups_pagination():
 
     mock_execute_result = MagicMock()
     mock_execute_result.all.return_value = [
-        MagicMock(id="grp1", name="Group 1"),
-        MagicMock(id="grp2", name="Group 2")
+        ("grp1", "Group 1"),
+        ("grp2", "Group 2")
     ]
     mock_db.execute.return_value = mock_execute_result
 

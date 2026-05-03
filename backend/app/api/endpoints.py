@@ -8,7 +8,7 @@ from typing import List
 
 from ..db.database import get_db
 from ..db import models
-from .schemas import MessageResponse
+from .schemas import MessageResponse, GroupResponse
 from .auth import get_api_key
 
 router = APIRouter(prefix="/api/v1/dashboard", tags=["Dashboard"], dependencies=[Depends(get_api_key)])
@@ -52,7 +52,7 @@ class BoundedTTLCache:
 
 stats_cache = BoundedTTLCache(capacity=100, ttl=60)
 
-@router.get("/groups", response_model=List[dict])
+@router.get("/groups", response_model=List[GroupResponse])
 async def get_groups(
     limit: int = Query(50, ge=1, le=100, description="Max groups to fetch"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
@@ -65,8 +65,7 @@ async def get_groups(
         .limit(limit)
         .offset(offset)
     )
-    groups = result.all()
-    return [{"id": g.id, "name": g.name} for g in groups]
+    return [GroupResponse(id=row[0], name=row[1]) for row in result.all()]
 
 @router.get("/groups/{group_id}/stats")
 async def get_group_stats(group_id: str, db: AsyncSession = Depends(get_db)):
