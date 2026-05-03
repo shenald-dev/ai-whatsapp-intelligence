@@ -129,4 +129,5 @@ async def get_recent_messages(
         .limit(limit)
         .offset(offset)
     )
+    # Note: Index-based access relies on the exact order of columns in the select() statement above
     return [MessageResponse(id=row[0], content=row[1], sentiment=row[2], classification=row[3]) for row in result.all()]
