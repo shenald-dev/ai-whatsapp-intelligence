@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 
 
+## [1.0.21] - 2026-05-03
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity post-optimizations introducing index-based row mapping in FastAPI endpoints to eliminate dictionary allocation overhead. Re-verified test suites and `vulture` static analysis still pass.
+* **Upgrades:** Audited dependencies and safely bumped `wcwidth` to `0.7.0` via Poetry in the Python backend. Verified Node.js dependencies are up-to-date.
+* **Pruning:** Pruned `__pycache__` directories to maintain codebase entropy.
+
 ## [1.0.20] - 2026-05-01
 
 ### Assure, Prune, and Sync

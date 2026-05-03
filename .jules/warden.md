@@ -1,3 +1,11 @@
+## 2026-05-03 — Assessment & Lifecycle
+
+Observation / Pruned:
+Observed index-based row access (e.g. `row[0]`) in FastAPI endpoints efficiently eliminates dictionary allocation overhead, reducing latency and memory usage on hot paths. `vulture` static analysis confirms no un-expected dead code. Pruned `__pycache__` artifacts to maintain repo cleanliness and remove entropy.
+
+Alignment / Deferred:
+Safely bumped `wcwidth` to `0.7.0` via Poetry in the Python backend. Verified the tests are fully passing. Bumped version to `1.0.21`.
+
 ## 2026-05-01 — Assessment & Lifecycle
 
 Observation / Pruned:
