@@ -59,6 +59,7 @@ async def get_groups(
     db: AsyncSession = Depends(get_db)
 ):
     """Fetch all monitored groups."""
+    # Ensure select columns exactly match the tuple unpacking order: id=row[0], name=row[1]
     result = await db.execute(
         select(models.Group.id, models.Group.name)
         .order_by(models.Group.created_at.desc())
