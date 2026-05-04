@@ -66,6 +66,8 @@ async def get_groups(
         .limit(limit)
         .offset(offset)
     )
+    # Using model_construct is safe here as data originates from trusted PostgreSQL rows.
+    # Note: Ensure data source remains trusted if this query changes in the future.
     return [GroupResponse.model_construct(id=row[0], name=row[1]) for row in result.all()]
 
 @router.get("/groups/{group_id}/stats")
@@ -129,4 +131,6 @@ async def get_recent_messages(
         .limit(limit)
         .offset(offset)
     )
+    # Using model_construct is safe here as data originates from trusted PostgreSQL rows.
+    # Note: Ensure data source remains trusted if this query changes in the future.
     return [MessageResponse.model_construct(id=row[0], content=row[1], sentiment=row[2], classification=row[3]) for row in result.all()]
