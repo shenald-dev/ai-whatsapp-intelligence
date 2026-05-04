@@ -327,3 +327,11 @@ In `backend/app/api/endpoints.py`, mapping SQLAlchemy `Row` objects to Pydantic 
 
 Action:
 Refactored the `get_recent_messages` endpoint to instantiate `MessageResponse` directly using positional index access (e.g., `MessageResponse(id=row[0], content=row[1], ...)`). This avoids the overhead of intermediate dictionaries entirely, improving serialization performance and reducing memory usage on a frequently accessed route.
+
+## 2026-05-04 — Improve Dashboard Endpoint Serialization
+
+Learning:
+In `backend/app/api/endpoints.py`, the `get_groups` endpoint mapped SQLAlchemy `Row` objects to dictionaries using a list comprehension (`{"id": g.id, "name": g.name}`). Creating intermediate dictionaries adds memory allocation overhead and bypasses Pydantic's strict type validation and tuple unpacking optimizations.
+
+Action:
+Refactored the `get_groups` endpoint to use a strict `GroupResponse` Pydantic model and instantiated it directly using positional index access (e.g., `GroupResponse(id=row[0], name=row[1])`). This avoids intermediate dictionary allocations and improves serialization performance on the endpoint.

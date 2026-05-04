@@ -156,3 +156,11 @@ Observed slow queries for dashboard `/groups` endpoint due to missing indexes. A
 
 Alignment / Deferred:
 Deferred applying payload truncations in Node.js to a subsequent run to strictly honor the single-improvement-per-run rule.
+
+## 2026-05-04 — Assessment & Lifecycle
+
+Observation / Pruned:
+Observed codebase paths fully aligned and stable. Evaluated that dashboard API latency can be further reduced by instantiating `GroupResponse` Pydantic models directly from DB tuples in `get_groups` instead of via intermediate dictionary allocation. Pruned cache artifacts across the codebase.
+
+Alignment / Deferred:
+Created the `GroupResponse` Pydantic schema and refactored the tuple extraction list comprehension. Tested updates and bumped package versions safely across Python and Node ecosystems. Bumped version to `1.0.21`.

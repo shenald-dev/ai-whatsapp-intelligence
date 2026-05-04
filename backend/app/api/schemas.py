@@ -12,6 +12,12 @@ class MessageIngest(BaseModel):
     is_media: bool
     quoted_msg_id: Optional[str] = Field(None, max_length=255)
 
+class GroupResponse(BaseModel):
+    id: str
+    name: str
+
+    model_config = ConfigDict(from_attributes=True)
+
 class MessageResponse(BaseModel):
     id: str
     content: str
