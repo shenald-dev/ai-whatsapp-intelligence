@@ -60,6 +60,7 @@ async def get_groups(
 ):
     """Fetch all monitored groups."""
     # Ensure select columns exactly match the tuple unpacking order: id=row[0], name=row[1]
+    # Using model_construct assumes trusted DB data and strict column order to bypass validation.
     result = await db.execute(
         select(models.Group.id, models.Group.name)
         .order_by(models.Group.created_at.desc())
@@ -129,4 +130,5 @@ async def get_recent_messages(
         .limit(limit)
         .offset(offset)
     )
+    # Using model_construct assumes trusted DB data and strict column order to bypass validation.
     return [MessageResponse.model_construct(id=row[0], content=row[1], sentiment=row[2], classification=row[3]) for row in result.all()]
