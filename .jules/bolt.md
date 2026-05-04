@@ -335,3 +335,10 @@ In `backend/app/api/endpoints.py`, the `get_groups` endpoint mapped SQLAlchemy `
 
 Action:
 Refactored the `get_groups` endpoint to use a strict `GroupResponse` Pydantic model and instantiated it directly using positional index access (e.g., `GroupResponse(id=row[0], name=row[1])`). This avoids intermediate dictionary allocations and improves serialization performance on the endpoint.
+## 2026-05-04 — Optimize Pydantic Validation in List Comprehensions
+
+Learning:
+In FastAPI endpoints mapping DB queries directly to response schemas on hot paths (`get_groups` and `get_recent_messages`), instantiating standard Pydantic models (e.g., `Model(field=row[0])`) introduces significant parsing and validation overhead even for trusted, strongly-typed rows fetched from the database. Furthermore, using `model_config = ConfigDict(from_attributes=True)` degrades standard initialization speed without any benefit if tuples are manually mapped instead of objects.
+
+Action:
+Used `Model.model_construct(...)` inside list comprehensions on DB results to safely bypass unnecessary Pydantic validation when constructing trusted response objects. This drastically improves serialization performance and API latency for endpoints returning large lists. Also removed unused `from_attributes=True` configuration to further optimize latency.

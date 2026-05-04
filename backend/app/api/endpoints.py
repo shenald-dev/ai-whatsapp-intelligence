@@ -66,7 +66,7 @@ async def get_groups(
         .limit(limit)
         .offset(offset)
     )
-    return [GroupResponse(id=row[0], name=row[1]) for row in result.all()]
+    return [GroupResponse.model_construct(id=row[0], name=row[1]) for row in result.all()]
 
 @router.get("/groups/{group_id}/stats")
 async def get_group_stats(group_id: str, db: AsyncSession = Depends(get_db)):
@@ -129,4 +129,4 @@ async def get_recent_messages(
         .limit(limit)
         .offset(offset)
     )
-    return [MessageResponse(id=row[0], content=row[1], sentiment=row[2], classification=row[3]) for row in result.all()]
+    return [MessageResponse.model_construct(id=row[0], content=row[1], sentiment=row[2], classification=row[3]) for row in result.all()]
