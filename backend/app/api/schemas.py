@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
 from typing import Optional
 
 class MessageIngest(BaseModel):
@@ -16,12 +16,8 @@ class GroupResponse(BaseModel):
     id: str
     name: str
 
-    model_config = ConfigDict(from_attributes=True)
-
 class MessageResponse(BaseModel):
     id: str
     content: str
     sentiment: Optional[str]
     classification: Optional[str]
-    
-    model_config = ConfigDict(from_attributes=True)
