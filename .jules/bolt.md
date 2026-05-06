@@ -350,3 +350,10 @@ Uncompressed large JSON payloads (like lists of groups and messages) over the ne
 
 Action:
 Added `GZipMiddleware` to `backend/app/main.py` with `minimum_size=1000` to efficiently reduce payload size for endpoints returning large lists.
+## 2024-05-06 — Avoid fetching large objects on hot paths
+
+Learning:
+Using `session.get()` followed by attribute assignment on hot paths (like Celery workers processing AI analysis) fetches entire large text payloads from the database over the network, wasting memory and network bandwidth.
+
+Action:
+When updating a subset of fields on a SQLAlchemy model containing large columns within a hot path, prefer using a direct SQL `UPDATE` statement via `session.execute(update(Model).where(...).values(...))` to avoid unnecessarily fetching large payloads.
