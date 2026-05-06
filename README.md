@@ -26,6 +26,8 @@ Perfect for teams, communities, and digital agencies who need to extract the "si
 * **🧠 Vector Memory:** Integrates **ChromaDB** for semantic search and topic tracking over time.
 * **📊 Gorgeous Analytics Dashboard:** A glassmorphic, modern UI built with Next.js and TailwindCSS.
 * **📬 Intelligent Insights:** Daily & Weekly AI-generated summaries (Who said what, key outcomes, overall sentiment).
+* **🗜️ High-Performance API:** FastAPI backend uses `GZipMiddleware` to compress large JSON responses, saving network bandwidth and reducing latency for dashboard analytics.
+
 
 ---
 
