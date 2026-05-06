@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import ORJSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 import os
@@ -25,7 +26,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="AI WhatsApp Intelligence API",
     description="Backend API for ingesting, analyzing, and retrieving WhatsApp group intelligence.",
-    version="1.0.21",
+    version="1.0.23",
     lifespan=lifespan,
     default_response_class=ORJSONResponse
 )
@@ -41,6 +42,8 @@ app.add_middleware(
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type", "X-API-Key"],
 )
+
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 app.include_router(dashboard_router)
 

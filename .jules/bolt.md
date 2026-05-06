@@ -341,4 +341,12 @@ Learning:
 Mapping SQLAlchemy `Row` objects to Pydantic models using list comprehensions with dictionaries causes validation overhead that degrades API latency on hot paths (like fetching groups or recent messages).
 
 Action:
-Replaced dictionary construction and validation with `Model.model_construct(id=row[0], ...)`. This bypasses validation overhead for trusted database data, significantly improving instantiation speed and reducing API latency.
+Used `Model.model_construct(...)` inside list comprehensions on DB results to safely bypass unnecessary Pydantic validation when constructing trusted response objects. This drastically improves serialization performance and API latency for endpoints returning large lists. Also removed unused `from_attributes=True` configuration to further optimize latency.
+
+## 2026-05-05 — Compress API responses to reduce payload size and API bandwidth
+
+Learning:
+Uncompressed large JSON payloads (like lists of groups and messages) over the network increase API latency and bandwidth usage.
+
+Action:
+Added `GZipMiddleware` to `backend/app/main.py` with `minimum_size=1000` to efficiently reduce payload size for endpoints returning large lists.
