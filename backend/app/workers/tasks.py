@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, update
 from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
@@ -42,22 +42,25 @@ def process_message(message_id: str):
         # Run AI analysis (async block within sync celery task)
         analysis = ai_engine.analyze_message_sync(content)
 
-        # Re-acquire the message in a new transaction
-        msg = session.get(Message, message_id)
-        if not msg:
-            return {"status": "error", "reason": "Message deleted during analysis"}
-
-        # Update DB
-        msg.sentiment = analysis.get("sentiment")
-        msg.classification = analysis.get("classification")
-        msg.is_analyzed = True
+        # Update DB using a direct UPDATE statement to avoid fetching the text column
+        result = session.execute(
+            update(Message)
+            .where(Message.id == message_id)
+            .values(
+                sentiment=analysis.get("sentiment"),
+                classification=analysis.get("classification"),
+                is_analyzed=True
+            )
+        )
+        if result.rowcount == 0:
+             return {"status": "error", "reason": "Message deleted during analysis"}
         
         # Store message in ChromaDB for semantic search
         metadata = {
             "group_id": group_id,
             "sender_id": sender_id,
-            "sentiment": msg.sentiment,
-            "classification": msg.classification
+            "sentiment": analysis.get("sentiment"),
+            "classification": analysis.get("classification")
         }
 
         # Commit early to release DB lock before network I/O
@@ -68,12 +71,16 @@ def process_message(message_id: str):
         except Exception as e:
             # Revert analysis state so the task can be safely retried
             logging.error(f"Failed to store embedding for {message_id}: {e}")
-            msg = session.get(Message, message_id)
-            if msg:
-                msg.is_analyzed = False
-                msg.sentiment = None
-                msg.classification = None
-                session.commit()
+            session.execute(
+                update(Message)
+                .where(Message.id == message_id)
+                .values(
+                    sentiment=None,
+                    classification=None,
+                    is_analyzed=False
+                )
+            )
+            session.commit()
             raise e
 
         return {"status": "success", "message_id": message_id}
