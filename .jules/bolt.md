@@ -350,3 +350,10 @@ Uncompressed large JSON payloads (like lists of groups and messages) over the ne
 
 Action:
 Added `GZipMiddleware` to `backend/app/main.py` with `minimum_size=1000` to efficiently reduce payload size for endpoints returning large lists.
+## 2024-05-10 — Use direct SQL updates for Celery tasks
+
+Learning:
+When updating a subset of fields on a SQLAlchemy model containing large columns (like `Text` fields in `backend/app/workers/tasks.py`) within a hot path like Celery workers, using `session.get()` followed by attribute assignment unnecessarily fetches large payloads (like the message content) over the network, wasting memory and database CPU.
+
+Action:
+Replaced the `session.get()` pattern with a direct SQL `UPDATE` statement via `session.execute(update(Message).where(...).values(...))` to improve performance when re-acquiring and updating messages after AI analysis in background workers.
