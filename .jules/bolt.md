@@ -350,3 +350,11 @@ Uncompressed large JSON payloads (like lists of groups and messages) over the ne
 
 Action:
 Added `GZipMiddleware` to `backend/app/main.py` with `minimum_size=1000` to efficiently reduce payload size for endpoints returning large lists.
+
+## 2026-05-09 — Task processing memory efficiency
+
+Learning:
+Using `session.get(Model, id)` to re-acquire entities during celery worker task execution in a hot-path is memory-inefficient when dealing with models containing large text payloads (such as the `Message.content` field which can be up to 64KB), as SQLAlchemy fetches all columns by default.
+
+Action:
+Instead of re-fetching the entire message object with `session.get()` to update just the AI analysis results, use a direct SQL `UPDATE` statement via `session.execute(update(Message).where(...).values(...))`. This prevents large texts from traversing the network and being instantiated unnecessarily, improving API and worker efficiency.
