@@ -27,14 +27,18 @@ def process_message(message_id: str):
     """Celery task worker to enrich a message with AI."""
     session = SessionLocal()
     try:
-        msg = session.get(Message, message_id)
-        if not msg or msg.is_analyzed or not msg.content:
+        # Fetch only the required fields natively to avoid full ORM object allocation overhead
+        from sqlalchemy import select
+        stmt = select(Message.content, Message.group_id, Message.sender_id, Message.is_analyzed).where(Message.id == message_id)
+        row = session.execute(stmt).first()
+
+        if not row or row.is_analyzed or not row.content:
             return {"status": "skipped", "reason": "Not found, analyzed, or empty"}
 
-        # Extract needed fields before committing to prevent lazy loading
-        content = msg.content
-        group_id = msg.group_id
-        sender_id = msg.sender_id
+        # Extract needed fields before committing
+        content = row.content
+        group_id = row.group_id
+        sender_id = row.sender_id
 
         # Release the database connection back to the pool before blocking on the network call
         session.commit()
