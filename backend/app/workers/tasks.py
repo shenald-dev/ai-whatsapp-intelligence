@@ -42,10 +42,13 @@ def process_message(message_id: str):
         # Run AI analysis (async block within sync celery task)
         analysis = ai_engine.analyze_message_sync(content)
 
-        # Re-acquire the message in a new transaction and update directly
+        # Update DB directly without fetching the entire object over the network
+        sentiment = analysis.get("sentiment")
+        classification = analysis.get("classification")
+
         stmt = update(Message).where(Message.id == message_id).values(
-            sentiment=analysis.get("sentiment"),
-            classification=analysis.get("classification"),
+            sentiment=sentiment,
+            classification=classification,
             is_analyzed=True
         )
         result = session.execute(stmt)
@@ -57,8 +60,8 @@ def process_message(message_id: str):
         metadata = {
             "group_id": group_id,
             "sender_id": sender_id,
-            "sentiment": analysis.get("sentiment"),
-            "classification": analysis.get("classification")
+            "sentiment": sentiment,
+            "classification": classification
         }
 
         # Commit early to release DB lock before network I/O
@@ -69,12 +72,12 @@ def process_message(message_id: str):
         except Exception as e:
             # Revert analysis state so the task can be safely retried
             logging.error(f"Failed to store embedding for {message_id}: {e}")
-            revert_stmt = update(Message).where(Message.id == message_id).values(
+            stmt = update(Message).where(Message.id == message_id).values(
                 is_analyzed=False,
                 sentiment=None,
                 classification=None
             )
-            session.execute(revert_stmt)
+            session.execute(stmt)
             session.commit()
             raise e
 
