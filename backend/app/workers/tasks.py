@@ -42,7 +42,9 @@ def process_message(message_id: str):
         # Run AI analysis (async block within sync celery task)
         analysis = ai_engine.analyze_message_sync(content)
 
-        # Update DB directly without fetching the entire object over the network
+        # Update DB directly without fetching the entire object over the network.
+        # This safely bypasses ORM-level event listeners because updating these
+        # metadata fields does not trigger any necessary cascading side-effects.
         sentiment = analysis.get("sentiment")
         classification = analysis.get("classification")
 
