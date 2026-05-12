@@ -69,29 +69,29 @@ def process_message(message_id: str):
         # Commit early to release DB lock before network I/O
         session.commit()
 
-        # Store the embedding
-        store_message_embedding(message_id, content, metadata)
+        try:
+            store_message_embedding(message_id, content, metadata)
+        except Exception as e:
+            # Revert analysis state so the task can be safely retried
+            logging.error(f"Failed to store embedding for {message_id}: {e}")
+
+            revert_stmt = (
+                update(Message)
+                .where(Message.id == message_id)
+                .values(
+                    is_analyzed=False,
+                    sentiment=None,
+                    classification=None
+                )
+            )
+            session.execute(revert_stmt)
+            session.commit()
+            raise e
 
         return {"status": "success", "message_id": message_id}
         
     except Exception as e:
-        # Revert analysis state so the task can be safely retried
-        logging.error(f"Failed to store embedding for {message_id}: {e}")
-        # Revert the analysis using an UPDATE statement without fetching the object
-        stmt = (
-            update(Message)
-            .where(Message.id == message_id)
-            .values(
-                sentiment=None,
-                classification=None,
-                is_analyzed=False
-            )
-        )
-        result = session.execute(stmt)
-        if result.rowcount == 0:
-            # Log if the message was deleted during the task execution
-            logging.warning(f"Message {message_id} not found during rollback")
-        session.commit()
+        session.rollback()
         raise e
     finally:
         session.close()
