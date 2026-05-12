@@ -43,9 +43,9 @@ def process_message(message_id: str):
         analysis = ai_engine.analyze_message_sync(content)
 
         # Update DB directly without fetching the entire object over the network.
-        # Note: Direct UPDATE statements bypass standard ORM listeners and hybrid properties.
+        # Note: Direct UPDATE statements bypass standard ORM listeners, hybrid properties, and version columns.
         # This is safe here because the `Message` model currently has no such listeners
-        # attached to `sentiment`, `classification`, or `is_analyzed`.
+        # attached to `sentiment`, `classification`, or `is_analyzed`, and no versioning columns.
         sentiment = analysis.get("sentiment")
         classification = analysis.get("classification")
 
