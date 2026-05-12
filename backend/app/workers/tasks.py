@@ -42,6 +42,7 @@ def process_message(message_id: str):
         # Run AI analysis (async block within sync celery task)
         analysis = ai_engine.analyze_message_sync(content)
 
+<<<<<<< HEAD
         # Update DB using a direct UPDATE statement to avoid fetching the text column
         result = session.execute(
             update(Message)
@@ -54,13 +55,33 @@ def process_message(message_id: str):
         )
         if result.rowcount == 0:
              return {"status": "error", "reason": "Message deleted during analysis"}
+=======
+        # Update DB directly without fetching the entire object over the network
+        sentiment = analysis.get("sentiment")
+        classification = analysis.get("classification")
+
+        stmt = update(Message).where(Message.id == message_id).values(
+            sentiment=sentiment,
+            classification=classification,
+            is_analyzed=True
+        )
+        result = session.execute(stmt)
+
+        if result.rowcount == 0:
+            return {"status": "error", "reason": "Message deleted during analysis"}
+>>>>>>> origin/master
         
         # Store message in ChromaDB for semantic search
         metadata = {
             "group_id": group_id,
             "sender_id": sender_id,
+<<<<<<< HEAD
             "sentiment": analysis.get("sentiment"),
             "classification": analysis.get("classification")
+=======
+            "sentiment": sentiment,
+            "classification": classification
+>>>>>>> origin/master
         }
 
         # Commit early to release DB lock before network I/O
@@ -71,6 +92,7 @@ def process_message(message_id: str):
         except Exception as e:
             # Revert analysis state so the task can be safely retried
             logging.error(f"Failed to store embedding for {message_id}: {e}")
+<<<<<<< HEAD
             session.execute(
                 update(Message)
                 .where(Message.id == message_id)
@@ -80,6 +102,14 @@ def process_message(message_id: str):
                     is_analyzed=False
                 )
             )
+=======
+            stmt = update(Message).where(Message.id == message_id).values(
+                is_analyzed=False,
+                sentiment=None,
+                classification=None
+            )
+            session.execute(stmt)
+>>>>>>> origin/master
             session.commit()
             raise e
 
