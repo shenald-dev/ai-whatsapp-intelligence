@@ -45,6 +45,9 @@ def process_message(message_id: str):
         classification = analysis.get("classification")
 
         # Update DB directly without fetching the potentially large Message payload
+        # This bypasses the ORM's session.get() to avoid fetching the large `content` (up to 64KB) over the network
+        # just to update the metadata fields, significantly improving database efficiency on this hot path.
+        # Parameterization is inherently handled by SQLAlchemy's `update().values(...)` construct.
         stmt = (
             update(Message)
             .where(Message.id == message_id)
