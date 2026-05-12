@@ -42,7 +42,10 @@ def process_message(message_id: str):
         # Run AI analysis (async block within sync celery task)
         analysis = ai_engine.analyze_message_sync(content)
 
-        # Update DB directly without fetching the entire object over the network
+        # Update DB directly without fetching the entire object over the network.
+        # Note: Direct UPDATE statements bypass standard ORM listeners and hybrid properties.
+        # This is safe here because the `Message` model currently has no such listeners
+        # attached to `sentiment`, `classification`, or `is_analyzed`.
         sentiment = analysis.get("sentiment")
         classification = analysis.get("classification")
 
