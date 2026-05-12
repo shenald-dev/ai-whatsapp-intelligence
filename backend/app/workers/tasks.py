@@ -42,17 +42,17 @@ def process_message(message_id: str):
         # Run AI analysis (async block within sync celery task)
         analysis = ai_engine.analyze_message_sync(content)
 
-        # Re-acquire the message in a new transaction and update DB using direct SQL UPDATE
-        # to avoid fetching the large Text payload over the network.
+        # Update DB directly without fetching the entire object over the network
         sentiment = analysis.get("sentiment")
         classification = analysis.get("classification")
 
-        stmt = (
-            update(Message)
-            .where(Message.id == message_id)
-            .values(sentiment=sentiment, classification=classification, is_analyzed=True)
+        stmt = update(Message).where(Message.id == message_id).values(
+            sentiment=sentiment,
+            classification=classification,
+            is_analyzed=True
         )
         result = session.execute(stmt)
+
         if result.rowcount == 0:
             return {"status": "error", "reason": "Message deleted during analysis"}
         
@@ -72,10 +72,10 @@ def process_message(message_id: str):
         except Exception as e:
             # Revert analysis state so the task can be safely retried
             logging.error(f"Failed to store embedding for {message_id}: {e}")
-            stmt = (
-                update(Message)
-                .where(Message.id == message_id)
-                .values(is_analyzed=False, sentiment=None, classification=None)
+            stmt = update(Message).where(Message.id == message_id).values(
+                is_analyzed=False,
+                sentiment=None,
+                classification=None
             )
             session.execute(stmt)
             session.commit()
