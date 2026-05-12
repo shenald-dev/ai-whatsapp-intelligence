@@ -27,7 +27,8 @@ def process_message(message_id: str):
     """Celery task worker to enrich a message with AI."""
     session = SessionLocal()
     try:
-        # Fetch only the required fields natively to avoid full ORM object allocation overhead
+        # OPTIMIZATION: Fetch only the required fields natively to avoid full ORM object allocation overhead.
+        # This replaces session.get() which fetches all columns (including large text payloads).
         from sqlalchemy import select
         stmt = select(Message.content, Message.group_id, Message.sender_id, Message.is_analyzed).where(Message.id == message_id)
         row = session.execute(stmt).first()
