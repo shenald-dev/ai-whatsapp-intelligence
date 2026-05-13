@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 
 
+## [1.0.25] - 2026-05-12
+
+* **Lifecycle:** Verified system integrity post-optimizations introducing direct SQL `UPDATE` statements in Celery task hot paths to improve performance.
+* **Lifecycle:** Pruned `__pycache__` artifacts to maintain repository cleanliness and reduce entropy.
+* **Dependencies:** Bumped 3 Python dependencies and 4 Node.js dependencies to their latest minor/patch versions.
+
 ## [1.0.24] - 2026-05-05
 
 * **Lifecycle:** Evaluated that API latency is reduced using `ORJSONResponse` across endpoints as expected.
