@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 
 
+## [1.0.25] - 2026-05-12
+
+* **Lifecycle:** Verified system integrity post-optimizations in `tasks.py` which refactored Celery task to use a direct SQL `UPDATE` statement. Verified test suites and `vulture` static analysis appropriately pass.
+* **Dependencies:** Bumped Python dependencies safely (`idna`, `requests`, `posthog`). Checked Node.js dependencies safely.
+* **Pruning:** Pruned `__pycache__` directories to reduce codebase entropy.
+
 
 ## [1.0.24] - 2026-05-05
 
