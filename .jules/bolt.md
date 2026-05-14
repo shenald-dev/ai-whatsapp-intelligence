@@ -358,3 +358,11 @@ In `backend/app/workers/tasks.py`, the `process_message` Celery task previously 
 
 Action:
 Refactored the Celery task to use a direct SQL `UPDATE` statement via `session.execute(update(Message).where(Message.id == message_id).values(...))` instead of fetching the object. This bypasses the network fetch of the large object, reducing DB bandwidth, memory usage, and execution latency for background workers processing hot paths. Applied the same optimization to the exception rollback logic.
+
+## 2026-05-12 — Optimize memory usage with load_only
+
+Learning:
+When retrieving large objects via SQLAlchemy like `Message` containing potentially large `Text` columns, doing a full fetch over the network via `session.get(Message, id)` without restrictions wastes memory and I/O.
+
+Action:
+Replaced the bare `session.get(Message, id)` with `session.get(Message, id, options=[load_only(Message.is_analyzed, Message.content, Message.group_id, Message.sender_id)])` in `process_message` Celery task. This prevents unneeded columns from being fetched across the wire when we only require specific fields to continue processing.
