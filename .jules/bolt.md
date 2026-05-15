@@ -358,3 +358,11 @@ In `backend/app/workers/tasks.py`, the `process_message` Celery task previously 
 
 Action:
 Refactored the Celery task to use a direct SQL `UPDATE` statement via `session.execute(update(Message).where(Message.id == message_id).values(...))` instead of fetching the object. This bypasses the network fetch of the large object, reducing DB bandwidth, memory usage, and execution latency for background workers processing hot paths. Applied the same optimization to the exception rollback logic.
+
+## 2026-05-15 — Optimize Celery Worker Data Retrieval
+
+Learning:
+When retrieving objects from the database inside Celery tasks (like `process_message` in `backend/app/workers/tasks.py`), fetching the entire object (e.g., using `session.get(Message, message_id)`) retrieves all columns. If the object contains large data, or if only a few specific columns are needed, fetching all columns consumes unnecessary database bandwidth and memory.
+
+Action:
+Used `load_only` within `session.get` options to only fetch the explicitly required columns (`Message.is_analyzed`, `Message.content`, `Message.group_id`, `Message.sender_id`) instead of the entire row. This significantly reduces the size of the retrieved payload, improving memory utilization and database network efficiency.
