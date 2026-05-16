@@ -149,3 +149,8 @@ All notable changes to this project will be documented in this file.
 ### Assure, Prune, and Sync
 * **Lifecycle:** Verified system integrity post-optimizations. Pruned `__pycache__` artifacts to reduce codebase entropy. Verified static analysis with no dead code found.
 * **Upgrades:** Bumped safe minor/patch versions for node dependency `dotenv` and multiple python backend dependencies (`click`, `orjson`, `huggingface-hub`, `sqlalchemy`, etc).
+
+## [1.0.25] - 2026-05-12
+* **Performance:** Optimized Celery task hot path to use direct SQL UPDATE.
+* **Dependencies:** Bumped safe patch and minor versions of Python and Node dependencies.
+* **Maintenance:** Pruned dead code, cached artifacts, and synced documentation.
