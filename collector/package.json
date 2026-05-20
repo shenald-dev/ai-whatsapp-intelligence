@@ -1,6 +1,6 @@
 {
   "name": "ai-whatsapp-collector",
-  "version": "1.0.24",
+  "version": "1.0.25",
   "description": "WhatsApp Web JS collector for AI Intelligence Monitor",
   "main": "src/index.js",
   "scripts": {
