@@ -6,7 +6,6 @@ All notable changes to this project will be documented in this file.
 
 ## [1.0.25] - 2026-05-12
 
-### Assure, Prune, and Sync
 
 ### Assure, Prune, and Sync
 * **Lifecycle:** Verified system integrity post-optimizations introducing direct SQL `UPDATE` queries in the Celery worker. Re-verified robust backend and node tests properly pass.
