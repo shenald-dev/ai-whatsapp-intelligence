@@ -34,8 +34,8 @@ class AIEngine:
         if OPENROUTER_API_KEY:
             self.llm = ChatOpenAI(
                 openai_api_key=OPENROUTER_API_KEY,
-                base_url=BASE_URL,
-                model_name="anthropic/claude-3-haiku",
+                openai_api_base=BASE_URL,
+                model_name="anthropic/claude-3-haiku:beta", # Fast & cheap on OpenRouter
                 temperature=0.1
             )
         else:
