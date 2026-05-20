@@ -33,11 +33,9 @@ class AIEngine:
         # If no openrouter key, fallback to local or mocked for testing.
         if OPENROUTER_API_KEY:
             self.llm = ChatOpenAI(
-                openai_api_
-
-// ... 150.5999999999999 characters truncated (middle section) ...
-
-ter
+                openai_api_key=OPENROUTER_API_KEY,
+                openai_api_base=BASE_URL,
+                model_name="anthropic/claude-3-haiku:beta", # Fast & cheap on OpenRouter
                 temperature=0.1
             )
         else:
