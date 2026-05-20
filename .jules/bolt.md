@@ -358,10 +358,11 @@ In `backend/app/workers/tasks.py`, the `process_message` Celery task previously 
 
 Action:
 Refactored the Celery task to use a direct SQL `UPDATE` statement via `session.execute(update(Message).where(Message.id == message_id).values(...))` instead of fetching the object. This bypasses the network fetch of the large object, reducing DB bandwidth, memory usage, and execution latency for background workers processing hot paths. Applied the same optimization to the exception rollback logic.
-## 2026-05-15 — Optimize SQLAlchemy session.get() bandwidth and memory usage
+
+## 2026-05-19 — Optimize Celery Worker Database Data Fetching
 
 Learning:
-When only a subset of fields is required from a SQLAlchemy model (especially those containing large `Text` columns like `content` in `Message`), fetching the entire model over the network using `session.get(Model, id)` unnecessarily increases database bandwidth, parsing latency, and memory consumption. This overhead is amplified in background task workers (e.g., Celery) operating on hot paths.
+In `backend/app/workers/tasks.py`, the `process_message` Celery task fetched the entire `Message` object using `session.get(Message, message_id)`. This caused SQLAlchemy to eagerly load all mapped columns by default, including potentially large unneeded fields. Since `Message` can contain large text payloads, fetching everything consumes unnecessary network bandwidth and memory inside background workers.
 
 Action:
-Optimized `session.get(Message, message_id)` in `backend/app/workers/tasks.py` by using the `load_only` option (`options=[load_only(Message.content, Message.group_id, Message.sender_id, Message.is_analyzed)]`) to explicitly narrow the query. This optimization drastically reduces memory footprint and execution latency while safely preserving the ORM model contract to avoid downstream missing-attribute regressions.
+Used `load_only` within `session.get(Message, message_id, options=[load_only(...)])` to specifically fetch only the required columns (`content`, `group_id`, `sender_id`, `is_analyzed`). This optimization minimizes database bandwidth and memory consumption while preserving the ORM contract.
