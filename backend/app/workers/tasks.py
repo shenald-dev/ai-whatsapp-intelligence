@@ -1,5 +1,5 @@
 from sqlalchemy import create_engine, update
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, load_only
 import os
 from dotenv import load_dotenv
 import logging
@@ -27,7 +27,7 @@ def process_message(message_id: str):
     """Celery task worker to enrich a message with AI."""
     session = SessionLocal()
     try:
-        msg = session.get(Message, message_id)
+        msg = session.get(Message, message_id, options=[load_only(Message.content, Message.group_id, Message.sender_id, Message.is_analyzed)])
         if not msg or msg.is_analyzed or not msg.content:
             return {"status": "skipped", "reason": "Not found, analyzed, or empty"}
 
