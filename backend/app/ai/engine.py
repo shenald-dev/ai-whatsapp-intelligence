@@ -22,7 +22,7 @@ class MessageAnalysis(BaseModel):
 
     @field_validator("sentiment", "classification", mode="before")
     @classmethod
-    def lowercase_values(_, v: str) -> str:
+    def lowercase_values(_cls, v: str) -> str:
         if isinstance(v, str):
             return v.lower().strip()
         return v
