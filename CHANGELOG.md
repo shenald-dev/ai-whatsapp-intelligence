@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 
 
+## [1.0.25] - 2026-05-12
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity post-optimizations introducing direct SQL `UPDATE` queries in the Celery worker. Re-verified robust backend and node tests properly pass.
+* **Upgrades:** Audited dependencies and safely bumped `python` dependencies via Poetry and Node.js dependencies via npm.
+* **Pruning:** Pruned `__pycache__` directories to maintain codebase entropy. Addressed `vulture` static analysis warning in Pydantic validator by renaming unused `cls` variable to `_cls`.
+
 ## [1.0.24] - 2026-05-05
 
 * **Lifecycle:** Evaluated that API latency is reduced using `ORJSONResponse` across endpoints as expected.
@@ -149,8 +156,3 @@ All notable changes to this project will be documented in this file.
 ### Assure, Prune, and Sync
 * **Lifecycle:** Verified system integrity post-optimizations. Pruned `__pycache__` artifacts to reduce codebase entropy. Verified static analysis with no dead code found.
 * **Upgrades:** Bumped safe minor/patch versions for node dependency `dotenv` and multiple python backend dependencies (`click`, `orjson`, `huggingface-hub`, `sqlalchemy`, etc).
-
-## [1.0.25] - 2026-05-12
-* **Lifecycle:** Verified robust test passing and stable architecture. Pruned `__pycache__` artifacts to maintain repo cleanliness and reduce entropy.
-* **Dependencies:** Bumped `requests` to version 2.34.2 via Poetry in Python backend.
-* **Docs:** Synced `README.md` to document the highly optimized Celery background worker performance.
