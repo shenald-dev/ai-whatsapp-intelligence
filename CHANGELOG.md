@@ -7,6 +7,8 @@ All notable changes to this project will be documented in this file.
 ## [1.0.25] - 2026-05-12
 
 ### Assure, Prune, and Sync
+
+### Assure, Prune, and Sync
 * **Lifecycle:** Verified system integrity post-optimizations introducing direct SQL `UPDATE` queries in the Celery worker. Re-verified robust backend and node tests properly pass.
 * **Upgrades:** Audited dependencies and safely bumped `python` dependencies via Poetry and Node.js dependencies via npm.
 * **Pruning:** Pruned `__pycache__` directories to maintain codebase entropy. Addressed `vulture` static analysis warning in Pydantic validator by renaming unused `cls` variable to `_cls`.
@@ -158,6 +160,8 @@ All notable changes to this project will be documented in this file.
 * **Upgrades:** Bumped safe minor/patch versions for node dependency `dotenv` and multiple python backend dependencies (`click`, `orjson`, `huggingface-hub`, `sqlalchemy`, etc).
 
 ## [1.0.25] - 2026-05-12
+
+### Assure, Prune, and Sync
 * **Performance:** Optimized Celery task hot path to use direct SQL UPDATE.
 * **Dependencies:** Bumped safe patch and minor versions of Python and Node dependencies.
 * **Maintenance:** Pruned dead code, cached artifacts, and synced documentation.
