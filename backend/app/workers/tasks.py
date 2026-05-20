@@ -28,6 +28,7 @@ def process_message(message_id: str):
     session = SessionLocal()
     try:
         msg = session.get(Message, message_id, options=[load_only(Message.content, Message.group_id, Message.sender_id, Message.is_analyzed)])
+        # Use load_only to selectively fetch necessary columns to optimize database bandwidth and memory.
         if not msg or msg.is_analyzed or not msg.content:
             return {"status": "skipped", "reason": "Not found, analyzed, or empty"}
 
