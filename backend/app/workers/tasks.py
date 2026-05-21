@@ -27,35 +27,46 @@ def process_message(message_id: str):
     """Celery task worker to enrich a message with AI."""
     session = SessionLocal()
     try:
-        msg = session.get(Message, message_id, options=[load_only(Message.is_analyzed, Message.content, Message.group_id, Message.sender_id)])
+        msg = session.get(Message, message_id, options=[load_only(Message.content, Message.group_id, Message.sender_id, Message.is_analyzed)])
         if not msg or msg.is_analyzed or not msg.content:
             return {"status": "skipped", "reason": "Not found, analyzed, or empty"}
-        
-        # If we get here, the message needs to be processed
+
+        # Extract needed fields before committing to prevent lazy loading
         content = msg.content
+        group_id = msg.group_id
+        sender_id = msg.sender_id
+
+        # Release the database connection back to the pool before blocking on the network call
+        session.commit()
+
+        # Run AI analysis (async block within sync celery task)
+        analysis = ai_engine.analyze_message_sync(content)
+
+        # Update DB directly without fetching the entire object over the network
+        sentiment = analysis.get("sentiment")
+        classification = analysis.get("classification")
+
+        stmt = update(Message).where(Message.id == message_id).values(
+            sentiment=sentiment,
+            classification=classification,
+            is_analyzed=True
+        )
+        result = session.execute(stmt)
+
+        if result.rowcount == 0:
+            return {"status": "error", "reason": "Message deleted during analysis"}
         
-        # Run AI analysis
-        result = ai_engine.analyze_text(content)
-        sentiment = result.get("sentiment")
-        classification = result.get("classification")
-        
-        # Update the message with analysis results
-        msg.sentiment = sentiment
-        msg.classification = classification
-        msg.is_analyzed = True
-        
-        # Prepare metadata for ChromaDB
+        # Store message in ChromaDB for semantic search
         metadata = {
-            "message_id": str(msg.id),
-            "group_id": str(msg.group_id),
-            "sender_id": str(msg.sender_id),
+            "group_id": group_id,
+            "sender_id": sender_id,
             "sentiment": sentiment,
             "classification": classification
         }
-        
+
         # Commit early to release DB lock before network I/O
         session.commit()
-        
+
         try:
             store_message_embedding(message_id, content, metadata)
         except Exception as e:
@@ -69,7 +80,7 @@ def process_message(message_id: str):
             session.execute(stmt)
             session.commit()
             raise e
-        
+
         return {"status": "success", "message_id": message_id}
         
     except Exception as e:
