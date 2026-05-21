@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 
 
+## [1.0.26] - 2026-05-21
+
+* **Maintenance**: Assure lifecycle, prune entropy.
+* **Dependencies**: Bumped `axios` and 19 minor python packages.
+* **Performance**: Optimized DB object fetches with `load_only` in Celery workers.
+
 ## [1.0.25] - 2026-05-12
 
 ### Assure, Prune, and Sync
