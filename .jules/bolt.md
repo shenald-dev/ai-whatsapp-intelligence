@@ -358,3 +358,11 @@ When updating a subset of fields on a SQLAlchemy model containing large columns 
 
 Action:
 Prefer using a direct SQL `UPDATE` statement via `session.execute(update(Model).where(...).values(...))` instead of `session.get()`. This avoids fetching large payloads over the network when we only need to write data, thereby improving database efficiency and reducing latency.
+
+## 2026-05-12 — Optimize Message Fetch in Celery Worker
+
+Learning:
+Fetching complete SQLAlchemy models using `session.get(Message, id)` pulls all columns over the network, which is inefficient if the `Message` model contains large unused fields (e.g., long text payloads that aren't needed, or metadata columns).
+
+Action:
+Use `load_only` in `session.get()` to restrict the columns fetched from the database to only what is necessary (e.g., `options=[load_only(Message.content, ...)]`). This minimizes network bandwidth and speeds up data retrieval in background workers.
