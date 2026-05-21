@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 
 
+## [1.0.25] - 2026-05-12
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity post-optimizations introducing direct SQL `UPDATE` queries in the Celery worker. Re-verified robust backend and node tests properly pass.
+* **Upgrades:** Audited dependencies and safely bumped `python` dependencies via Poetry and Node.js dependencies via npm.
+* **Pruning:** Pruned `__pycache__` directories to maintain codebase entropy. Addressed `vulture` static analysis warning in Pydantic validator by renaming unused `cls` variable to `_cls`.
+
 ## [1.0.24] - 2026-05-05
 
 * **Lifecycle:** Evaluated that API latency is reduced using `ORJSONResponse` across endpoints as expected.
@@ -149,12 +156,6 @@ All notable changes to this project will be documented in this file.
 ### Assure, Prune, and Sync
 * **Lifecycle:** Verified system integrity post-optimizations. Pruned `__pycache__` artifacts to reduce codebase entropy. Verified static analysis with no dead code found.
 * **Upgrades:** Bumped safe minor/patch versions for node dependency `dotenv` and multiple python backend dependencies (`click`, `orjson`, `huggingface-hub`, `sqlalchemy`, etc).
-
-## [1.0.25] - 2026-05-12
-
-* **Performance:** Replaced object fetch with direct SQL UPDATE in Celery worker hot path (`backend/app/workers/tasks.py`) to minimize database bandwidth and serialization overhead for large payloads.
-* **Lifecycle:** Verified structural soundness of Celery optimizations. Pruned stale `__pycache__` artifacts to maintain codebase cleanliness.
-* **Dependencies:** Safely updated Python packages `idna`, `requests`, `click`, `huggingface-hub`, `posthog`, and `tiktoken` to their latest patch versions.
 
 ## [1.0.26] - 2026-05-12
 
