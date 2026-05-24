@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 
 
+## [1.0.27] - 2026-05-24
+
+* **Maintenance**: Assure lifecycle, prune entropy.
+* **Dependencies**: Safely bumped python and node dependencies.
+* **Performance**: Checked for regressions.
+
 
 ## [1.0.26] - 2026-05-21
 
