@@ -34,7 +34,7 @@ class BoundedTTLCache:
         if key not in self.cache:
             return None
         value, timestamp = self.cache[key]
-        if time.time() - timestamp > self.ttl:
+        if time.monotonic() - timestamp > self.ttl:
             del self.cache[key]
             return None
         self.cache.move_to_end(key)
@@ -43,7 +43,7 @@ class BoundedTTLCache:
     def put(self, key: str, value):
         if key in self.cache:
             self.cache.move_to_end(key)
-        self.cache[key] = (value, time.time())
+        self.cache[key] = (value, time.monotonic())
         if len(self.cache) > self.capacity:
             self.cache.popitem(last=False)
 
