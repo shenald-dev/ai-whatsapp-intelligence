@@ -366,3 +366,10 @@ In `backend/app/workers/tasks.py`, the `process_message` Celery task fetched the
 
 Action:
 Used `load_only` within `session.get(Message, message_id, options=[load_only(...)])` to specifically fetch only the required columns (`content`, `group_id`, `sender_id`, `is_analyzed`). This optimization minimizes database bandwidth and memory consumption while preserving the ORM contract.
+## 2026-05-25 — Reliable TTL Calculations
+
+Learning:
+Using time.time() for duration or TTL calculations is unreliable due to system clock adjustments (like NTP syncs).
+
+Action:
+Always use time.monotonic() for reliable duration, timeout, or TTL calculations in Python.
