@@ -365,4 +365,12 @@ Learning:
 When retrieving only a subset of fields from a SQLAlchemy model (especially large fields like Text columns) in a hot path, pulling the entire ORM object fetches unnecessary data over the network, wasting memory and database bandwidth.
 
 Action:
-Use `load_only()` within `session.get(Model, id, options=[load_only(Model.col1, ...)])` to retrieve a lightweight model securely without returning full database rows.
+Use `load_only()` within `session.get(Message, message_id, options=[load_only(...)])` to specifically fetch only the required columns (`content`, `group_id`, `sender_id`, `is_analyzed`). This optimization minimizes database bandwidth and memory consumption while preserving the ORM contract.
+
+## 2026-05-26 — Prevent cache TTL vulnerability from system clock adjustments
+
+Learning:
+Using `time.time()` for cache Time-To-Live (TTL) calculations is vulnerable to system clock adjustments (like NTP syncs), which can lead to premature cache invalidation or artificially extended TTLs.
+
+Action:
+Always use `time.monotonic()` instead of `time.time()` for reliable duration and timeout calculations, as it is immune to system clock changes.
