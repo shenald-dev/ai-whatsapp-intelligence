@@ -28,7 +28,7 @@ def process_message(message_id: str):
     session = SessionLocal()
     try:
         # Fetch only specific attributes to prevent eager loading of large unused columns.
-        # This optimization is safe because the update phase only requires these four fields, and no other attributes of the Message instance are accessed later in the task.
+        # This optimization is safe because the task only updates is_analyzed and does not access other Message attributes later, thus avoiding unintended lazy loads or stale data.
         msg = session.get(Message, message_id, options=[load_only(Message.content, Message.group_id, Message.sender_id, Message.is_analyzed)])
         if not msg or msg.is_analyzed or not msg.content:
             return {"status": "skipped", "reason": "Not found, analyzed, or empty"}
