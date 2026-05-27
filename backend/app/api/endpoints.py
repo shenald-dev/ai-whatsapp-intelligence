@@ -44,6 +44,7 @@ class BoundedTTLCache:
     def put(self, key: str, value):
         if key in self.cache:
             self.cache.move_to_end(key)
+        # Use time.monotonic() to ensure TTL calculation is immune to system clock adjustments
         self.cache[key] = (value, time.monotonic())
         if len(self.cache) > self.capacity:
             self.cache.popitem(last=False)
