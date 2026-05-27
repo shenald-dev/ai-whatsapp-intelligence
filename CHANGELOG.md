@@ -9,8 +9,6 @@ All notable changes to this project will be documented in this file.
 * **Upgrades:** Audited dependencies and safely bumped 8 Python dependencies (`idna`, `click`, `wrapt`, `httptools`, `huggingface-hub`, `sqlalchemy`, `kubernetes`, `posthog`) via Poetry. Verified Node.js dependencies are up to date.
 * **Pruning:** Pruned `__pycache__` artifacts to maintain codebase entropy.
 
-
-
 ## [1.0.26] - 2026-05-21
 
 * **Maintenance**: Assure lifecycle, prune entropy.
