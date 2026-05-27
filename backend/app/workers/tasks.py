@@ -27,6 +27,7 @@ def process_message(message_id: str):
     """Celery task worker to enrich a message with AI."""
     session = SessionLocal()
     try:
+        # Note: If adding fields accessed by this task, ensure they are added to the load_only list to avoid lazy loading issues.
         msg = session.get(Message, message_id, options=[load_only(Message.is_analyzed, Message.content, Message.group_id, Message.sender_id)])
         if not msg or msg.is_analyzed or not msg.content:
             return {"status": "skipped", "reason": "Not found, analyzed, or empty"}
