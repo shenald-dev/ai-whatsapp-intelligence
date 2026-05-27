@@ -1,19 +1,27 @@
+## [1.0.27] - 2026-05-25
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity post-optimizations introducing `ws` upgrade. Re-verified robust backend and node tests properly pass.
+* **Upgrades:** Audited dependencies and safely bumped `python` dependencies via Poetry and Node.js dependencies via npm.
+* **Pruning:** Pruned an unused import in test_workers.py.
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.27] - 2026-05-26
+
+## [1.0.26] - 2026-05-21
+
+* **Maintenance**: Assure lifecycle, prune entropy.
+* **Dependencies**: Bumped `axios` and 19 minor python packages.
+* **Performance**: Optimized DB object fetches with `load_only` in Celery workers.
 
 ## [1.0.25] - 2026-05-12
 
 * **Lifecycle:** Verified system integrity post-optimizations in `tasks.py` which refactored Celery task to use a direct SQL `UPDATE` statement. Verified test suites and `vulture` static analysis appropriately pass.
 * **Dependencies:** Bumped Python dependencies safely (`idna`, `requests`, `posthog`). Checked Node.js dependencies safely.
 * **Pruning:** Pruned `__pycache__` directories to reduce codebase entropy.
-
-
-## [1.0.25] - 2026-05-12
-
-### Assure, Prune, and Sync
-* **Lifecycle:** Verified system integrity post-optimizations introducing direct SQL `UPDATE` queries in the Celery worker. Re-verified robust backend and node tests properly pass.
 * **Upgrades:** Audited dependencies and safely bumped `python` dependencies via Poetry and Node.js dependencies via npm.
 * **Pruning:** Pruned `__pycache__` directories to maintain codebase entropy. Addressed `vulture` static analysis warning in Pydantic validator by renaming unused `cls` variable to `_cls`.
 
