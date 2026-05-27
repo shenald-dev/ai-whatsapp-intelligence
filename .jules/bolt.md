@@ -367,3 +367,11 @@ Fetching entire SQLAlchemy models, especially those with potentially large text 
 
 Action:
 When only a subset of fields is required from an ORM model (like within Celery workers), apply the `load_only` option within `session.get()` (e.g., `session.get(Model, id, options=[load_only(Model.col1, Model.col2)])`) to optimize memory and network usage while safely preserving the ORM structure.
+
+## 2026-05-26 — Prevent cache TTL vulnerability from system clock adjustments
+
+Learning:
+Using `time.time()` for cache Time-To-Live (TTL) calculations is vulnerable to system clock adjustments (like NTP syncs), which can lead to premature cache invalidation or artificially extended TTLs.
+
+Action:
+Always use `time.monotonic()` instead of `time.time()` for reliable duration and timeout calculations, as it is immune to system clock changes.
