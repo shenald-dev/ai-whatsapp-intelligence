@@ -34,6 +34,7 @@ class BoundedTTLCache:
         if key not in self.cache:
             return None
         value, timestamp = self.cache[key]
+        # Use time.monotonic() to ensure TTL calculation is immune to system clock adjustments
         if time.monotonic() - timestamp > self.ttl:
             del self.cache[key]
             return None
