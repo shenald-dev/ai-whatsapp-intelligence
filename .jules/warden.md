@@ -25,7 +25,7 @@ We are given a merge conflict in a markdown file. We have three versions: ancest
    - A blank line then:
      ## 2026-05-12 — Assessment & Lifecycle
      ... (content for 2026-05-12, but different from base)
-     ## 2026-05-12 — Assessment & Lifecycle (Release 1.0.26)
+     ## 2026-05-12 — Assessment & Lifecycle (Release 1.0.28)
      ... (content for another 2026-05-12 section)
 
  However, note that the base has two sections: one for 2026-05-12 and one for 2026-05-21.
@@ -43,11 +43,11 @@ We are given a merge conflict in a markdown file. We have three versions: ancest
  Head's first 2026-05-12 section (without the release tag) is identical to the base's 2026-05-12 section.
 
  Then the head has an additional section:
-   ## 2026-05-12 — Assessment & Lifecycle (Release 1.0.26)
+   ## 2026-05-12 — Assessment & Lifecycle (Release 1.0.28)
    Observation / Pruned:
    Observed codebase paths fully aligned and stable. The previous run successfully optimized the Celery background worker by converting ORM fetch logic into an efficient direct SQL UPDATE statement. Pruned `__pycache__` artifacts to reduce entropy and verified codebase stability.
    Alignment / Deferred:
-   Updated Python dependencies to minor/patch versions (`idna`, `requests`, `click`, `huggingface-hub`, `posthog`, `tiktoken`). Checked Node.js dependencies, which remain up to date. Verified the tests are fully passing. Bumped version to `1.0.26`.
+   Updated Python dependencies to minor/patch versions (`idna`, `requests`, `click`, `huggingface-hub`, `posthog`, `tiktoken`). Checked Node.js dependencies, which remain up to date. Verified the tests are fully passing. Bumped version to `1.0.28`.
 
  And the base has a section for 2026-05-21 that the head does not have.
 
@@ -82,7 +82,7 @@ We are given a merge conflict in a markdown file. We have three versions: ancest
         ## 2026-05-12 — Assessment & Lifecycle
         [Observation / Pruned: ...]   (same as base's 2026-05-12)
         Alignment / Deferred: ... (to 1.0.25)
-        ## 2026-05-12 — Assessment & Lifecycle (Release 1.0.26)
+        ## 2026-05-12 — Assessment & Lifecycle (Release 1.0.28)
         [Observation / Pruned: ...]
         Alignment / Deferred: ... (to 1.0.26)
 
@@ -153,7 +153,7 @@ We are given a merge conflict in a markdown file. We have three versions: ancest
  Therefore, the order should be:
    ## 2026-05-12 — Assessment & Lifecycle
    ... ( Observation / Pruned: ... and Alignment / Deferred: ... to 1.0.25 )
-   ## 2026-05-12 — Assessment & Lifecycle (Release 1.0.26)
+   ## 2026-05-12 — Assessment & Lifecycle (Release 1.0.28)
    ... ( Observation / Pruned: ... and Alignment / Deferred: ... to 1.0.26 )
    ## 2026-05-21 — Assessment & Lifecycle
    ... ( Observation / Pruned: ... and Alignment / Deferred: ... to 1.0.26 )
@@ -174,16 +174,16 @@ We are given a merge conflict in a markdown file. We have three versions: ancest
    Observed codebase paths fully aligned and stable. Renamed unused `cls` variable to `_cls` in `lowercase_values` Pydantic validator in `backend/app/ai/engine.py` to fix static analysis. Pruned `__pycache__` artifacts to maintain repository cleanliness and reduce entropy. Verified that `vulture` static analysis appropriately passes.
    Alignment / Deferred:
    Updated Python and Node.js dependencies via Poetry and npm safely. All tests fully passed. Bumped version to `1.0.25`.
-   ## 2026-05-12 — Assessment & Lifecycle (Release 1.0.26)
+   ## 2026-05-12 — Assessment & Lifecycle (Release 1.0.28)
    Observation / Pruned:
    Observed codebase paths fully aligned and stable. The previous run successfully optimized the Celery background worker by converting ORM fetch logic into an efficient direct SQL UPDATE statement. Pruned `__pycache__` artifacts to reduce entropy and verified codebase stability.
    Alignment / Deferred:
-   Updated Python dependencies to minor/patch versions (`idna`, `requests`, `click`, `huggingface-hub`, `posthog`, `tiktoken`). Checked Node.js dependencies, which remain up to date. Verified the tests are fully passing. Bumped version to `1.0.26`.
+   Updated Python dependencies to minor/patch versions (`idna`, `requests`, `click`, `huggingface-hub`, `posthog`, `tiktoken`). Checked Node.js dependencies, which remain up to date. Verified the tests are fully passing. Bumped version to `1.0.28`.
    ## 2026-05-21 — Assessment & Lifecycle
    Observation / Pruned:
    Observed codebase paths fully aligned. Re-verified robust passing test suites. Pruned `__pycache__` artifacts to maintain repo cleanliness and remove entropy. Verified tests passing with `vulture`. Evaluated that previous agent (JULES/BOLT) safely optimized database worker memory by fetching partial models via `load_only`.
    Alignment / Deferred:
-   Updated Node dependency `axios` from `^1.15.2` to `^1.16.1` safely via `ncu -u --target minor` in the node collector. Checked and verified test suite remains aligned. Updated 19 Python dependencies via Poetry safely. Bumped version to `1.0.26`.
+   Updated Node dependency `axios` from `^1.15.2` to `^1.16.1` safely via `ncu -u --target minor` in the node collector. Checked and verified test suite remains aligned. Updated 19 Python dependencies via Poetry safely. Bumped version to `1.0.28`.
 
  But note: the base's 2026-05-21 section in the provided base version is:
 
@@ -193,7 +193,7 @@ We are given a merge conflict in a markdown file. We have three versions: ancest
    Observed codebase paths fully aligned. Re-verified robust passing test suites. Pruned `__pycache__` artifacts to maintain repo cleanliness and remove entropy. Verified tests passing with `vulture`. Evaluated that previous agent (JULES/BOLT) safely optimized database worker memory by fetching partial models via `load_only`.
 
    Alignment / Deferred:
-   Updated Node dependency `axios` from `^1.15.2` to `^1.16.1` safely via `ncu -u --target minor` in the node collector. Checked and verified test suite remains aligned. Updated 19 Python dependencies via Poetry safely. Bumped version to `1.0.26`.
+   Updated Node dependency `axios` from `^1.15.2` to `^1.16.1` safely via `ncu -u --target minor` in the node collector. Checked and verified test suite remains aligned. Updated 19 Python dependencies via Poetry safely. Bumped version to `1.0.28`.
 
  However, in the base version provided in the context, we see:
 
@@ -203,7 +203,7 @@ We are given a merge conflict in a markdown file. We have three versions: ancest
    Observed codebase paths fully aligned. Re-verified robust passing test suites. Pruned `__pycache__` artifacts to maintain repo cleanliness and remove entropy. Verified tests passing with `vulture`. Evaluated that previous agent (JULES/BOLT) safely optimized database worker memory by fetching partial models via `load_only`.
 
    Alignment / Deferred:
-   Updated Node dependency `axios` from `^1.15.2` to `^1.16.1` safely via `ncu -u --target minor` in the node collector. Checked and verified test suite remains aligned. Updated 19 Python dependencies via Poetry safely. Bumped version to `1.0.26`.
+   Updated Node dependency `axios` from `^1.15.2` to `^1.16.1` safely via `ncu -u --target minor` in the node collector. Checked and verified test suite remains aligned. Updated 19 Python dependencies via Poetry safely. Bumped version to `1.0.28`.
 
  So we use that.
 
@@ -323,12 +323,12 @@ We are given a merge conflict in a markdown file. We have three versions: ancest
         Base:
             ...
             Alignment / Deferred:
-            Updated Node dependency `axios` from `^1.15.2` to `^1.16.1` safely via `ncu -u --target minor` in the node collector. Checked and verified test suite remains aligned. Updated 19 Python dependencies via Poetry safely. Bumped version to `1.0.26`.
+            Updated Node dependency `axios` from `^1.15.2` to `^1.16.1` safely via `ncu -u --target minor` in the node collector. Checked and verified test suite remains aligned. Updated 19 Python dependencies via Poetry safely. Bumped version to `1.0.28`.
 
         Head:
             ...
             Alignment / Deferred:
-            Updated Python dependencies to minor/patch versions (`idna`, `requests`, `click`, `huggingface-hub`, `posthog`, `tiktoken`). Checked Node.js dependencies, which remain up to date. Verified the tests are fully passing. Bumped version to `1.0.26`.
+            Updated Python dependencies to minor/patch versions (`idna`, `requests`, `click`, `huggingface-hub`, `posthog`, `tiktoken`). Checked Node.js dependencies, which remain up to date. Verified the tests are fully passing. Bumped version to `1.0.28`.
 
    Therefore, we can assume that the entire file is given in these strings, but the middle part is truncated in the display for brevity in the problem statement. However, the strings we are given are the actual file content?
 
@@ -402,16 +402,16 @@ We are given a merge conflict in a markdown file. We have three versions: ancest
    The ancestor has, at the point of conflict, nothing after the 1.0.24 line.
 
    The base added:
-        \n## 2026-05-12 — Assessment & Lifecycle\n\nObservation / Pruned:\nObserved codebase paths fully aligned and stable. Renamed unused `cls` variable to `_cls` in `lowercase_values` Pydantic validator in `backend/app/ai/engine.py` to fix static analysis. Pruned `__pycache__` artifacts to maintain repository cleanliness and reduce entropy. Verified that `vulture` static analysis appropriately passes.\n\nAlignment / Deferred:\nUpdated Python and Node.js dependencies via Poetry and npm safely. All tests fully passed. Bumped version to `1.0.25`.\n\n## 2026-05-21 — Assessment & Lifecycle\n\nObservation / Pruned:\nObserved codebase paths fully aligned. Re-verified robust passing test suites. Pruned `__pycache__` artifacts to maintain repo cleanliness and remove entropy. Verified tests passing with `vulture`. Evaluated that previous agent (JULES/BOLT) safely optimized database worker memory by fetching partial models via `load_only`.\n\nAlignment / Deferred:\nUpdated Node dependency `axios` from `^1.15.2` to `^1.16.1` safely via `ncu -u --target minor` in the node collector. Checked and verified test suite remains aligned. Updated 19 Python dependencies via Poetry safely. Bumped version to `1.0.26`.\n
+        \n## 2026-05-12 — Assessment & Lifecycle\n\nObservation / Pruned:\nObserved codebase paths fully aligned and stable. Renamed unused `cls` variable to `_cls` in `lowercase_values` Pydantic validator in `backend/app/ai/engine.py` to fix static analysis. Pruned `__pycache__` artifacts to maintain repository cleanliness and reduce entropy. Verified that `vulture` static analysis appropriately passes.\n\nAlignment / Deferred:\nUpdated Python and Node.js dependencies via Poetry and npm safely. All tests fully passed. Bumped version to `1.0.25`.\n\n## 2026-05-21 — Assessment & Lifecycle\n\nObservation / Pruned:\nObserved codebase paths fully aligned. Re-verified robust passing test suites. Pruned `__pycache__` artifacts to maintain repo cleanliness and remove entropy. Verified tests passing with `vulture`. Evaluated that previous agent (JULES/BOLT) safely optimized database worker memory by fetching partial models via `load_only`.\n\nAlignment / Deferred:\nUpdated Node dependency `axios` from `^1.15.2` to `^1.16.1` safely via `ncu -u --target minor` in the node collector. Checked and verified test suite remains aligned. Updated 19 Python dependencies via Poetry safely. Bumped version to `1.0.28`.\n
 
    The head added:
-        \n## 2026-05-12 — Assessment & Lifecycle\n\nObservation / Pruned:\nObserved codebase paths fully aligned and stable. Renamed unused `cls` variable to `_cls` in `lowercase_values` Pydantic validator in `backend/app/ai/engine.py` to fix static analysis. Pruned `__pycache__` artifacts to maintain repository cleanliness and reduce entropy. Verified that `vulture` static analysis appropriately passes.\n\nAlignment / Deferred:\nUpdated Python and Node.js dependencies via Poetry and npm safely. All tests fully passed. Bumped version to `1.0.25`.\n\n## 2026-05-12 — Assessment & Lifecycle (Release 1.0.26)\n\nObservation / Pruned:\nObserved codebase paths fully aligned and stable. The previous run successfully optimized the Celery background worker by converting ORM fetch logic into an efficient direct SQL UPDATE statement. Pruned `__pycache__` artifacts to reduce entropy and verified codebase stability.\n\nAlignment / Deferred:\nUpdated Python dependencies to minor/patch versions (`idna`, `requests`, `click`, `huggingface-hub`, `posthog`, `tiktoken`). Checked Node.js dependencies, which remain up to date. Verified the tests are fully passing. Bumped version to `1.0.26`.\n
+        \n## 2026-05-12 — Assessment & Lifecycle\n\nObservation / Pruned:\nObserved codebase paths fully aligned and stable. Renamed unused `cls` variable to `_cls` in `lowercase_values` Pydantic validator in `backend/app/ai/engine.py` to fix static analysis. Pruned `__pycache__` artifacts to maintain repository cleanliness and reduce entropy. Verified that `vulture` static analysis appropriately passes.\n\nAlignment / Deferred:\nUpdated Python and Node.js dependencies via Poetry and npm safely. All tests fully passed. Bumped version to `1.0.25`.\n\n## 2026-05-12 — Assessment & Lifecycle (Release 1.0.28)\n\nObservation / Pruned:\nObserved codebase paths fully aligned and stable. The previous run successfully optimized the Celery background worker by converting ORM fetch logic into an efficient direct SQL UPDATE statement. Pruned `__pycache__` artifacts to reduce entropy and verified codebase stability.\n\nAlignment / Deferred:\nUpdated Python dependencies to minor/patch versions (`idna`, `requests`, `click`, `huggingface-hub`, `posthog`, `tiktoken`). Checked Node.js dependencies, which remain up to date. Verified the tests are fully passing. Bumped version to `1.0.28`.\n
 
    And the common part (the first 2026-05-12 section) is the same in both.
 
    Therefore, the resolved conflict section should be:
 
-        \n## 2026-05-12 — Assessment & Lifecycle\n\nObservation / Pruned:\nObserved codebase paths fully aligned and stable. Renamed unused `cls` variable to `_cls` in `lowercase_values` Pydantic validator in `backend/app/ai/engine.py` to fix static analysis. Pruned `__pycache__` artifacts to maintain repository cleanliness and reduce entropy. Verified that `vulture` static analysis appropriately passes.\n\nAlignment / Deferred:\nUpdated Python and Node.js dependencies via Poetry and npm safely. All tests fully passed. Bumped version to `1.0.25`.\n\n## 2026-05-12 — Assessment & Lifecycle (Release 1.0.26)\n\nObservation / Pruned:\nObserved codebase paths fully aligned and stable. The previous run successfully optimized the Celery background worker by converting ORM fetch logic into an efficient direct SQL UPDATE statement. Pruned `__pycache__` artifacts to reduce entropy and verified codebase stability.\n\nAlignment / Deferred:\nUpdated Python dependencies to minor/patch versions (`idna`, `requests`, `click`, `huggingface-hub`, `posthog`, `tiktoken`). Checked Node.js dependencies, which remain up to date. Verified the tests are fully passing. Bumped version to `1.0.26`.\n\n## 2026-05-21 — Assessment & Lifecycle\n\nObservation / Pruned:\nObserved codebase paths fully aligned. Re-verified robust passing test suites. Pruned `__pycache__` artifacts to maintain repo cleanliness and remove entropy. Verified tests passing with `vulture`. Evaluated that previous agent (JULES/BOLT) safely optimized database worker memory by fetching partial models via `load_only`.\n\nAlignment / Deferred:\nUpdated Node dependency `axios` from `^1.15.2` to `^1.16.1` safely via `ncu -u --target minor` in the node collector. Checked and verified test suite remains aligned. Updated 19 Python dependencies via Poetry safely. Bumped version to `1.0.26`.\n
+        \n## 2026-05-12 — Assessment & Lifecycle\n\nObservation / Pruned:\nObserved codebase paths fully aligned and stable. Renamed unused `cls` variable to `_cls` in `lowercase_values` Pydantic validator in `backend/app/ai/engine.py` to fix static analysis. Pruned `__pycache__` artifacts to maintain repository cleanliness and reduce entropy. Verified that `vulture` static analysis appropriately passes.\n\nAlignment / Deferred:\nUpdated Python and Node.js dependencies via Poetry and npm safely. All tests fully passed. Bumped version to `1.0.25`.\n\n## 2026-05-12 — Assessment & Lifecycle (Release 1.0.28)\n\nObservation / Pruned:\nObserved codebase paths fully aligned and stable. The previous run successfully optimized the Celery background worker by converting ORM fetch logic into an efficient direct SQL UPDATE statement. Pruned `__pycache__` artifacts to reduce entropy and verified codebase stability.\n\nAlignment / Deferred:\nUpdated Python dependencies to minor/patch versions (`idna`, `requests`, `click`, `huggingface-hub`, `posthog`, `tiktoken`). Checked Node.js dependencies, which remain up to date. Verified the tests are fully passing. Bumped version to `1.0.28`.\n\n## 2026-05-21 — Assessment & Lifecycle\n\nObservation / Pruned:\nObserved codebase paths fully aligned. Re-verified robust passing test suites. Pruned `__pycache__` artifacts to maintain repo cleanliness and remove entropy. Verified tests passing with `vulture`. Evaluated that previous agent (JULES/BOLT) safely optimized database worker memory by fetching partial models via `load_only`.\n\nAlignment / Deferred:\nUpdated Node dependency `axios` from `^1.15.2` to `^1.16.1` safely via `ncu -u --target minor` in the node collector. Checked and verified test suite remains aligned. Updated 19 Python dependencies via Poetry safely. Bumped version to `1.0.28`.\n
 
    But note: we must not duplicate the first 2026-05-12 section. We have it only once.
 
@@ -432,26 +432,34 @@ We are given a merge conflict in a markdown file. We have three versions: ancest
 
    However, the problem says: the file versions are given as strings that have truncation notes for display.
 
-## 2026-05-12 — Assessment & Lifecycle (Release 1.0.26)
+## 2026-05-12 — Assessment & Lifecycle (Release 1.0.28)
 
 Observation / Pruned:
 Observed codebase paths fully aligned and stable. The previous run successfully optimized the Celery background worker by converting ORM fetch logic into an efficient direct SQL UPDATE statement. Pruned `__pycache__` artifacts to reduce entropy and verified codebase stability.
 
 Alignment / Deferred:
-Updated Python dependencies to minor/patch versions (`idna`, `requests`, `click`, `huggingface-hub`, `posthog`, `tiktoken`). Checked Node.js dependencies, which remain up to date. Verified the tests are fully passing. Bumped version to `1.0.26`.
+Updated Python dependencies to minor/patch versions (`idna`, `requests`, `click`, `huggingface-hub`, `posthog`, `tiktoken`). Checked Node.js dependencies, which remain up to date. Verified the tests are fully passing. Bumped version to `1.0.28`.
 
-## 2026-05-12 — Assessment & Lifecycle (Release 1.0.26)
-
-Observation / Pruned:
-Observed codebase paths fully aligned and stable. The previous run successfully optimized the Celery background worker by converting ORM fetch logic into an efficient direct SQL UPDATE statement. Pruned `__pycache__` artifacts to reduce entropy and verified codebase stability.
-
-Alignment / Deferred:
-Updated Python dependencies to minor/patch versions (`idna`, `requests`, `click`, `huggingface-hub`, `posthog`, `tiktoken`). Checked Node.js dependencies, which remain up to date. Verified the tests are fully passing. Bumped version to `1.0.26`.
-
-## 2026-05-12 — Assessment & Lifecycle (Release 1.0.26)
+## 2026-05-12 — Assessment & Lifecycle (Release 1.0.28)
 
 Observation / Pruned:
 Observed codebase paths fully aligned and stable. The previous run successfully optimized the Celery background worker by converting ORM fetch logic into an efficient direct SQL UPDATE statement. Pruned `__pycache__` artifacts to reduce entropy and verified codebase stability.
 
 Alignment / Deferred:
-Updated Python dependencies to minor/patch versions (`idna`, `requests`, `click`, `huggingface-hub`, `posthog`, `tiktoken`). Checked Node.js dependencies, which remain up to date. Verified the tests are fully passing. Bumped version to `1.0.26`.
+Updated Python dependencies to minor/patch versions (`idna`, `requests`, `click`, `huggingface-hub`, `posthog`, `tiktoken`). Checked Node.js dependencies, which remain up to date. Verified the tests are fully passing. Bumped version to `1.0.28`.
+
+## 2026-05-12 — Assessment & Lifecycle (Release 1.0.28)
+
+Observation / Pruned:
+Observed codebase paths fully aligned and stable. The previous run successfully optimized the Celery background worker by converting ORM fetch logic into an efficient direct SQL UPDATE statement. Pruned `__pycache__` artifacts to reduce entropy and verified codebase stability.
+
+Alignment / Deferred:
+Updated Python dependencies to minor/patch versions (`idna`, `requests`, `click`, `huggingface-hub`, `posthog`, `tiktoken`). Checked Node.js dependencies, which remain up to date. Verified the tests are fully passing. Bumped version to `1.0.28`.
+
+## 2026-05-12 — Assessment & Lifecycle (Release 1.0.28)
+
+Observation / Pruned:
+Observed codebase paths fully aligned and stable. The previous run successfully optimized the Celery background worker by converting ORM fetch logic into an efficient direct SQL UPDATE statement. Pruned `__pycache__` artifacts to reduce entropy and verified codebase stability.
+
+Alignment / Deferred:
+Updated Python dependencies to minor/patch versions (`idna`, `requests`, `click`, `huggingface-hub`, `posthog`, `tiktoken`). Checked Node.js dependencies, which remain up to date. Verified the tests are fully passing. Bumped version to `1.0.28`.

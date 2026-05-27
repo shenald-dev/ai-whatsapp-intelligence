@@ -157,26 +157,32 @@ All notable changes to this project will be documented in this file.
 * **Lifecycle:** Verified system integrity post-optimizations. Pruned `__pycache__` artifacts to reduce codebase entropy. Verified static analysis with no dead code found.
 * **Upgrades:** Bumped safe minor/patch versions for node dependency `dotenv` and multiple python backend dependencies (`click`, `orjson`, `huggingface-hub`, `sqlalchemy`, etc).
 
-## [1.0.26] - 2026-05-12
+## [1.0.28] - 2026-05-12
 
 * **Performance:** Replaced object fetch with direct SQL UPDATE in Celery worker hot path (`backend/app/workers/tasks.py`) to minimize database bandwidth and serialization overhead for large payloads.
 * **Lifecycle:** Verified structural soundness of Celery optimizations. Pruned stale `__pycache__` artifacts to maintain codebase cleanliness.
 * **Dependencies:** Safely updated Python packages `idna`, `requests`, `click`, `huggingface-hub`, `posthog`, and `tiktoken` to their latest patch versions.
 
 
-## [1.0.26] - 2026-05-12
+## [1.0.28] - 2026-05-12
 
 * **Performance:** Replaced object fetch with direct SQL UPDATE in Celery worker hot path (`backend/app/workers/tasks.py`) to minimize database bandwidth and serialization overhead for large payloads.
 * **Lifecycle:** Verified structural soundness of Celery optimizations. Pruned stale `__pycache__` artifacts to maintain codebase cleanliness.
 * **Dependencies:** Safely updated Python packages `idna`, `requests`, `click`, `huggingface-hub`, `posthog`, and `tiktoken` to their latest patch versions.
 
-## [1.0.26] - 2026-05-12
+## [1.0.28] - 2026-05-12
 
 * **Performance:** Replaced object fetch with direct SQL UPDATE in Celery worker hot path (`backend/app/workers/tasks.py`) to minimize database bandwidth and serialization overhead for large payloads.
 * **Lifecycle:** Verified structural soundness of Celery optimizations. Pruned stale `__pycache__` artifacts to maintain codebase cleanliness.
 * **Dependencies:** Safely updated Python packages `idna`, `requests`, `click`, `huggingface-hub`, `posthog`, and `tiktoken` to their latest patch versions.
 
-## [1.0.26] - 2026-05-12
+## [1.0.28] - 2026-05-12
+
+* **Performance:** Replaced object fetch with direct SQL UPDATE in Celery worker hot path (`backend/app/workers/tasks.py`) to minimize database bandwidth and serialization overhead for large payloads.
+* **Lifecycle:** Verified structural soundness of Celery optimizations. Pruned stale `__pycache__` artifacts to maintain codebase cleanliness.
+* **Dependencies:** Safely updated Python packages `idna`, `requests`, `click`, `huggingface-hub`, `posthog`, and `tiktoken` to their latest patch versions.
+
+## [1.0.28] - 2026-05-12
 
 * **Performance:** Replaced object fetch with direct SQL UPDATE in Celery worker hot path (`backend/app/workers/tasks.py`) to minimize database bandwidth and serialization overhead for large payloads.
 * **Lifecycle:** Verified structural soundness of Celery optimizations. Pruned stale `__pycache__` artifacts to maintain codebase cleanliness.
