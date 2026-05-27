@@ -374,3 +374,7 @@ Using `time.time()` for cache Time-To-Live (TTL) calculations is unreliable beca
 
 Action:
 Replaced `time.time()` with `time.monotonic()` in `backend/app/api/endpoints.py` for the `BoundedTTLCache` implementation. Always use `time.monotonic()` for reliable duration, timeout, or cache TTL calculations in Python to ensure immunity against system clock changes.
+
+Learning:
+
+Action:
