@@ -367,6 +367,14 @@ In `backend/app/workers/tasks.py`, the `process_message` Celery task fetched the
 Action:
 Used `load_only` within `session.get(Message, message_id, options=[load_only(...)])` to specifically fetch only the required columns (`content`, `group_id`, `sender_id`, `is_analyzed`). This optimization minimizes database bandwidth and memory consumption while preserving the ORM contract.
 
+## 2026-05-26 — Prevent cache TTL vulnerability from system clock adjustments
+
+Learning:
+Using `time.time()` for cache Time-To-Live (TTL) calculations is vulnerable to system clock adjustments (like NTP syncs), which can lead to premature cache invalidation or artificially extended TTLs.
+
+Action:
+Always use `time.monotonic()` instead of `time.time()` for reliable duration and timeout calculations, as it is immune to system clock changes.
+
 ## 2026-05-22 — Ensure reliable cache invalidation by using monotonic time
 
 Learning:
