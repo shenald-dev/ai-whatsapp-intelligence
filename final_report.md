@@ -20,6 +20,3 @@ Ready. The repository is verified, tests pass, and it's tagged as version `v1.0.
 
 **Remaining Limitation or Risk:**
 None. The change is extremely localized and backward compatible since `time.monotonic()` yields seconds as a float, just like `time.time()`.
-
-**Commit Result:**
-Committed with message `fix(cache): use time.monotonic() for reliable TTL calculation` and tagged as `v1.0.27`.
