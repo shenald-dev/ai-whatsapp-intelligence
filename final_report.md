@@ -14,9 +14,13 @@ The improvement was identified structurally as a known unreliability pattern. No
 - Python tests: Executed `pytest` in `backend`, covering `test_chroma`, `test_cors`, `test_dashboard`, `test_db`, `test_ingest`, and `test_workers` (19 items passed).
 - Node.js tests: Executed `npm test` in `collector` (4 subtests passed).
 - Ran automated static code review, confirming correct resolution of the TTL logic flaw.
+- Requested an autonomous code review, ensuring it passed correctly without any unneeded dependency changes.
 
 **Repository Status:**
 Ready. The repository is verified, tests pass, and it's tagged as version `v1.0.27`.
+
+**Commit Result:**
+Committed with message `fix(cache): use time.monotonic() for reliable TTL calculation` and tagged as `v1.0.27`.
 
 **Remaining Limitation or Risk:**
 None. The change is extremely localized and backward compatible since `time.monotonic()` yields seconds as a float, just like `time.time()`.
