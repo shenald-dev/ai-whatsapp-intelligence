@@ -366,3 +366,11 @@ In `backend/app/workers/tasks.py`, the `process_message` Celery task used `sessi
 
 Action:
 Modified the Celery task to use `load_only` from `sqlalchemy.orm` to fetch only the required fields (`is_analyzed`, `content`, `group_id`, `sender_id`). This optimizes database bandwidth and memory allocation while safely preserving the ORM model contract.
+
+## 2026-05-26 — Prevent cache TTL vulnerability from system clock adjustments
+
+Learning:
+Using `time.time()` for cache Time-To-Live (TTL) calculations is vulnerable to system clock adjustments (like NTP syncs), which can lead to premature cache invalidation or artificially extended TTLs.
+
+Action:
+Always use `time.monotonic()` instead of `time.time()` for reliable duration and timeout calculations, as it is immune to system clock changes.
