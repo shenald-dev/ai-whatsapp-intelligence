@@ -27,6 +27,8 @@ def process_message(message_id: str):
     """Celery task worker to enrich a message with AI."""
     session = SessionLocal()
     try:
+        # We explicitly use load_only to avoid fetching large text fields or other unneeded columns
+        # over the network. Only the fields required for AI analysis are fetched.
         msg = session.get(
             Message,
             message_id,
