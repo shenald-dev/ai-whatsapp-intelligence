@@ -1,3 +1,17 @@
+## [1.0.28] - 2026-05-27
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity post-optimizations. Re-verified robust backend and node tests properly pass after migrating to a direct SQL `UPDATE` statement in the `process_message` Celery task.
+* **Upgrades:** Checked minor/patch bumps for dependencies. Checked dependencies safely. Bumped project versions to `1.0.28`.
+* **Pruning:** Pruned `__pycache__` artifacts to maintain repository cleanliness and reduce entropy.
+
+## [1.0.27] - 2026-05-25
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity post-optimizations introducing `ws` upgrade. Re-verified robust backend and node tests properly pass.
+* **Upgrades:** Audited dependencies and safely bumped `python` dependencies via Poetry and Node.js dependencies via npm.
+* **Pruning:** Pruned an unused import in test_workers.py.
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
@@ -18,7 +32,6 @@ All notable changes to this project will be documented in this file.
 * **Performance**: Optimized DB object fetches with `load_only` in Celery workers.
 
 ## [1.0.25] - 2026-05-12
-
 
 ### Assure, Prune, and Sync
 * **Lifecycle:** Verified system integrity post-optimizations introducing direct SQL `UPDATE` queries in the Celery worker. Re-verified robust backend and node tests properly pass.
