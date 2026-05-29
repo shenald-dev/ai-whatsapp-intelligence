@@ -1,14 +1,22 @@
-
 # Changelog
 
 All notable changes to this project will be documented in this file.
 
-## [1.0.27] - 2026-05-26
+## [1.0.28] - 2026-05-27
 
 ### Assure, Prune, and Sync
-* **Lifecycle:** Verified system integrity post-optimizations introducing security bumps in the Node.js collector. Re-verified robust backend and node tests properly pass.
-* **Upgrades:** Audited dependencies and safely bumped 8 Python dependencies (`idna`, `click`, `wrapt`, `httptools`, `huggingface-hub`, `sqlalchemy`, `kubernetes`, `posthog`) via Poetry. Verified Node.js dependencies are up to date.
-* **Pruning:** Pruned `__pycache__` artifacts to maintain codebase entropy.
+* **Lifecycle:** Verified system integrity post-optimizations. Re-verified robust backend and node tests properly pass after migrating to a direct SQL `UPDATE` statement in the `process_message` Celery task.
+* **Upgrades:** Checked minor/patch bumps for dependencies. Checked dependencies safely. Bumped project versions to `1.0.28`.
+* **Pruning:** Checked unused imports and cleaned `__pycache__` artifacts to reduce codebase entropy.
+
+## [1.0.27] - 2026-05-25
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity post-optimizations introducing `ws` upgrade. Re-verified robust backend and node tests properly pass.
+* **Upgrades:** Audited dependencies and safely bumped `python` dependencies via Poetry and Node.js dependencies via npm.
+* **Pruning:** Pruned an unused import in test_workers.py.
+
+
 
 ## [1.0.26] - 2026-05-21
 
