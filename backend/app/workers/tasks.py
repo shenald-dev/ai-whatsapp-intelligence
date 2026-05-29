@@ -12,7 +12,7 @@ load_dotenv()
 
 # Worker uses sync engine for simplicity within Celery
 SYNC_DB_URL = os.getenv("SYNC_DATABASE_URL")
-if not SYNC_DATABASE_URL:
+if not SYNC_DB_URL:
     raise ValueError("SYNC_DATABASE_URL environment variable is not set")
 
 engine = create_engine(
@@ -69,10 +69,28 @@ def process_message(message_id: str):
             "classification": classification
         }
 
-        store_message_embedding(message_id, metadata)
-
-        # Commit and close
+        # Commit early to release DB lock before network I/O
         session.commit()
+
+        try:
+            store_message_embedding(message_id, content, metadata)
+        except Exception as e:
+            # Revert analysis state so the task can be safely retried
+            logging.error(f"Failed to store embedding for {message_id}: {e}")
+
+            revert_stmt = (
+                update(Message)
+                .where(Message.id == message_id)
+                .values(
+                    is_analyzed=False,
+                    sentiment=None,
+                    classification=None
+                )
+            )
+            session.execute(revert_stmt)
+            session.commit()
+            raise e
+
         return {"status": "success", "message_id": message_id}
         
     except Exception as e:

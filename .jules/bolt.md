@@ -1,611 +1,359 @@
-We are given three versions: ancestor, base (master), and head (PR branch).
- The conflict is in the section after the GZipMiddleware entry.
+## 2024-03-17 — Refactored group dashboard API to prevent OOM errors and reduce latency
 
- Ancestor had:
-   ## 2026-05-05 — Compress API responses to reduce payload size and API bandwidth
-   ... (then the GZipMiddleware action)
+Learning:
+The API endpoint that computes group message statistics (`/groups/{group_id}/stats`) previously pulled all message records for a given group into memory to calculate counts in python. In a WhatsApp intelligence monitor handling large volumes of chat data, this would quickly lead to high memory consumption, garbage collection pauses, and eventually out-of-memory errors for groups with thousands of messages.
 
- Base (master) added after the GZipMiddleware section:
-   ## 2026-05-11 — Optimize Celery Worker Database Updates
-   ... (details about refactoring the Celery task to use direct SQL UPDATE)
+Action:
+Refactored the dashboard API to push all group statistics aggregations (e.g., analyzed counts, sentiment breakdown, classification detection) down to the PostgreSQL database level using optimized `GROUP BY` and `CASE` aggregation queries (`func.sum(case(...))`). Ensure future metrics queries follow this pattern, shifting computational weight off the API nodes and taking advantage of SQL optimizations.
 
- Head (PR branch) added after the GZipMiddleware section:
-   ## 2026-05-10 — Optimized Celery task DB updates
-   ... (details about applying direct SQL UPDATE statements)
+## 2026-03-17 — Missing Indexes on High Read Tables
 
- The Git diff shows that the head branch added the 2026-05-10 section after the GZipMiddleware action.
+Learning:
+The database model for `Message` tracks raw WhatsApp ingestion traffic. However, its primary access patterns (`get_recent_messages` and `get_group_stats`) filter intensely on `group_id` and order by `timestamp`, both of which were unindexed. The `Summary` table similarly lacked an index on `group_id`.
 
- Since both branches added a new section about optimizing Celery task DB updates (but with different dates and slightly different wording),
- we must keep both? However, note the resolution rules:
+Action:
+Added `index=True` to `group_id`, `sender_id`, and `timestamp` on the `Message` table, and `group_id` on the `Summary` table. Future model additions must be analyzed for their high-read patterns to determine optimal indices prior to production data scaling.
 
- Rule 2: Keep ALL meaningful changes from BOTH branches.
+## 2024-05-18 — Refactored data seeding script to use asyncio.gather
 
- But note: the two sections are about the same topic (optimizing Celery task DB updates) and are very similar.
- However, they have different dates and slightly different learning and action descriptions.
+Learning:
+The database seeding script (`backend/seed.py`) was running AI analysis tasks sequentially in a loop, creating an I/O-bound bottleneck due to the nature of `ai_engine.analyze_message` and causing significant delays.
 
- Since the base branch has a section dated 2026-05-11 and the head branch has 2026-05-10, and the head branch is the PR branch (which we prefer for same logic unless base has obvious bug fix),
- we should consider:
+Action:
+Refactored the data seeding process to execute AI analysis concurrently using `asyncio.gather`. Future bulk processing operations that depend on I/O-bound tasks should follow this concurrent execution pattern.
 
- - The base branch's section is more detailed (it mentions the specific code change in `backend/app/workers/tasks.py` and the exception rollback logic).
- - The head branch's section is also about the same optimization but with a different date and slightly different wording.
+## 2024-05-18 — Enforce environment variables for sensitive credentials
 
- However, note that the head branch's section was added on 2026-05-10 and the base branch's on 2026-05-11. The base branch is the target branch (master) and has newer changes from others.
+Learning:
+Multiple modules in the project relied on hardcoded default values for critical secrets and infrastructure URLs (e.g. `DATABASE_URL`, `API_KEY`, `REDIS_URL`). This exposes secure defaults when environments are misconfigured and allows applications to startup pointing to incorrect, insecure development databases when running in a production or staging cluster.
 
- But the resolution rule says: when both modify the same code (or in this case, both added a section about the same topic) and they are different, we keep both? 
- However, having two sections about the same topic (with different dates) might be redundant.
+Action:
+Refactored the core configuration blocks to explicitly fail fast by raising a `ValueError` (or throwing an `Error` in Node.js) when required environment variables are absent. Always enforce explicit environment variables for sensitive credentials and connections, rejecting hardcoded fallbacks to guarantee predictable, secure deployments.
 
- Let's look at the actual content:
+## 2024-03-24 — Fixed asyncio event loop deprecation in Celery worker
 
- Base (master) section:
-   ## 2026-05-11 — Optimize Celery Worker Database Updates
-   Learning:
-   In `backend/app/workers/tasks.py`, the `process_message` Celery task previously used `session.get(Message, message_id)` to re-fetch the entire `Message` object over the network just to update a few analysis fields (`sentiment`, `classification`, `is_analyzed`) after the AI enrichment step. This is inefficient, especially when `Message` objects contain large `Text` columns (e.g., payloads up to 64KB).
-   Action:
-   Refactored the Celery task to use a direct SQL `UPDATE` statement via `session.execute(update(Message).where(Message.id == message_id).values(...))` instead of fetching the object. This bypasses the network fetch of the large object, reducing DB bandwidth, memory usage, and execution latency for background workers processing hot paths. Applied the same optimization to the exception rollback logic.
+Learning:
+The Celery worker `process_message` task was manually managing the asyncio event loop using `asyncio.get_event_loop()`, which throws deprecation warnings and can cause `RuntimeError` in newer Python versions (3.10+) when called outside the main thread without an existing loop.
 
- Head (PR branch) section:
-   ## 2026-05-10 — Optimized Celery task DB updates
-   Learning:
-   When updating a subset of fields on a SQLAlchemy model containing large columns (e.g., Text fields up to 64KB) within a hot path (like Celery workers), using a direct SQL update statement is significantly faster than using session.get followed by attribute assignment because it avoids unnecessarily fetching large payloads over the network.
-   Action:
-   Apply direct SQL UPDATE statements in backend/app/workers/tasks.py for the AI analysis enrichment task.
+Action:
+Refactored the synchronous to asynchronous execution bridge in the Celery worker to use `asyncio.run()`. This cleanly handles event loop creation and teardown. Future asynchronous calls within synchronous contexts should prefer `asyncio.run()` to prevent event loop lifecycle issues.
 
- We note that the head branch's section is more general and the base branch's section is more specific (mentioning the exact fields and the exception rollback).
+## 2024-05-18 — Use SimpleLRUCache to reduce database I/O for entity existence checks
 
- Since the base branch is the target branch (master) and has the more detailed section, and the head branch's section is also valid but less detailed, we might want to keep the base branch's section and discard the head branch's? 
- But rule 2 says: keep ALL meaningful changes from both branches.
+Learning:
+The webhook `ingest_message` endpoint made redundant DB calls to check if a group or user existed for every message, unnecessarily hitting the database during high-traffic message ingestion events and causing a database bottleneck.
 
- However, if we keep both, we would have two consecutive sections about the same topic. That might be confusing.
+Action:
+Implemented an in-memory `SimpleLRUCache` (via `collections.OrderedDict`) to keep track of known `group_id` and `user_id`s, reducing DB `get` and `add` operations for frequently seen entities. Crucially, cache entries are only populated after a successful database commit to prevent cache poisoning on rollback. We should continue caching frequently checked, immutable (or rarely mutating) identities across APIs.
 
- Alternatively, we can merge the two sections by taking the best of both? But the rules don't say to merge the content of the sections, only to keep the changes.
+## 2024-05-18 — Activated Celery Background Task for AI Enrichment
 
- Let me re-read the rules:
+Learning:
+The webhook `ingest_message` endpoint successfully saved messages to the database but merely had a placeholder comment `# NOTE: Here we would trigger a Celery task...` instead of actually executing the background processing step. This caused the core AI enrichment functionality to be skipped during message ingestion.
 
- Rule 2: Keep ALL meaningful changes from BOTH branches.
+Action:
+Imported `celery_app` from `.workers.celery_config` and called `celery_app.send_task("enrich_message", args=[msg.id])` to properly trigger the AI background task after committing a new message to the database. Additionally, added a `unittest.mock.patch` for `app.main.celery_app.send_task` in the `test_ingest_message_caching` test to avoid requiring a real Redis backend during automated test runs. Always ensure that the functional loop of features is completed, and asynchronous hooks are actually invoked.
 
- Rule 3: When both modify the same code:
-   - If they add different things (different imports, different functions), keep BOTH
-   - If they modify the same logic, prefer the HEAD branch (PR author's intent) unless the base has an obvious bug fix or security patch
-   - If the base added something the head doesn't have, incorporate it
+## 2026-03-27 — Integrated ChromaDB & Fixed Early Connection Crashes
 
- In this case, both branches added a new section (so they are adding different things? but the topic is the same). However, the sections are not identical.
+Learning:
+The project's README specifies a vector database (ChromaDB) for semantic search, and `backend/app/db/chroma.py` was created. However, it was not being utilized by any pipelines. Furthermore, importing `chromadb` instantiated a connection at the module level. If the ChromaDB server was down (or in a test environment where it isn't required), simply running tests or importing modules would trigger a `ValueError: Could not connect to a Chroma server` and crash the application entirely.
 
- Since the base branch added a section that the head branch does not have (the 2026-05-11 section) and the head branch added a section that the base branch does not have (the 2026-05-10 section), we should keep both.
+Action:
+Refactored `backend/app/db/chroma.py` to use lazy initialization, instantiating the connection and collection only when a query or insertion is made. Integrated ChromaDB into the Celery task (`backend/app/workers/tasks.py`) and seeding script (`backend/seed.py`) to actively index message content and extracted metadata (`group_id`, `sender_id`, `sentiment`, `classification`). Always decouple external connection logic from module imports to prevent catastrophic application startup failures.
 
- But note: the head branch's section is dated 2026-05-10 and the base branch's is 2026-05-11. The head branch's section was added first (in time) and then the base branch added a similar one later? 
- However, in the context of the merge, the base branch is the target (master) and the head branch is the PR.
+## 2025-03-28 — DB Connection Exhaustion in Celery Tasks
 
- Since the base branch is the target and has newer changes (from others) and we are to incorporate what the base added that the head doesn't have, we must keep the base branch's section.
+Learning:
+Celery workers holding synchronous database transactions open while waiting for external LLM API calls causes database connection pool exhaustion under load, significantly degrading performance and reliability.
 
- And the head branch's section is also a change that we must keep (because it's from the PR branch).
+Action:
+Always release or commit database transactions (e.g. `session.commit()`) before blocking on slow external network I/O in worker tasks, then re-acquire the required objects if necessary afterwards.
 
- Therefore, we will have two sections:
+## 2025-05-18 — Added webhook idempotency to prevent redundant processing
 
-   ## 2026-05-10 — Optimized Celery task DB updates
-   ... (from head)
+Learning:
+The webhook ingestion endpoint `ingest_message` lacked an idempotency check for incoming messages. If a message payload was delivered multiple times (which is common in webhook architectures, e.g. due to retries or network blips), the endpoint would attempt to process and save the duplicate message, leading to a `500 IntegrityError` or wasted database cycles and background task triggers.
 
-   ## 2026-05-11 — Optimize Celery Worker Database Updates
-   ... (from base)
+Action:
+Added a preemptive idempotency check at the beginning of the `ingest_message` handler in `backend/app/main.py`. The endpoint now verifies if `payload.message_id` already exists in the database. If it does, it immediately returns a `200 OK` with a detail message ("Already ingested"), bypassing further database operations and background tasks. This prevents duplicate errors, reduces unnecessary I/O, and improves system resilience. Future webhook handlers should always include idempotency checks.
 
- However, note that the ancestor did not have either of these sections.
+## 2026-03-29 — Fixed Timing Attack Vulnerability in API Key Comparison
 
- But wait: the Git diff shows that the head branch only added the 2026-05-10 section. The base branch added the 2026-05-11 section.
+Learning:
+The `get_api_key` dependency function in `backend/app/main.py` was previously using a standard equality operator (`==`) to verify the API key. This exposed the endpoint to timing attacks, where an attacker could theoretically measure the time taken to reject an invalid key and use that information to guess the correct key character by character. Additionally, `datetime.fromtimestamp()` was creating naive datetime objects, which can lead to timezone drift issues when saved to PostgreSQL.
 
- So in the merged file, we should have both sections, in the order they appear in the base branch? 
- However, the base branch's section is after the GZipMiddleware and the head branch's section is also after the GZipMiddleware.
+Action:
+Refactored `get_api_key` to use `secrets.compare_digest()` for constant-time comparison, mitigating timing attacks. Also updated the timestamp conversion to use `tz=timezone.utc` to ensure timezone-aware datetime objects are stored in the database correctly.
 
- Since the base branch is the target and we are merging the head branch into base, the base branch's section is already there and we are adding the head branch's section.
+## 2026-04-01 — Refactored Celery task dispatch to avoid blocking async event loop
 
- But note: the head branch's section was added at a different date (2026-05-10) which is earlier than the base branch's section (2026-05-11). 
- So if we are to keep both, we should put the head branch's section first (because 2026-05-10 comes before 2026-05-11) and then the base branch's section.
+Learning:
+In the FastAPI backend, the message ingestion webhook `/api/v1/ingest` was using `celery_app.send_task` synchronously to trigger AI enrichment background tasks. Since this endpoint is an asynchronous coroutine (`async def`), calling a synchronous I/O-bound method directly blocks the event loop, preventing the server from handling other concurrent requests and causing severe performance degradation and latency spikes during high message volume.
 
- However, the base branch's section is already in the base (so after the GZipMiddleware) and the head branch's section is being added. 
- We must insert the head branch's section in the correct chronological order.
+Action:
+Refactored the synchronous Celery task dispatch to run in a separate thread using `await asyncio.to_thread(celery_app.send_task, "enrich_message", args=[msg.id])`. Future synchronous I/O operations from third-party libraries within async endpoints must similarly be offloaded to threads to maintain ASGI server responsiveness.
 
- Let's look at the base branch's current state (after the GZipMiddleware):
+## 2024-04-01 — Replace print statements with proper logging
 
-   ... (GZipMiddleware action)
-   ## 2026-05-11 — Optimize Celery Worker Database Updates
-   ... 
+Learning:
+The codebase was using raw `print()` statements for error reporting in some critical modules (`backend/app/db/chroma.py`, `backend/app/ai/engine.py`), which bypasses standard log formatting, structured logging, and log routing tools, making it harder to debug in production.
 
- The head branch's change is to add a section dated 2026-05-10 right after the GZipMiddleware action and before the base branch's 2026-05-11 section? 
- But note: in the head branch, there is no 2026-05-11 section (because the head branch was branched off before the base branch added that).
+Action:
+Ensure the standard Python `logging` module is used with module-level loggers (`logger = logging.getLogger(__name__)`) for all application events and errors instead of `print()` statements.
 
- So in the head branch, after the GZipMiddleware action, we have:
+## 2026-04-03 — Webhook Concurrency & Upsert Race Condition
 
-   ## 2026-05-10 — Optimized Celery task DB updates
-   ... 
+Learning:
+The webhook `ingest_message` endpoint previously checked for the existence of groups and users (`db.get()`), and if missing, created them (`db.add()`). During a high-concurrency event (e.g. initial group ingestion where multiple messages are delivered simultaneously), this get-check-add pattern causes a race condition. Multiple webhook handlers see that a group/user does not exist and attempt to `db.add()` the same ID simultaneously. Only the first commit succeeds, while subsequent handlers crash with a `500 IntegrityError` (UniqueViolation).
 
- And then the rest of the file (which is the same as the ancestor after that point?).
+Action:
+Refactored the entity creation logic to use PostgreSQL's native UPSERT capability (`insert(...).on_conflict_do_nothing()`). This offloads the concurrency safety to the database level, preventing `IntegrityError` exceptions while maintaining correct data state. Always use `ON CONFLICT DO NOTHING` (or `DO UPDATE`) for inserts in high-concurrency or webhook architectures rather than application-level get-check-add patterns.
+## 2024-05-24 — Prevent IntegrityError Race Conditions in Webhooks
 
- Therefore, when merging, we want:
+Learning: Concurrent duplicate payload deliveries to webhook endpoints (like `/api/v1/ingest`) can cause `IntegrityError` exceptions and redundant background tasks when using the traditional `db.get()` then `db.add()` pattern, even if an idempotency check is present, because the check and insert are not atomic.
 
-   ... (GZipMiddleware action)
-   ## 2026-05-10 — Optimized Celery task DB updates   [from head]
-   ## 2026-05-11 — Optimize Celery Worker Database Updates   [from base]
-   ... (the rest)
+Action: Always use PostgreSQL's native UPSERT via `sqlalchemy.dialects.postgresql.insert(...).on_conflict_do_nothing().returning(...)` executed with `db.execute()` instead of `db.add()` for concurrent-safe entity creation in webhook ingestion pipelines.
 
- However, note that the base branch already has the 2026-05-11 section. So we are inserting the head branch's section right before the base branch's section.
+## 2024-03-24 — Fix transaction scoping when handling database insertion race conditions
 
- But wait: the base branch's section is already present. We are not removing it. We are adding the head branch's section in the appropriate place.
+Learning:
+When handling UPSERT queries inside FastAPI endpoints where the result is used to check for concurrent inserts (e.g. idempotency where the UPSERT `.scalar()` returns `None`), earlier updates (such as UPSERTs on parent objects like User and Group models) will not be committed to the database or written to cache if you short-circuit early and forget to call `db.commit()` beforehand.
 
- Alternatively, we can think of the merge as:
+Action:
+Ensure that `db.commit()` is called *before* short-circuiting a request handling logic due to early return condition resulting from database race conditions resolving smoothly, and ensure that cache states update accordingly.
 
-   base: ... GZipMiddleware ... then 2026-05-11 section ...
-   head: ... GZipMiddleware ... then 2026-05-10 section ... (and then the same as base after the GZipMiddleware? but note the base branch's 2026-05-11 section is not in the head)
+## 2026-04-08 — Optimize Celery worker memory constraints
+Learning: In synchronous celery workers, repeatedly calling `asyncio.run()` for executing asynchronous LLM calls introduces significant memory overhead and event loop lifecycle costs, which degrades worker performance under high message ingestion load.
+Action: Implemented synchronous versions of AI client methods (e.g., using LangChain's `.invoke()`) to avoid wrapping asynchronous network calls within synchronous contexts. Future synchronous Celery workers should natively prefer synchronous library clients to eliminate event loop initialization overhead.
 
- Actually, the head branch does not have the base branch's 2026-05-11 section because the head branch was created before the base branch added that.
+2026-04-04 — Dead Code in AI Engine
+Learning:
+The `analyze_message` async method in the AI engine was flagged by `vulture` as unused because Celery workers use the sync `analyze_message_sync` method.
+Action:
+Removed the dead code block to improve maintainability and resolve the static analysis warning.
 
- So in the head branch, after the GZipMiddleware action, the next thing is the 2026-05-10 section and then the rest of the file (which is the same as the ancestor after the GZipMiddleware action?).
+2024-05-24 — Node.js WhatsApp Collector Performance and Reliability
+Learning: Upgrading ALLOWED_GROUPS check to use Set.has() significantly improves event loop performance by reducing an O(N) array scan to O(1) in the hot-path message listener. Additionally, missing strict optional chaining on deep object references from third-party libraries (like `whatsapp-web.js` quoted messages) can crash the collector. Test isolation via `if (require.main === module)` for long-running clients is essential for testing Node.js services without hanging handles.
+Action: Always use `Set` for high-frequency inclusion checks in JavaScript event loops. Always defensively access deep nested properties using strict optional chaining `?.` when interfacing with uncontrolled third-party objects. Always wrap long-running client initializations in `require.main === module` for clean testability.
 
- But note: the ancestor had nothing after the GZipMiddleware action until the next section (which in the ancestor was not present? Actually, the ancestor only had up to the GZipMiddleware action and then the file ended? or had other sections?).
+## 2024-05-24 — Add early returns in WhatsApp collector hot path
 
- However, we are only concerned with the conflicting part.
+Learning:
+In `collector/src/index.js`, the primary message listener originally awaited `msg.getChat()` on every incoming message *before* checking if the message was from a monitored group. Under heavy load or a large number of unmonitored incoming messages, this caused severe event loop blocking and memory allocation.
 
- Since the base branch has the 2026-05-11 section and the head branch has the 2026-05-10 section, and they are both about the same topic but with different dates and content, we will keep both and order them by date.
+Action:
+Added an early return pattern in the message listener hot path using the raw string `msg.from` (e.g. checking `!msg.from?.endsWith('@g.us')` or `!ALLOWED_GROUPS.has(msg.from)`). This fast-path check prevents the expensive `await msg.getChat()` call from executing for irrelevant messages. Always prioritize fast, synchronous string matching over asynchronous API/database calls in hot-path event listeners to maintain high throughput.
 
- Therefore, we will put the 2026-05-10 section first and then the 2026-05-11 section.
+## 2026-04-17 — Fix Silent Error Swallowing in Sync Contexts & Ensure Transaction Isolation
 
- But note: the base branch's section is already in the base (so after the GZipMiddleware) and we are adding the head branch's section. We must insert the head branch's section right after the GZipMiddleware action and before the base branch's 2026-05-11 section.
+Learning:
+Exceptions raised during third-party client integrations (like LangChain LLM execution and ChromaDB client additions) were previously swallowed and replaced with dummy fallback data or silent logs. In background asynchronous task runners like Celery, swallowing exceptions prevents native task-retry mechanisms from firing and leads to silent data loss. Furthermore, performing an external API request (like ChromaDB inserts) *after* `session.commit()` created a split-brain transaction where a failed embedding insert wouldn't roll back the database mutation.
 
- However, the base branch's 2026-05-11 section is currently immediately after the GZipMiddleware action. So we want to insert the head branch's section between the GZipMiddleware action and the base branch's 2026-05-11 section.
+Action:
+Removed dummy exception fallbacks inside `AIEngine.analyze_message_sync` and `store_message_embedding`, allowing exceptions to bubble up. Restructured the Celery background task `process_message` to execute `store_message_embedding` *before* `session.commit()`, and re-raised exceptions cleanly. Updated `enrich_message_task` decorator with `bind=True` and `max_retries=3` to handle the bubbling exceptions correctly via `self.retry()`.
 
- Let's write the resolved section:
+## 2024-05-24 — Refactor SQLAlchemy Aggregations for PostgreSQL
 
-   ... (previous content up to and including the GZipMiddleware action)
+Learning:
+In SQLAlchemy queries for PostgreSQL, using `func.coalesce(func.sum(case(...)), 0)` is verbose and less readable. PostgreSQL natively supports the `FILTER (WHERE ...)` clause for aggregate functions.
 
-   ## 2026-05-10 — Optimized Celery task DB updates
-   Learning:
-   When updating a subset of fields on a SQLAlchemy model containing large columns (e.g., Text fields up to 64KB) within a hot path (like Celery workers), using a direct SQL update statement is significantly faster than using session.get followed by attribute assignment because it avoids unnecessarily fetching large payloads over the network.
-   Action:
-   Apply direct SQL UPDATE statements in backend/app/workers/tasks.py for the AI analysis enrichment task.
+Action:
+Replaced verbose `case` aggregations with `func.count().filter(...)` (e.g., `func.count(models.Message.id).filter(models.Message.is_analyzed == True)`) in backend queries. This results in cleaner Python code, generates standard SQL:2003 `COUNT(...) FILTER (WHERE ...)` queries, natively handles the default-to-0 case, and improves both readability and maintainability.
 
-   ## 2026-05-11 — Optimize Celery Worker Database Updates
-   Learning:
-   In `backend/app/workers/tasks.py`, the `process_message` Celery task previously used `session.get(Message, message_id)` to re-fetch the entire `Message` object over the network just to update a few analysis fields (`sentiment`, `classification`, `is_analyzed`) after the AI enrichment step. This is inefficient, especially when `Message` objects contain large `Text` columns (e.g., payloads up to 64KB).
-   Action:
-   Refactored the Celery task to use a direct SQL `UPDATE` statement via `session.execute(update(Message).where(Message.id == message_id).values(...))` instead of fetching the object. This bypasses the network fetch of the large object, reducing DB bandwidth, memory usage, and execution latency for background workers processing hot paths. Applied the same optimization to the exception rollback logic.
+## 2026-04-18 — Handle undefined message bodies in Node.js Collector
 
-   ... (the rest of the file)
+Learning:
+In the Node.js WhatsApp collector using `whatsapp-web.js`, `msg.body` can be `undefined` (e.g., for system or media-only messages). Passing an undefined value causes a downstream validation error (e.g., FastAPI `422 Unprocessable Entity`) because the strictly-typed backend expects a string for the `content` field.
 
- However, note that the base branch's section already exists. We are not duplicating the base branch's section, we are inserting the head branch's section before it.
+Action:
+Always apply a fallback (e.g., `msg.body || ''`) when extracting text content from third-party message objects to prevent downstream validation errors and safeguard string operations.
 
- But wait: the base branch's section is the one that starts with "## 2026-05-11 — Optimize Celery Worker Database Updates". We are leaving that in place and adding the head branch's section right before it.
+## 2026-04-19 — Replace ChromaDB `add` with `upsert` for idempotent background task retries
 
- Therefore, the resolved file will have:
+Learning:
+The Celery background worker tasks were correctly configured with task-retry mechanisms (`max_retries=3`). However, within the Celery task, storing vectors in ChromaDB used `coll.add()`. Because ChromaDB throws an exception when adding a duplicate document ID, any network flake or downstream failure that caused a retry *after* the ChromaDB write succeeded would permanently block the retry from succeeding. This caused a retry failure loop and potential data desync on the SQL database level.
 
-   [content up to the GZipMiddleware action]
-   (the GZipMiddleware action block)
-   then the head branch's 2026-05-10 section
-   then the base branch's 2026-05-11 section
-   then the rest of the file (which is the same as in the base branch after the 2026-05-11 section)
+Action:
+Refactored `store_message_embedding` in `backend/app/db/chroma.py` to use `coll.upsert()` instead of `coll.add()`. This makes the vector database injection fully idempotent and guarantees that Celery retries are safe. Always use `upsert` in decoupled, asynchronous architectures where components need to tolerate retry logic without failing on uniqueness constraints.
 
- However, note that the head branch's version of the file after the GZipMiddleware action was:
+## 2024-05-24 — Parallelize async operations and reuse TCP connections in Node.js webhook architectures
 
-   ## 2026-05-10 — Optimized Celery task DB updates
-   ... 
-   [and then the rest of the file as in the ancestor after the GZipMiddleware action?]
+Learning:
+In the Node.js WhatsApp collector hot path, `await`ing properties sequentially (`msg.getChat()`, then `msg.getContact()`, then `msg.getQuotedMessage()`) delays the construction of the webhook payload because each call blocks the event loop waiting for an IPC response from the Puppeteer instance. Additionally, `axios.post()` defaults to creating a new TCP/TLS connection for every webhook dispatch, which adds significant latency and overhead, severely impacting throughput during high message volume spikes.
 
- But the base branch's version after the GZipMiddleware action was:
+Action:
+Refactored the sequential `await`s to use `Promise.all()` to parallelize the asynchronous fetching of chat, contact, and quoted message details. Also, replaced the standalone `axios.post()` with an `axios.create()` instance configured with custom HTTP/HTTPS agents where `keepAlive: true`. Always use `Promise.all()` for independent async requests, and always enable `keepAlive` in Node.js clients sending high-volume webhook requests to reuse underlying TCP connections.
 
-   ## 2026-05-11 — Optimize Celery Worker Database Updates
-   ... 
-   [and then the rest of the file as in the ancestor after the GZipMiddleware action?]
+## 2026-04-21 — Eliminate duplicate DB read check in webhook hot-path
 
- Actually, the ancestor had nothing after the GZipMiddleware action until the end of the file? Or had other sections? We don't have the full file, but we know that the truncation in the middle section is the same for all.
+Learning:
+In `backend/app/main.py`, the `ingest_message` webhook contained an explicit idempotency check using `await db.get(models.Message, payload.message_id)`. However, later in the function, it performed an UPSERT (`insert(...).on_conflict_do_nothing()`) and manually handled early returns when the UPSERT returned `None`. This meant that the initial `db.get` read was entirely redundant, adding a full network round-trip overhead to the critical hot path of webhook ingestion.
 
- Since we are only given the relevant parts, we assume that after the GZipMiddleware action, the ancestor had nothing (or the same tail) and the base and head branches added their sections and then the same tail.
+Action:
+Removed the initial `db.get` pre-check from the `ingest_message` webhook. Relying natively on the PostgreSQL `ON CONFLICT DO NOTHING` statement avoids race conditions and eliminates the duplicate query overhead, making the hot path leaner and more efficient. Always trust native database constraints and UPSERTs instead of speculative application-level reads.
+## 2026-04-22 — Pre-compile LangChain chains to reduce runtime overhead
 
- Therefore, in the resolved file, after the two new sections, we put the tail (which is the same in both base and head after their respective sections).
+Learning: Building LangChain `RunnableSequence` objects dynamically inside the hot-path execution method for each message ingestion generates unnecessary memory allocation and CPU overhead, decreasing worker throughput.
 
- But note: the base branch's section is followed by the tail, and the head branch's section is also followed by the same tail? 
- Actually, the head branch's section is followed by the tail (which is the same as the ancestor's tail after the GZipMiddleware action) and the base branch's section is followed by the same tail.
+Action: Pre-compile and store LangChain chains in the class `__init__` constructor when possible, reusing the sequence for all incoming invocations instead of recreating it on every request.
 
- So if we put both sections, we will have:
+## 2026-04-22 — Secure dashboard endpoints and modularize authentication logic
 
-   ... GZipMiddleware action ...
-   [head's 2026-05-10 section]
-   [base's 2026-05-11 section]
-   [tail]
+Learning:
+Dashboard endpoints in `backend/app/api/endpoints.py` were previously unprotected and completely open to unauthenticated requests. Additionally, authentication logic was tightly coupled within `main.py`, making it difficult to re-use across router modules without introducing circular dependencies.
 
- And the tail is the same as in the ancestor after the GZipMiddleware action.
+Action:
+Extracted API key authentication logic into a new dedicated module `backend/app/api/auth.py`. Added `dependencies=[Depends(get_api_key)]` to the dashboard `APIRouter` to properly secure all analytics endpoints against unauthorized access. Updated test files with `app.dependency_overrides` to simulate authentication cleanly during test execution. Always ensure that sensitive internal endpoints are explicitly protected and auth logic is modularized.
 
- This is acceptable.
+## 2026-04-23 — Optimize Database Performance and Reliability
 
- However, note: the base branch's section is already present in the base, so we are not removing it. We are just inserting the head branch's section before it.
+Learning:
+Unbounded or unconfigured database connection pools can lead to connection exhaustion and dropped connection errors, especially under burst loads of webhook requests. Furthermore, querying ordered by timestamp for specific groups can cause slow sequential scans if not explicitly indexed. Lastly, `vulture` and other static analysis tools will flag `== True` boolean filters, which can be cleanly resolved using SQLAlchemy's `.is_(True)`.
 
- Let's write the resolved content for the conflicting area.
+Action:
+Configured SQLAlchemy engines in both `database.py` and `tasks.py` with `pool_size=20`, `max_overflow=10`, and `pool_pre_ping=True` to improve resilience against burst traffic and stale connections. Added a composite index `(group_id, timestamp)` to the `Message` model to optimize dashboard retrieval queries. Refactored `== True` boolean comparisons in queries to use `.is_(True)` for cleaner static analysis.
 
- But note: the entire file is large and we are only given the context around the conflict. We must output the entire file.
+## 2024-05-24 — Remove Redundant Database Indexes
 
- However, we are not given the entire file, only the three versions with truncations. We must rely on the fact that the only changes are in the sections we are discussing.
+Learning:
+In SQLAlchemy, explicitly setting `index=True` on columns that are already marked as `primary_key=True` is redundant because the primary key constraint automatically creates a unique index. Similarly, creating a separate index for a column (like `group_id`) that is already the leading column of a composite index (like `(group_id, timestamp)`) wastes disk space and degrades write performance without adding any query benefit.
 
- Since the problem states that the base branch changed lines 354-361 and the head branch changed lines 353-360, and the ancestor had a certain state, we can reconstruct.
+Action:
+Removed the redundant `index=True` configurations on `id` columns for `Message`, `Group`, and `User` models, and removed the single-column `group_id` index. Ensured the explicit composite index `Index("ix_messages_group_id_timestamp", "group_id", "timestamp")` remained intact to handle dashboard retrieval queries.
 
- But note: we are not required to reconstruct the entire file from scratch. We are given the three versions (with truncations) and we know the exact changes.
+## 2024-05-24 — Enforce String Bounds in Pydantic Ingestion Schemas
 
- However, the problem says: "Output ONLY the complete resolved file content"
+Learning:
+The `MessageIngest` schema lacked `max_length` bounds on its string properties. Unbounded payloads can lead to memory exhaustion and database column saturation attacks when processing external webhooks.
 
- We are not given the full file, but we are given the three versions with the same truncation markers. We can assume that the parts outside the conflict are the same in all three.
+Action:
+Added `Field(..., max_length=X)` to all string fields in `MessageIngest` (e.g., `255` for short identifiers and `65536` for message content) to harden the ingestion endpoint.
 
- Therefore, we can take the base branch's version and then insert the head branch's section in the appropriate place.
+## 2024-05-24 — Optimize Database Query by Primary Key
 
- Steps:
+Learning:
+Using `session.query(Model).filter(Model.id == pk).first()` is less efficient than `session.get(Model, pk)` because the latter automatically checks the SQLAlchemy identity map first, preventing a database round-trip if the object is already loaded in the session.
 
-   1. Start with the base branch's version (which is the target branch) but note that the base branch's version already has the 2026-05-11 section.
-   2. We want to insert the head branch's 2026-05-10 section right after the GZipMiddleware action and before the base branch's 2026-05-11 section.
+Action:
+Replaced the `query.filter` pattern with `session.get` in `backend/app/workers/tasks.py` for fetching `Message` instances.
 
- How do we locate the GZipMiddleware action in the base branch?
+## 2026-04-23 — Add Pagination and Bounds Validation to Messages API
 
-   In the base branch, after the GZipMiddleware action, we have:
+Learning:
+The `/groups/{group_id}/messages` endpoint allowed unbounded payload limits, creating a vector for database CPU and memory exhaustion attacks via an excessively large `limit` parameter, and lacked pagination capabilities for handling large datasets.
 
-        ## 2026-05-11 — Optimize Celery Worker Database Updates
+Action:
+Added `fastapi.Query` constraints to enforce a maximum limit (e.g., `le=100`) and introduced an `offset` parameter to safely paginate large sets of message records. Updated backend unit tests to verify bounds validation and pagination logic.
 
-   So we want to insert the head branch's section between the GZipMiddleware action and that line.
+## 2026-04-24 — Enforce Pydantic Output Validation for AI Schema
 
-   Specifically, after the line:
+Learning:
+The `MessageAnalysis` Pydantic model used plain `str` fields, leaving output unrestricted and susceptible to hallucinations, especially omitting the 'decision' classification which caused a discrepancy since the dashboard specifically counts 'decisions'.
 
-        Action:
-        Added `GZipMiddleware` to `backend/app/main.py` with `minimum_size=1000` to efficiently reduce payload size for endpoints returning large lists.
+Action:
+Refactored `MessageAnalysis` fields to use `typing.Literal` with explicit values (including 'decision'). Also added a `mode="before"` `field_validator` to lowercase string values before validation, increasing robustness against LLM capitalization variations.
+## 2025-04-25 — FastAPI Background Tasks Optimization
 
-   and before the line:
+Learning:
+Using `asyncio.to_thread` for dispatching external IO operations (like Celery jobs) from endpoint handlers can block the API response.
 
-        ## 2026-05-11 — Optimize Celery Worker Database Updates
+Action:
+Use `BackgroundTasks` instead of `asyncio.to_thread` to natively enqueue tasks in the background, significantly reducing API latency by returning the HTTP response immediately.
 
-   We insert:
+## 2026-04-26 — Prevent timestamp crashes and unbounded group payload delivery
 
-        ## 2026-05-10 — Optimized Celery task DB updates
-        Learning:
-        When updating a subset of fields on a SQLAlchemy model containing large columns (e.g., Text fields up to 64KB) within a hot path (like Celery workers), using a direct SQL update statement is significantly faster than using session.get followed by attribute assignment because it avoids unnecessarily fetching large payloads over the network.
-        Action:
-        Apply direct SQL UPDATE statements in backend/app/workers/tasks.py for the AI analysis enrichment task.
+Learning:
+Unbounded limit queries on the `/groups` API endpoint and missing timestamp limits in Pydantic schemas can lead to unbounded payload delivery, DB memory exhaustion, and 500 errors (if `datetime.fromtimestamp()` encounters timestamps out-of-range, such as milliseconds rather than seconds).
 
-   And then we leave the base branch's 2026-05-11 section and the rest.
+Action:
+To prevent application crashes and 500 Internal Server errors caused by out-of-range values passed to `datetime.fromtimestamp()`, enforce integer bounds on timestamp fields in Pydantic schemas (e.g., `timestamp: int = Field(..., ge=0, le=4102444800)`). Also enforce constraints for paginated endpoints via `fastapi.Query`.
 
- But note: the head branch's section is exactly as provided in the head branch version.
+## 2026-04-26 — Enforce single-responsibility patches
 
- However, we must be cautious: the head branch's section in the head branch version is:
+Learning:
+Bundling multiple disjointed improvements (such as adding database indexes and truncating payload strings) into a single commit violates the core directive of focusing on ONE meaningful improvement per run.
 
-        ## 2026-05-10 — Optimized Celery task DB updates
-        Learning:
-        When updating a subset of fields on a SQLAlchemy model containing large columns (e.g., Text fields up to 64KB) within a hot path (like Celery workers), using a direct SQL update statement is significantly faster than using session.get followed by attribute assignment because it avoids unnecessarily fetching large payloads over the network.
-        Action:
-        Apply direct SQL UPDATE statements in backend/app/workers/tasks.py for the AI analysis enrichment task.
+Action:
+Strictly adhere to the rule of focusing on ONE meaningful improvement per run to ensure patches remain small, safe, and easily reviewable.
 
-   And note: there is an empty line at the end? We should preserve the formatting.
+## 2026-04-26 — Prevent unprocessable entity by truncating payloads
 
-   In the base branch, the GZipMiddleware action ends with two newlines? Actually, in the base branch version we see:
+Learning:
+When constructing message payloads in the Node.js collector, string fields can exceed the `max_length` bounds defined in the backend's Pydantic schema, causing `422 Unprocessable Entity` validation failures and data loss.
 
-        Action:
-        Added `GZipMiddleware` to `backend/app/main.py` with `minimum_size=1000` to efficiently reduce payload size for endpoints returning large lists.
+Action:
+Truncate string fields (e.g., using `.substring(0, max_length)`) in the Node.js collector to explicitly match the backend's schema limits.
+## 2026-04-27 — Guard against undefined message bodies in Node.js webhook hot-path
 
-        ## 2026-05-11 — Optimize Celery Worker Database Updates
+Learning:
+In the Node.js WhatsApp collector using `whatsapp-web.js`, `msg.body` can be `undefined` (e.g., for system or media-only messages). Passing an undefined value to the backend API without a fallback will cause `422 Unprocessable Entity` validation errors because the backend expects a string type.
 
-   So there is a blank line between the action and the next section.
+Action:
+Modified `collector/src/index.js` to always apply a fallback (e.g., `msg.body || ''`) when extracting text content from the WhatsApp message payload. Always ensure string paths extraction is safe against nullish objects to prevent upstream data ingestion failures.
+## 2026-04-29 — Add Bounded TTLCache to high-latency dashboard endpoint
 
-   We want to insert the head branch's section in that blank line? Actually, we want to put the head branch's section and then a blank line before the base branch's section? 
-   But note: the base branch's version has a blank line between the GZipMiddleware action and its own section.
+Learning:
+Dashboard analytics endpoints (like `/groups/{group_id}/stats`) that rely on complex SQL aggregations (`func.count`) across large tables can become severe performance bottlenecks under high traffic or repeated loading.
 
-   We are replacing that blank line with:
+Action:
+Introduced a `BoundedTTLCache` in `backend/app/api/endpoints.py` to temporarily cache response payloads for 60 seconds with a capacity limit. This significantly reduces API latency and protects the database from excessive load while keeping the analytics sufficiently real-time. Always use bounded, memory-safe caching mechanisms (e.g., using `collections.OrderedDict`) to prevent unbounded memory growth and DoS vulnerabilities.
 
-        [head branch's section]
-        [blank line]   [to match the base branch's style?]
+## 2024-04-30 — Improve JSON serialization performance in FastAPI
 
-   However, let's look at the head branch version: after the GZipMiddleware action, it has:
+Learning:
+The default JSON response class used by FastAPI (`JSONResponse`) relies on the standard library `json` module, which is comparatively slow when serializing large payloads, such as arrays of dashboard messages returned by the `/groups/{group_id}/messages` endpoint.
 
-        Action:
-        Added `GZipMiddleware` to `backend/app/main.py` with `minimum_size=1000` to efficiently reduce payload size for endpoints returning large lists.
-        ## 2026-05-10 — Optimized Celery task DB updates
+Action:
+Switched the default response class of the FastAPI application to `ORJSONResponse` in `backend/app/main.py`. `orjson` is significantly faster at serializing Python objects into JSON and consumes less memory, directly reducing the API latency and CPU usage when returning large datasets. Note that `orjson` was already present in the dependency tree (required by `chromadb`).
 
-   There is no blank line? Actually, in the head branch version we see:
+## 2026-05-01 — Avoid `MissingGreenlet` in FastAPI with AsyncSession
 
-        Action:
-        Added `GZipMiddleware` to `backend/app/main.py` with `minimum_size=1000` to efficiently reduce payload size for endpoints returning large lists.
-        ## 2026-05-10 — Optimized Celery task DB updates
+Learning:
+When using `load_only` with asynchronous SQLAlchemy (`AsyncSession`), excluded columns are deferred. Because FastAPI serialization (like Pydantic's `from_attributes=True`) is synchronous, accessing these deferred columns triggers an implicit lazy load, which raises a `MissingGreenlet` error and crashes the endpoint.
 
-   So there is no blank line. But in the base branch version, there is a blank line.
+Action:
+Instead of `load_only` returning the full model instances with deferred fields, explicitly query just the required columns using `select(Model.col1, Model.col2)`. This returns Row objects natively instead of model instances, completely bypassing the deferred loading mechanism and avoiding the `MissingGreenlet` error while still yielding the performance benefits of a narrower query.
+## 2026-05-02 — DB Connection Lock Contention During Network I/O
 
-   To be safe, we should follow the style of the base branch? Or the head branch? 
+Learning: Database connections were held locked unnecessarily during the high-latency network I/O calls to ChromaDB in the background workers, potentially causing connection pool exhaustion during traffic bursts.
 
-   Since we are merging into the base branch (target), we should preserve the base branch's style where possible.
+Action: Release database locks by calling `session.commit()` *before* initiating high-latency network I/O (like ChromaDB or AI API calls), provided post-commit operations are idempotent or failure is acceptable.
 
-   The base branch has a blank line between the GZipMiddleware action and the next section.
+## 2024-05-03 — Optimize Pydantic Serialization in Dashboard Endpoint
 
-   We are inserting a new section. We want to have:
+Learning:
+In `backend/app/api/endpoints.py`, mapping SQLAlchemy `Row` objects to Pydantic models using `dict(zip([...], row))` within a list comprehension creates unnecessary intermediate dictionary allocations for every row returned. On hot paths or when returning large sets of data, this creates significant memory allocation overhead and slows down API latency. Furthermore, it silently ignores missing columns, potentially masking query bugs until later validation.
 
-        ... GZipMiddleware action ...
-        (blank line)
-        [head branch's section]
-        (blank line)
-        [base branch's 2026-05-11 section]
+Action:
+Refactored the `get_recent_messages` endpoint to instantiate `MessageResponse` directly using positional index access (e.g., `MessageResponse(id=row[0], content=row[1], ...)`). This avoids the overhead of intermediate dictionaries entirely, improving serialization performance and reducing memory usage on a frequently accessed route.
 
-   But note: the base branch's version already has a blank line after the GZipMiddleware action and before its own section. We are going to put the head branch's section in that blank line? 
-   Actually, we are going to replace the blank line with:
+## 2026-05-04 — Improve Dashboard Endpoint Serialization
 
-        [head branch's section]
-        [blank line]
+Learning:
+In `backend/app/api/endpoints.py`, the `get_groups` endpoint mapped SQLAlchemy `Row` objects to dictionaries using a list comprehension (`{"id": g.id, "name": g.name}`). Creating intermediate dictionaries adds memory allocation overhead and bypasses Pydantic's strict type validation and tuple unpacking optimizations.
 
-   and then the base branch's section.
+Action:
+Refactored the `get_groups` endpoint to use a strict `GroupResponse` Pydantic model and instantiated it directly using positional index access (e.g., `GroupResponse(id=row[0], name=row[1])`). This avoids intermediate dictionary allocations and improves serialization performance on the endpoint.
+## 2026-05-04 — Optimize Pydantic Validation in List Comprehensions
 
-   However, the head branch's section does not end with a blank line? We should make it end with a blank line to match the base branch's style.
+Learning:
+In FastAPI endpoints mapping DB queries directly to response schemas on hot paths (`get_groups` and `get_recent_messages`), instantiating standard Pydantic models (e.g., `Model(field=row[0])`) introduces significant parsing and validation overhead even for trusted, strongly-typed rows fetched from the database. Furthermore, using `model_config = ConfigDict(from_attributes=True)` degrades standard initialization speed without any benefit if tuples are manually mapped instead of objects.
 
-   Alternatively, we can note that the base branch's version has:
+Action:
+Used `Model.model_construct(...)` inside list comprehensions on DB results to safely bypass unnecessary Pydantic validation when constructing trusted response objects. This drastically improves serialization performance and API latency for endpoints returning large lists. Also removed unused `from_attributes=True` configuration to further optimize latency.
 
-        ... lists.
-        [blank line]
-        ## 2026-05-11 ...
+## 2026-05-05 — Compress API responses to reduce payload size and API bandwidth
 
-   We want to change it to:
+Learning:
+Uncompressed large JSON payloads (like lists of groups and messages) over the network increase API latency and bandwidth usage.
 
-        ... lists.
-        [blank line]
-        ## 2026-05-10 ...
-        [content of head section]
-        [blank line]
-        ## 2026-05-11 ...
+Action:
+Added `GZipMiddleware` to `backend/app/main.py` with `minimum_size=1000` to efficiently reduce payload size for endpoints returning large lists.
+## 2026-05-10 — Optimized Celery task DB updates
 
-   So we are inserting the head branch's section (which includes its own blank lines inside) and then we add a blank line after it? 
-   But the head branch's section as given in the head branch version does not have a trailing blank line? 
+Learning:
+When updating a subset of fields on a SQLAlchemy model containing large columns (e.g., Text fields up to 64KB) within a hot path (like Celery workers), using a direct SQL update statement is significantly faster than using session.get followed by attribute assignment because it avoids unnecessarily fetching large payloads over the network.
 
-   Let me check the head branch version snippet:
-
-        ## 2026-05-10 — Optimized Celery task DB updates
-        Learning:
-        When updating a subset of fields on a SQLAlchemy model containing large columns (e.g., Text fields up to 64KB) within a hot path (like Celery workers), using a direct SQL update statement is significantly faster than using session.get followed by attribute assignment because it avoids unnecessarily fetching large payloads over the network.
-        Action:
-        Apply direct SQL UPDATE statements in backend/app/workers/tasks.py for the AI analysis enrichment task.
-
-   There is no blank line at the end. However, in the context of the file, the next line after that section in the head branch is the same as the ancestor's tail (which we don't have, but we know it's the same as in the base branch after the base branch's section).
-
-   To avoid messing up the formatting, we will insert the head branch's section exactly as it appears in the head branch version, and then we will put a blank line before the base branch's section? 
-   But note: the base branch's version already has a blank line before its section. We are going to keep that blank line? 
-
-   Actually, we are inserting the head branch's section in the middle of the base branch's blank line. 
-
-   Base branch's current state at that point:
-
-        ... lists.
-        [blank line]
-        ## 2026-05-11 ...
-
-   We want:
-
-        ... lists.
-        [blank line]
-        ## 2026-05-10 ...
-        [head section content]
-        [blank line]   <-- we add this to match the base branch's style for the next section?
-        ## 2026-05-11 ...
-
-   But wait, the base branch's section is preceded by a blank line. We want the head branch's section to also be preceded by a blank line and followed by a blank line? 
-   However, the base branch's style is to have a blank line before each section.
-
-   Looking at the base branch:
-
-        ... (previous section)
-        [blank line]
-        ## 2026-05-11 ...
-
-   So we want:
-
-        ... (GZipMiddleware action)
-        [blank line]
-        ## 2026-05-10 ...
-        [head section content]
-        [blank line]
-        ## 2026-05-11 ...
-        [base section content]
-
-   Therefore, we will insert:
-
-        \n## 2026-05-10 — Optimized Celery task DB updates\nLearning:\nWhen updating a subset of fields on a SQLAlchemy model containing large columns (e.g., Text fields up to 64KB) within a hot path (like Celery workers), using a direct SQL update statement is significantly faster than using session.get followed by attribute assignment because it avoids unnecessarily fetching large payloads over the network.\n\nAction:\nApply direct SQL UPDATE statements in backend/app/workers/tasks.py for the AI analysis enrichment task.\n
-
-   Note: we are adding two newlines at the end of the inserted section to create the blank line before the next section.
-
-   However, the head branch's section as given does not have a trailing blank line. We are adding one.
-
-   Alternatively, we can note that the base branch's version has a blank line before the 2026-05-11 section, and we want to preserve that blank line. 
-   We are inserting the head branch's section and then we want to put a blank line after it so that the base branch's section still has a blank line before it.
-
-   So the inserted block should be:
-
-        (the head branch's section exactly as in the head branch version) 
-        followed by a blank line.
-
-   But note: the head branch's section in the head branch version does not have a trailing blank line. We are adding one.
-
-   However, the head branch's version of the file after the inserted section is the same as the base branch's version after the 2026-05-11 section? 
-   Actually, no: the head branch's version does not have the base branch's 2026-05-11 section. 
-
-   We are merging, so after the head branch's section we want to have the base branch's 2026-05-11 section and then the tail.
-
-   Therefore, we will insert:
-
-        [head branch's section] 
-        \n   [to create a blank line]
-        [then the base branch's 2026-05-11 section and the rest]
-
-   But note: the base branch's version already has a blank line before the 2026-05-11 section. We are going to keep that blank line? 
-   Actually, we are replacing the blank line that was in the base branch with:
-
-        [head branch's section] 
-        \n   [this is the blank line we are adding]
-
-   and then the base branch's 2026-05-11 section.
-
-   So the blank line that was originally there is gone, and we put the head branch's section and then a blank line.
-
-   This will result in:
-
-        ... lists.
-        [head branch's section]
-        [blank line]
-        ## 2026-05-11 ...
-
-   Which is what we want.
-
-   Alternatively, we can think of the base branch's version as having:
-
-        A = "Action: ... lists.\n\n"
-        B = "## 2026-05-11 ..."
-
-   We want to change it to:
-
-        A + 
-        "## 2026-05-10 ...\nLearning: ...\n\nAction: ...\n\n" + 
-        B
-
-   But note: the head branch's section as given in the head branch version is:
-
-        "## 2026-05-10 ...\nLearning: ...\n\nAction: ...\n"
-
-   (without a trailing newline? Actually, we don't know, but we can assume it ends with a newline because it's a section)
-
-   To be safe, we will use the exact string from the head branch version for the section, and then add a newline to create the blank line.
-
-   However, the head branch version snippet we are given for the section does not show a trailing blank line. But note that the head branch version snippet ends with:
-
-        Action:
-        Apply direct SQL UPDATE statements in backend/app/workers/tasks.py for the AI analysis enrichment task.
-
-   and then the next line in the head branch version is the truncation marker? Actually, the head branch version we are given is:
-
-        ... 
-        Action:
-        Added `GZipMiddleware` to `backend/app/main.py` with `minimum_size=1000` to efficiently reduce payload size for endpoints returning large lists.
-        ## 2026-05-10 — Optimized Celery task DB updates
-        Learning:
-        When updating a subset of fields on a SQLAlchemy model containing large columns (e.g., Text fields up to 64KB) within a hot path (like Celery workers), using a direct SQL update statement is significantly faster than using session.get followed by attribute assignment because it avoids unnecessarily fetching large payloads over the network.
-        Action:
-        Apply direct SQL UPDATE statements in backend/app/workers/tasks.py for the AI analysis enrichment task.
-
-   And then it truncates. So there is no blank line at the end of the head branch's section in the snippet.
-
-   Therefore, we will take the head branch's section as a string that ends without a blank line, and then we will add a newline to create the blank line before the next section.
-
-   But note: the base branch's version has a blank line (i.e., two newlines) after the GZipMiddleware action. We are replacing that blank line with:
-
-        [head branch's section] 
-        \n   [which is one newline, making the total from the end of the GZipMiddleware action to the start of the base branch's section: 
-             (head section) + \n]
-
-   However, the head branch's section ends with a newline? We don't know. To be safe, we will assume that the head branch's section as provided in the head branch version ends with a newline (because it's a line of text). 
-   Then we add one more newline to get a blank line.
-
-   Alternatively, we can look at the context: in the head branch version, after the action line of the head branch's section, there is no more content shown, but we know the file continues. 
-   We want to mimic the base branch's style: a blank line between sections.
-
-   Since the base branch has a blank line before its section, we will ensure that after the inserted section there is a blank line.
-
-   Therefore, we will insert:
-
-        (the head branch's section exactly as it appears in the head branch version) 
-        + "\n"
-
-   This will give us one newline at the end of the inserted section, and then the base branch's section starts. 
-   But the base branch's section starts with "## 2026-05-11 ...", so we will have:
-
-        ... (end of head section)
-        \n
-        ## 2026-05-11 ...
-
-   which is a blank line between the head section and the base section.
-
-   However, note that the head section itself may end with a newline. If it does, then we are adding an extra newline -> two newlines -> blank line.
-
-   If it doesn't, then we are adding one newline -> no blank line.
-
-   To guarantee a blank line, we should ensure that we have two newlines at the end of the inserted block? 
-   But that would be:
-
-        [head section] 
-        \n\n
-
-   and then the base section.
-
-   However, the base branch's version already has a blank line (two newlines) after the GZipMiddleware action. 
-   We are replacing that blank line with:
-
-        [head section] 
-        \n\n
-
-   So we are effectively inserting the head section and then keeping the blank line.
-
-   How about we do:
-
-        We take the base branch's version and we split it at the point after the GZipMiddleware action and before the base branch's section.
-
-        Specifically, we find the index of the line: "## 2026-05-11 — Optimize Celery Worker Database Updates"
-
-        and we insert the head branch's section right before that line, and we also make sure there is a blank line before and after? 
-        But note: the base branch's version already has a blank line before that line.
-
-   Actually, the base branch's version has:
-
-        ... 
-        Action: ... lists.
-        [blank line]
-        ## 2026-05-11 ...
-
-   We want:
-
-        ... 
-        Action: ... lists.
-        [blank line]
-        ## 2026-05-10 ...
-        [head section content]
-        [blank line]
-        ## 2026-05-11 ...
-
-   So we are inserting two blocks: the head section and a blank line, in the place of the existing blank line.
-
-   Therefore, we replace the blank line (which is two newlines: one at the end of the action line and one empty line) with:
-
-        [head section] 
-        \n\n   [which is the blank line we want to keep]
-
-   But note: the head section we are inserting does not end with a newline? We don't know. 
-   To be safe, we will insert the head section and then two newlines? 
-   However, that would be:
-
-        ... lists.
-        [head section]
-        \n\n
-        ## 2026-05-11 ...
-
-   which gives a blank line after the head section.
-
-   But the head section might already end with a newline. Then we would have:
-
-        ... lists.
-        [head section ends with \n]
-        \n\n   -> becomes two newlines after the head section: one from the head section and two we added -> total three -> which is two blank lines? 
-
-   We want exactly one blank line (i.e., one empty line) between sections.
-
-   The standard is: 
-        section content
-        (empty line)
-        next section
-
-   So we want one empty line, which is two newlines: one to end the last line of the section and one for the empty line.
-
-   Therefore, if the head section does not end with a newline, we add two newlines.
-   If it ends with one newline, we add one newline.
-   If it ends with more, we don't know.
-
-   Given the complexity, and since we are not given the exact string, we will assume that the head branch's section as provided in the head branch version ends with a newline (because it's the last line shown and the file continues).
-
-   Then we only need to add one newline to get the empty line.
-
-   So we insert: head_section_string + "\n"
-
-   And then the base branch's section.
-
-   But note: the base branch's section starts with "## ...", so we will have:
-
-        ... (end of head section) 
-        \n   [from our insertion]
-        ## 2026-05-11 ...   [from base]
-
-   which means the head section ends with a newline, then we add a newline -> so we have two newlines at the end of the head
+Action:
+Apply direct SQL UPDATE statements in backend/app/workers/tasks.py for the AI analysis enrichment task.
