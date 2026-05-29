@@ -8,7 +8,24 @@ We are given three versions: ancestor, base (master), and head (PR branch).
     - When the same line is changed in both, we prefer the head (PR branch) unless the base has an obvious bug fix or security patch (but we don't have that info, so we'll rely on the rule: if they modify the same logic, prefer HEAD unless base has obvious bug fix/security patch; without explicit bug fix/security, we use HEAD).
     - If the base added something that the head doesn't have, we incorporate it.
 
+<<<<<<< HEAD
+## [1.0.28] - 2026-05-27
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity post-optimizations. Re-verified robust backend and node tests properly pass after migrating to a direct SQL `UPDATE` statement in the `process_message` Celery task.
+* **Upgrades:** Checked minor/patch bumps for dependencies. Checked dependencies safely. Bumped project versions to `1.0.28`.
+* **Pruning:** Checked unused imports and cleaned `__pycache__` artifacts to reduce codebase entropy.
+
+## [1.0.27] - 2026-05-25
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity post-optimizations introducing `ws` upgrade. Re-verified robust backend and node tests properly pass.
+* **Upgrades:** Audited dependencies and safely bumped `python` dependencies via Poetry and Node.js dependencies via npm.
+* **Pruning:** Pruned an unused import in test_workers.py.
+
+=======
  However, note that the diff provided is only the head changes vs base (so we see what the head has that the base doesn't, and vice versa? Actually, the diff is head vs base: so it shows what is in head but not in base (added) and what is in base but not in head (removed)).
+>>>>>>> origin/lifecycle-v1.0.27-9329724471703727717
 
  But note: the problem says "Git Diff (Head changes vs base)" meaning:
    - Lines starting with '+' are in head but not in base.
@@ -69,7 +86,7 @@ We are given three versions: ancestor, base (master), and head (PR branch).
 
  The standard 3-way merge:
 
-   merged = base + (head - base)   [if we take base and then add the head's unique changes] 
+   merged = base + (head - base)   [if we take base and then add the head's unique changes]
    but wait: that would be the same as head if there were no conflicts? Not exactly.
 
  Actually, the merge result should be:
@@ -107,7 +124,7 @@ We are given three versions: ancestor, base (master), and head (PR branch).
    - In base: the line is changed from ancestor to base_version.
    - In head: the line is changed from ancestor to head_version.
    - Then when we diff head vs base, we would see:
-        - base_version (as a removal) and head_version (as an addition) for that line? 
+        - base_version (as a removal) and head_version (as an addition) for that line?
         But actually, the diff would show:
           - the base_version line (with a minus) and the head_version line (with a plus) if they are different.
 
@@ -115,37 +132,37 @@ We are given three versions: ancestor, base (master), and head (PR branch).
 
  Therefore, the diff we are given already captures the conflicts as:
    - For a line that is changed in both branches to different values:
-        In the diff (head vs base): 
+        In the diff (head vs base):
           we see the base version as a '-' line and the head version as a '+' line.
 
    - For a line that is changed only in base: we see a '-' line (and no corresponding '+' for that line in the same context? Actually, it would be a removal of the ancestor line and then the base line is not present? But wait, the diff is between head and base, so if base changed a line and head did not, then in base we have the new line and in head we have the old line (from ancestor). So the diff would show:
-          - the old line (from ancestor) as a '-'? No, wait: 
-          Actually, the diff is: 
-            head: has the ancestor version of the line (if head didn't change it) 
+          - the old line (from ancestor) as a '-'? No, wait:
+          Actually, the diff is:
+            head: has the ancestor version of the line (if head didn't change it)
             base: has the changed version.
-          So when we do head vs base, we are comparing head (which has the old) to base (which has the new). 
+          So when we do head vs base, we are comparing head (which has the old) to base (which has the new).
           Therefore, we would see:
-            - the old line (as a removal from head? but wait: the diff is head vs base, meaning we are showing what to change in head to get base? 
+            - the old line (as a removal from head? but wait: the diff is head vs base, meaning we are showing what to change in head to get base?
           Actually, the standard git diff A B shows: what to change in A to get B.
 
-          So: git diff head base: 
+          So: git diff head base:
             - lines that are in head but not in base: marked with '-'
             - lines that are in base but not in head: marked with '+'
 
           Therefore, if base changed a line and head did not:
             - In head: the line is the ancestor version.
             - In base: the line is the changed version.
-            - Then in the diff (head vs base): 
-                  we see the ancestor version (from head) as a '-' (because we need to remove it to get base) 
+            - Then in the diff (head vs base):
+                  we see the ancestor version (from head) as a '-' (because we need to remove it to get base)
                   and the changed version (from base) as a '+' (because we need to add it).
 
           Similarly, if head changed a line and base did not:
             - In head: changed version
             - In base: ancestor version
-            - Then in the diff (head vs base): 
-                  we see the ancestor version (from base) as a '-'? No, wait: 
-                  Actually, we are comparing head (changed) to base (ancestor). 
-                  So to go from head to base, we would remove the changed version and add the ancestor version? 
+            - Then in the diff (head vs base):
+                  we see the ancestor version (from base) as a '-'? No, wait:
+                  Actually, we are comparing head (changed) to base (ancestor).
+                  So to go from head to base, we would remove the changed version and add the ancestor version?
                   But that's not what we want.
 
           Let me clarify with an example:
@@ -155,10 +172,10 @@ We are given three versions: ancestor, base (master), and head (PR branch).
           Head: changed to "baz"
 
           Then:
-            git diff head base: 
+            git diff head base:
               We are comparing head ("baz") to base ("bar").
-              We see: 
-                 - "baz" (because we want to remove it to get base) 
+              We see:
+                 - "baz" (because we want to remove it to get base)
                  + "bar" (because we want to add it to get base)
 
           But wait, that doesn't show the conflict? Actually, it shows that head has "baz" and base has "bar", so to convert head to base we remove "baz" and add "bar".
@@ -175,7 +192,7 @@ We are given three versions: ancestor, base (master), and head (PR branch).
           How does the diff (head vs base) look?
             head: "baz"
             base: "bar"
-            diff: 
+            diff:
                -baz
                +bar
 
@@ -190,9 +207,9 @@ We are given three versions: ancestor, base (master), and head (PR branch).
 
           How do we get that from the diff?
             We see that the diff has:
-               -baz   (meaning: in head we have baz, in base we don't have baz? Actually, base has bar, so baz is only in head? Not exactly: base has bar, head has baz, so baz is in head and not in base? and bar is in base and not in head? 
-            But note: the line "baz" is in head and not in base -> so it would appear as a '+' in the diff if we were doing base vs head? 
-            Actually, we are doing head vs base: 
+               -baz   (meaning: in head we have baz, in base we don't have baz? Actually, base has bar, so baz is only in head? Not exactly: base has bar, head has baz, so baz is in head and not in base? and bar is in base and not in head?
+            But note: the line "baz" is in head and not in base -> so it would appear as a '+' in the diff if we were doing base vs head?
+            Actually, we are doing head vs base:
                head has baz, base does not have baz -> so we see baz as a line to remove? (because we are going from head to base: we want to remove baz to get base? but base doesn't have baz, it has bar) -> actually, we see:
                  -baz   (because head has baz and base doesn't, so to get base from head we remove baz)
                  +bar   (because base has bar and head doesn't, so to get base from head we add bar)
@@ -218,9 +235,9 @@ We are given three versions: ancestor, base (master), and head (PR branch).
           However, that is not correct because base might have changes in areas that head doesn't have, and we want to keep them.
 
           Actually, the standard way to merge is:
-            merged = base 
-                     then apply the changes that are in head but not in base (which is the '+' lines in the diff head vs base) 
-                     but wait: the '+' lines in head vs base are the lines that are in base but not in head? 
+            merged = base
+                     then apply the changes that are in head but not in base (which is the '+' lines in the diff head vs base)
+                     but wait: the '+' lines in head vs base are the lines that are in base but not in head?
                      No: as per git diff head base:
                          '+' means: add this line (because it's in base but not in head) -> so to get base from head, we add these.
                          '-' means: remove this line (because it's in head but not in base) -> so to get base from head, we remove these.
@@ -229,7 +246,7 @@ We are given three versions: ancestor, base (master), and head (PR branch).
             remove the '-' lines and add the '+' lines.
 
           But we want the merge: which should have:
-            - All the lines that are in base (so we want base's version for the parts that are only in base) 
+            - All the lines that are in base (so we want base's version for the parts that are only in base)
             - All the lines that are in head (so we want head's version for the parts that are only in head)
             - For the common parts, we keep the line (which is the same in both).
 
@@ -237,14 +254,14 @@ We are given three versions: ancestor, base (master), and head (PR branch).
 
           How about:
             We start with the base version.
-            Then, for every line that is in head but not in base (which we can get from the diff base vs head? but we have head vs base) we would add it? 
+            Then, for every line that is in head but not in base (which we can get from the diff base vs head? but we have head vs base) we would add it?
             But note: the diff we have is head vs base.
 
           Let me define:
             Let D = diff(head, base)   [which we are given]
 
           Then:
-            The lines that are in head but not in base: these are the lines that are marked with '-' in D? 
+            The lines that are in head but not in base: these are the lines that are marked with '-' in D?
                 Why? Because in head we have them and in base we don't -> so to go from head to base we remove them -> so they are the '-' lines.
 
             The lines that are in base but not in head: these are the lines marked with '+' in D.
@@ -255,10 +272,10 @@ We are given three versions: ancestor, base (master), and head (PR branch).
           base - head = the set of lines that are in base but not in head = the '+' lines in D.
 
           Now, the merge should contain:
-            (base ∩ head)   [the common lines] 
-            ∪ (base - head)   [the lines only in base] 
-            ∪ (head - base)   [the lines only in head] 
-          but with conflict resolution for the overlapping changes? 
+            (base ∩ head)   [the common lines]
+            ∪ (base - head)   [the lines only in base]
+            ∪ (head - base)   [the lines only in head]
+          but with conflict resolution for the overlapping changes?
 
           However, note: the sets (base - head) and (head - base) are disjoint from the common part and from each other.
 
@@ -266,7 +283,7 @@ We are given three versions: ancestor, base (master), and head (PR branch).
 
           However, the conflict is not about the same line being in both sets, but about the same line (in the ancestor) being changed to two different values in base and head.
 
-          In that case, the line is not in (base - head) nor in (head - base) in the set sense? Actually, no: 
+          In that case, the line is not in (base - head) nor in (head - base) in the set sense? Actually, no:
             The line in the ancestor is present in both base and head, but changed to different values.
 
           So in base: we have value B
@@ -279,13 +296,13 @@ We are given three versions: ancestor, base (master), and head (PR branch).
           Therefore, it is not in (base - head) because it is in head (though changed) -> so it's not absent in head.
           Similarly, it is not in (head - base) because it is in base.
 
-          So how do we detect it? 
+          So how do we detect it?
             In the diff D = diff(head, base):
               We will see:
-                 -H   (because head has H and base doesn't have H? Actually, base has B, so base doesn't have H -> so we remove H to get base? 
+                 -H   (because head has H and base doesn't have H? Actually, base has B, so base doesn't have H -> so we remove H to get base?
                  +B   (because base has B and head doesn't have B -> so we add B to get base)
 
-          Therefore, the conflicting line appears as a pair: 
+          Therefore, the conflicting line appears as a pair:
                  -H
                  +B
 
@@ -296,14 +313,14 @@ We are given three versions: ancestor, base (master), and head (PR branch).
 
           Since we don't have information about bug fix/security, we prefer HEAD -> so we choose H.
 
-          How do we get H from the diff? 
+          How do we get H from the diff?
             We see the '-' line: which is H.
 
           And we ignore the '+' line (which is B).
 
           For non-conflicting changes:
             - If a line is only in base (i.e., in base but not in head, and not changed in head from ancestor? meaning head has the ancestor version) then:
-                  In the diff: we see 
+                  In the diff: we see
                      -A   (because head has A and base doesn't have A? Actually, base changed it to B, so base doesn't have A -> so to get base from head we remove A and add B)
                      +B
                 But wait, if head did not change the line, then head has A (the ancestor) and base has B.
@@ -311,22 +328,22 @@ We are given three versions: ancestor, base (master), and head (PR branch).
                      -A
                      +B
 
-                However, this is not a conflict because head did not change the line? Actually, head has the ancestor version, so head did not change it? 
+                However, this is not a conflict because head did not change the line? Actually, head has the ancestor version, so head did not change it?
                 But base changed it.
 
                 We want to keep the base change? Because we are merging head into base, and base has a change that head doesn't have -> we want to keep it.
 
-                How do we represent that? 
+                How do we represent that?
                   We see the pair: -A and +B.
                   We want to keep B (the base version) for the merge.
 
-                But note: if we simply take the base version and then add the head-only changes, we would get base? 
+                But note: if we simply take the base version and then add the head-only changes, we would get base?
                 But we want to also add the head-only changes (which are the changes head made that base doesn't have).
 
           Alternatively, we can think:
 
-            merged = base 
-                     then, for every change that head made relative to ancestor that is not overwritten by base (i.e., the changes that head made that are not in conflict with base's changes) we add them? 
+            merged = base
+                     then, for every change that head made relative to ancestor that is not overwritten by base (i.e., the changes that head made that are not in conflict with base's changes) we add them?
                 But it's complex.
 
           Given the complexity and the fact that we are given the entire file versions in truncated form, but also the "What Changed" sections, perhaps we can use the provided information to reconstruct.
@@ -341,7 +358,7 @@ We are given three versions: ancestor, base (master), and head (PR branch).
 
           But the truncation makes it hard to do a line-by-line merge.
 
-          Another idea: 
+          Another idea:
             Since the diff of head vs base is provided, and we know how to resolve conflicts (prefer head for same-line changes unless base has obvious bug fix/security, which we don't have so we prefer head), then:
 
             The merged file should be:
@@ -353,32 +370,32 @@ We are given three versions: ancestor, base (master), and head (PR branch).
             It shows how to convert head to base.
 
           But we want a file that has:
-            - All of base's changes (relative to ancestor) 
-            - Plus all of head's changes (relative to ancestor) 
+            - All of base's changes (relative to ancestor)
+            - Plus all of head's changes (relative to ancestor)
             - Minus the overlapping changes that we resolve by choosing head.
 
           How about:
-            merged = base 
-                     then add the changes that head made relative to ancestor that are not in base? 
+            merged = base
+                     then add the changes that head made relative to ancestor that are not in base?
           But we don't have the ancestor.
 
           Alternatively, we can use:
-            merged = head 
-                     then add the changes that base made relative to ancestor that are not in head? 
-          But then we would lose the head's changes that are in conflict? 
+            merged = head
+                     then add the changes that base made relative to ancestor that are not in head?
+          But then we would lose the head's changes that are in conflict?
 
           Actually, a simpler way that follows the rules:
 
             We start with the base version.
             Then, we incorporate the changes from the head branch that are not already in the base version, but when there is a conflict (i.e., the head branch changed a line that the base branch also changed to a different value), we use the head's version (so we overwrite the base's version with the head's version for that line).
 
-          How do we get the changes from head that are not in base? 
+          How do we get the changes from head that are not in base?
             That is exactly the set: head - base.
 
           But note: head - base includes:
             - Lines that head added that base doesn't have (which we want to add)
-            - Lines that head changed that base also changed? -> no, because if head changed a line and base also changed the same line to a different value, then that line is not in head - base? 
-                  Why? 
+            - Lines that head changed that base also changed? -> no, because if head changed a line and base also changed the same line to a different value, then that line is not in head - base?
+                  Why?
                     head - base: lines that are in head but not in base.
                     If base changed the line to B and head changed it to H (H != B), then:
                          head has H, base has B -> so H is not in base? -> so H is in head - base.
@@ -386,27 +403,27 @@ We are given three versions: ancestor, base (master), and head (PR branch).
 
           Therefore, if we simply take base and then add (head - base) (meaning: we add every line that is in head but not in base), then:
             - For lines that head added that base doesn't have: we add them -> good.
-            - For lines that head changed (and base also changed the same line to a different value): we are adding the head's version (H) but base already has the base's version (B) at that line? 
-                  Actually, no: because the line exists in base (with value B) and we are going to add a new line? 
-                  But wait: the line is the same line number? 
+            - For lines that head changed (and base also changed the same line to a different value): we are adding the head's version (H) but base already has the base's version (B) at that line?
+                  Actually, no: because the line exists in base (with value B) and we are going to add a new line?
+                  But wait: the line is the same line number?
 
           This approach of adding lines doesn't work for modifications because we are not replacing the existing line, we are adding a duplicate.
 
           Therefore, we must do a proper merge that replaces lines.
 
-          Given the complexity and the fact that we are dealing with a markdown file that is mostly additive (changelog: we are adding new entries at the top), it is likely that the changes are mostly additions of new sections and modifications of existing sections are rare? 
+          Given the complexity and the fact that we are dealing with a markdown file that is mostly additive (changelog: we are adding new entries at the top), it is likely that the changes are mostly additions of new sections and modifications of existing sections are rare?
           But the problem says there is a conflict.
 
           However, note the provided "What Changed" sections:
 
-          Base (master): 
+          Base (master):
             - Added a new section for [1.0.28] at the top.
             - Modified the existing [1.0.26] section? Actually, it shows:
                   ## [1.0.26] - 2026-05-21
-                  + 
-                  - 
+                  +
+                  -
                   + ## [1.0.27] - 2026-05-25
-                  ... 
+                  ...
 
           This suggests that the base branch inserted a new version [1.0.27] between [1.0.26] and the older versions.
 
@@ -418,30 +435,30 @@ We are given three versions: ancestor, base (master), and head (PR branch).
               - All of base (because base is the target and we are merging head into base, and we want to keep base's changes)
               - Plus the changes that head made that are not in base, but when a line in head conflicts with base (same line changed differently), we use head's version.
 
-          How to get "the changes that head made that are not in base" in a way that we can apply as patches? 
+          How to get "the changes that head made that are not in base" in a way that we can apply as patches?
             We have the diff of head vs base, which tells us how to convert head to base.
 
           But we want to convert base to the merge.
 
-          Note: 
+          Note:
             merge = base + (head - base)   [in terms of set of lines] doesn't work for modifications.
 
           Instead, consider:
             merge = head + (base - head)   [but then we would lose head's changes that are in conflict?]
 
           Actually, if we do:
-            merge = base 
-                    then apply the inverse of the diff (base vs head) to get from base to head? 
+            merge = base
+                    then apply the inverse of the diff (base vs head) to get from base to head?
           That would give us head, which is not what we want.
 
           We want a file that has both sets of changes.
 
-          Insight: 
+          Insight:
             The changes from ancestor to base: we can get by diff(ancestor, base)
             The changes from ancestor to head: we can get by diff(ancestor, head)
 
           Then the merge should be:
-            ancestor 
+            ancestor
               + diff(ancestor, base)   [but resolved for conflicts with diff(ancestor, head)]
               + diff(ancestor, head)   [but resolved for conflicts with diff(ancestor, base)]
 
@@ -456,7 +473,7 @@ We are given three versions: ancestor, base (master), and head (PR branch).
           Let's look at the provided "What Changed" for base and head:
 
           Base (master) changes (lines 1-186):
-            - Added: 
+            - Added:
                   ## [1.0.28] - 2026-05-27
                   ### Assure, Prune, and Sync
                   * **Lifecycle:** Verified system integrity post-optimizations. Re-verified robust backend and node tests properly pass after migrating to a direct SQL `UPDATE` statement in the `process_message` Celery task.
@@ -475,13 +492,13 @@ We are given three versions: ancestor, base (master), and head (PR branch).
                   * **Upgrades:** Checked minor/patch bumps for dependencies. Checked dependencies safely. Bumped project versions to `1.0.28`.
                   * **Pruning:** Checked unused imports and cleaned `__pycache__` artifacts to reduce codebase entropy.
                   ## [1.0.27] - 2026-05-25
-                  ... 
+                  ...
 
           Notice that both branches added a new version [1.0.28] at the top, but the head branch also kept the original header:
                   # Changelog
                   All notable changes to this project will be documented in this file.
 
-          while the base branch did not? 
+          while the base branch did not?
 
           Actually, looking at the base version provided:
                 ## [1.0.28] - 2026-05-27
@@ -494,20 +511,20 @@ We are given three versions: ancestor, base (master), and head (PR branch).
                 ## [1.0.28] - 2026-05-27
                 ...
 
-          So the base branch lost the header? 
+          So the base branch lost the header?
 
           But wait, the ancestor had:
                 # Changelog
                 All notable changes to this project will be documented in this file.
 
-          So the base branch must have accidentally removed the header? 
+          So the base branch must have accidentally removed the header?
 
           However, in the base version provided in the truncation, it starts with "## [1.0.28]...", so it seems the header is missing.
 
           In the head version, the header is present.
 
           Therefore, for the header lines:
-            Ancestor: 
+            Ancestor:
                   # Changelog
                   All notable changes to this project will be documented in this file.
                   [empty line]
@@ -515,23 +532,23 @@ We are given three versions: ancestor, base (master), and head (PR branch).
                   ## [1.0.26] - 2026-05-21
                   ...
 
-            Base: 
+            Base:
                   ## [1.0.28] - 2026-05-27
                   ...   [so the header and the two empty lines are gone, and the [1.0.26] section is still there but now after the new [1.0.28] and [1.0.27]?]
 
-            Head: 
+            Head:
                   # Changelog
                   All notable changes to this project will be documented in this file.
                   [empty line]
                   ## [1.0.28] - 2026-05-27
                   ...
 
-          So the base branch removed the header and the two empty lines? 
+          So the base branch removed the header and the two empty lines?
           But wait, the base version provided in the truncation does not show the header, so it must have been removed.
 
           However, the head branch kept the header and added the new [1.0.28] section after the header.
 
-          This is a conflict: 
+          This is a conflict:
             - Base removed the header (and the two empty lines) and put the new [1.0.28] at the very top.
             - Head kept the header and put the new [1.0.28] after the header.
 
@@ -540,7 +557,7 @@ We are given three versions: ancestor, base (master), and head (PR branch).
             The head branch's version has the header and then the [1.0.28] section.
             The base branch's version has the [1.0.28] section at the top without the header.
 
-          According to the rules: 
+          According to the rules:
             - If they modify the same logic, prefer the HEAD branch unless base has obvious bug fix/security.
             Here, the base branch removed the header (which is not a bug fix/security, it's just removing documentation) and the head branch kept it.
             We prefer HEAD, so we keep the header.
@@ -548,7 +565,7 @@ We are given three versions: ancestor, base (master), and head (PR branch).
           Therefore, the merged file should have the header, then the [1.0.28] section.
 
           Now, looking at the [1.0.28] section itself:
-            Base: 
+            Base:
                   ## [1.0.28] - 2026-05-27
                   ### Assure, Prune, and Sync
                   * **Lifecycle:** Verified system integrity post-optimizations. Re-verified robust backend and node tests properly pass after migrating to a direct SQL `UPDATE` statement in the `process_message` Celery task.
@@ -563,7 +580,7 @@ We are given three versions: ancestor, base (master), and head (PR branch).
                   * **Pruning:** Checked unused imports and cleaned `__pycache__` artifacts to reduce codebase entropy.
 
           Differences in the [1.0.28] section:
-            - Base: 
+            - Base:
                   * **Upgrades:** Checked minor/patch bumps for dependencies. Checked dependencies safely.
                   * **Pruning:** Pruned `__pycache__` artifacts to maintain repository cleanliness and reduce entropy.
             - Head:
@@ -574,7 +591,7 @@ We are given three versions: ancestor, base (master), and head (PR branch).
             - In the Upgrades bullet: head has extra text: "Bumped project versions to `1.0.28`."
             - In the Pruning bullet: head says "Checked unused imports and cleaned" while base says "Pruned"
 
-          Are these conflicting changes to the same line? 
+          Are these conflicting changes to the same line?
             They are in the same bullet point but different lines? Actually, each bullet is a separate line.
 
           Specifically:
