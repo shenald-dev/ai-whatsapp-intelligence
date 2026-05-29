@@ -167,3 +167,20 @@ def test_get_groups_limit_validation():
     # limit > 100 should be rejected by validation
     response = client.get("/api/v1/dashboard/groups?limit=150")
     assert response.status_code == 422
+
+def test_cache_ttl_uses_monotonic_time():
+    import time
+    from app.api.endpoints import BoundedTTLCache
+
+    # Create cache with 0.1s TTL
+    cache = BoundedTTLCache(capacity=10, ttl=0.1)
+
+    # Put item
+    cache.put("key1", "value1")
+    assert cache.get("key1") == "value1"
+
+    # Sleep past TTL
+    time.sleep(0.15)
+
+    # Item should be expired based on monotonic time
+    assert cache.get("key1") is None
