@@ -1,33 +1,521 @@
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+We are given three versions: Ancestor, Base (master), and Head (PR branch).
+ The conflict is in the `version` field under `[tool.poetry]` and also note that the Head branch has an extra line at the end (no newline at end of file) but that is not a conflict.
 
-[tool.poetry]
-name = "awi-backend"
-version = "1.0.27"
-description = "AI Backend for WhatsApp Intelligence Monitor"
-authors = ["shenald-dev <shenald@example.com>"]
-readme = "README.md"
-package-mode = false
+ Steps:
+ 1. The Ancestor has version = "1.0.26"
+ 2. The Base (master) changed it to "1.0.28"
+ 3. The Head (PR branch) changed it to "1.0.27"
 
-[tool.poetry.dependencies]
-python = "^3.11"
-fastapi = "^0.110.0"
-uvicorn = "^0.29.0"
-sqlalchemy = "^2.0.29"
-asyncpg = "^0.29.0"
-pydantic = "^2.6.4"
-pydantic-settings = "^2.2.1"
-langchain = "^0.1.13"
-langchain-openai = "^0.1.0"
-chromadb = "^0.4.24"
-redis = "^5.0.3"
-celery = "^5.3.6"
-python-dotenv = "^1.0.1"
-psycopg2-binary = "^2.9.9"
-orjson = "^3.11.8"
+ Since both branches modified the same line (the version) from the same ancestor, we have a conflict.
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.1.1"
-ruff = "^0.3.4"
-vulture = "^2.16"
+ According to the rules:
+   - When both modify the same logic, prefer the HEAD branch (PR author's intent) unless the base has an obvious bug fix or security patch.
+
+ However, note that the Base branch (master) has a newer version (1.0.28) than the Head (1.0.27). But the rule says to prefer HEAD unless base has an obvious bug fix or security patch.
+
+ We are not told that the base change is a bug fix or security patch. Therefore, we should prefer the HEAD branch's version? But wait, let's read the rule again:
+
+   "If they modify the same logic, prefer the HEAD branch (PR author's intent) unless the base has an obvious bug fix or security patch"
+
+ Since we don't have information that the base change (1.0.28) is a bug fix or security patch, we would normally take the HEAD (1.0.27). However, note that the base branch is the target branch (master) and has newer changes from others. The rule says to prefer HEAD unless base has an obvious bug fix.
+
+ But observe: the base branch has advanced the version to 1.0.28, which is higher than the head's 1.0.27. In versioning, we usually want the highest version? However, the rule does not say that.
+
+ However, note the context: the base branch (master) is the target branch and has newer changes from others. The head branch is the PR branch. The PR branch was made from an older version of master (which had 1.0.26) and then the master was updated to 1.0.28. The PR branch then updated to 1.0.27.
+
+ Since the PR branch was made from the ancestor (1.0.26) and then the master went to 1.0.28, the PR branch's change to 1.0.27 is actually behind the master. But the PR author might have intended to set the version to 1.0.27 (maybe they were working on a feature and then master got a release to 1.0.28).
+
+ However, the rule says: when both modify the same logic, prefer HEAD unless base has an obvious bug fix or security patch.
+
+ We are not told that the base change (to 1.0.28) is a bug fix or security patch. Therefore, we should take the HEAD's version? But that would be going backwards in version.
+
+ Alternatively, note that the base branch has a change that the head branch does not have: the version 1.0.28. And the head branch has a change that the base branch does not have: the version 1.0.27? Actually, no: the base branch has 1.0.28 and the head branch has 1.0.27. They are both changes from the ancestor.
+
+ However, the rule also says: "Keep ALL meaningful changes from BOTH branches". But we cannot have two different versions.
+
+ How to resolve?
+   - The base branch changed the version to 1.0.28.
+   - The head branch changed the version to 1.0.27.
+
+ Since the base branch is the target branch (master) and has been updated by others, and the head branch is the PR branch, we must consider that the PR branch was based on an older master. The correct version should be the one that is ahead? But note: the base branch has a higher version number.
+
+ However, the rule does not specify to take the higher version. It says to prefer HEAD unless base has an obvious bug fix.
+
+ But let's look at the rest of the file: the only difference between the base and head versions (apart from the version string) is that the head branch has a trailing newline issue? Actually, the diff shows:
+
+   Base: ... vulture = "^2.16"
+   Head: ... vulture = "^2.16" and then no newline at end of file.
+
+ However, the ancestor and base both have a newline at the end? The ancestor and base versions shown in the file versions do have a newline at the end (because they are shown as complete blocks). The head version in the file versions does not show a newline at the end? Actually, the head version as provided in the file versions ends with:
+
+   vulture = "^2.16"
+
+ and then nothing else (so no newline). But the base and ancestor have a newline after that line? Actually, in the provided file versions, the base and ancestor end with a newline (because the last line is shown and then there's an empty line? Actually, no: the way it's printed, the last line is "vulture = "^2.16"" and then the code block ends. But in text files, we usually have a newline at the end.
+
+ However, the diff output shows:
+
+   -vulture = "^2.16"
+   +vulture = "^2.16"
+   \ No newline at end of file
+
+ This means that in the head branch, the file does not end with a newline, while in the base branch it does.
+
+ But note: the rule says to maintain proper toml syntax. TOML does not require a newline at the end, but it is a common convention. However, the conflict is only about the version and the newline at the end? Actually, the diff shows two changes:
+
+   - The version line: from 1.0.26 (in ancestor) to 1.0.27 in head and 1.0.28 in base.
+   - The newline at the end: base has it, head does not.
+
+ However, the ancestor and base both have the newline? The ancestor file version as provided ends with a newline (because the last line is shown and then the code block ends, but in the text we see that the last line is "vulture = "^2.16"" and then there is a blank line? Actually, no: the way it's written, the ancestor file version ends with:
+
+   vulture = "^2.16"
+
+ and then the code block ends. But in the base file version, it's the same. However, the diff output indicates that the base has a newline and the head does not.
+
+ How to handle the newline?
+   - We should keep the newline if it is present in either branch? But note: the base branch has it and the head branch does not. The rule says to keep all meaningful changes. The newline at the end of file is a meaningful change? It is a change in whitespace.
+
+ However, the rule says: "Keep ALL meaningful changes from BOTH branches". But we cannot have both: either we have a newline at the end or we don't.
+
+ Since the base branch (master) has the newline and the head branch does not, and the base branch is the target branch, we might want to keep the newline? But note: the head branch is the PR branch and we are merging into base. However, the rule does not specify.
+
+ But observe: the ancestor and base both have the newline? Actually, the ancestor file version as provided in the context does not explicitly show a newline, but the diff output for the head vs base shows that the base has a newline and the head does not.
+
+ However, looking at the provided file versions:
+
+   Ancestor: ends with "vulture = "^2.16"" and then the code block ends (so we don't see a newline, but in reality, the file might have one?).
+
+   Base: same as ancestor? Actually, the base file version is identical to the ancestor except for the version line? Wait, no: the base file version has version = "1.0.28", while the ancestor has "1.0.26". And the head file version has version = "1.0.27".
+
+   But note: the base file version provided in the context is:
+
+        [build-system]
+        requires = ["poetry-core"]
+        build-backend = "poetry.core.masonry.api"
+
+        [tool.poetry]
+        name = "awi-backend"
+        version = "1.0.28"
+        ... 
+        vulture = "^2.16"
+
+   And then the code block ends. Similarly, the ancestor and head.
+
+   However, the diff output says that the head branch does not have a newline at the end of file. This implies that the base and ancestor do have a newline? Or at least, the base has a newline and the head does not.
+
+   Since the rule says to maintain proper toml syntax, and having a newline at the end of file is a common practice and sometimes required by tools, we should probably keep the newline if it is present in the base (which is the target branch) unless there's a reason not to.
+
+   But note: the head branch is the one we are merging, and we are resolving the conflict for the merge into base. The base branch already has the newline. The head branch does not. However, the head branch's change (removing the newline) is not meaningful? It's just whitespace.
+
+   The rule says: "Keep ALL meaningful changes". Whitespace changes are sometimes not considered meaningful, but in this case, the diff marks it as a change.
+
+   However, note that the only change in the head branch relative to the base in the diff is the version line and the newline? Actually, the diff shows:
+
+        @@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
+         [tool.poetry]
+         name = "awi-backend"
+        -version = "1.0.26"
+        +version = "1.0.27"
+         description = "AI Backend for WhatsApp Intelligence Monitor"
+         authors = ["shenald-dev <shenald@example.com>"]
+         readme = "README.md"
+        @@ -30,4 +30,4 @@ orjson = "^3.11.8"
+         [tool.poetry.group.dev.dependencies]
+         pytest = "^8.1.1"
+         ruff = "^0.3.4"
+        -vulture = "^2.16"
+        +vulture = "^2.16"
+        \ No newline at end of file
+
+   This diff is a bit confusing: it shows that the line "vulture = "^2.16"" is unchanged (same in both) but then notes that there's no newline at end of file in the head.
+
+   So the actual changes from base to head are:
+        - Changed version from 1.0.28 (in base) to 1.0.27 (in head) [but wait, the diff shows the base as having 1.0.26? Let me clarify]
+
+   Actually, the diff is labeled as "Head changes vs base", meaning it's showing what is in the head branch minus what is in the base branch.
+
+   The base branch (master) has:
+        version = "1.0.28"
+
+   The head branch (PR) has:
+        version = "1.0.27"
+
+   So the diff shows:
+        -version = "1.0.26"   [This is confusing because the base doesn't have 1.0.26]
+
+   Let me read the diff again:
+
+        @@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
+         [tool.poetry]
+         name = "awi-backend"
+        -version = "1.0.26"
+        +version = "1.0.27"
+
+   This implies that in the base branch, the line was "version = "1.0.26""? But we know from the base file version that it is "1.0.28".
+
+   There seems to be a mistake in the problem statement.
+
+   Let me look at the provided file versions:
+
+        Ancestor: version = "1.0.26"
+        Base: version = "1.0.28"
+        Head: version = "1.0.27"
+
+   Therefore, the diff from base to head should show:
+
+        In base: version = "1.0.28"
+        In head: version = "1.0.27"
+
+   So the diff should be:
+
+        -version = "1.0.28"
+        +version = "1.0.27"
+
+   But the diff provided says:
+
+        -version = "1.0.26"
+        +version = "1.0.27"
+
+   This suggests that the diff is actually showing the changes from the ancestor to the head? But the label says "Head changes vs base".
+
+   Alternatively, the diff might be mislabeled.
+
+   Given the confusion, let's rely on the file versions provided:
+
+        Ancestor: 1.0.26
+        Base: 1.0.28
+        Head: 1.0.27
+
+   Therefore, the base changed the version from 1.0.26 (ancestor) to 1.0.28.
+   The head changed the version from 1.0.26 (ancestor) to 1.0.27.
+
+   So when merging head into base, we have:
+        base: 1.0.28
+        head: 1.0.27
+
+   And the ancestor: 1.0.26.
+
+   Now, the rule: when both modify the same logic, prefer HEAD unless base has an obvious bug fix or security patch.
+
+   We are not told that the base change (to 1.0.28) is a bug fix or security patch. Therefore, we should take the head's version? But that would be 1.0.27, which is less than the base's 1.0.28.
+
+   However, note that the base branch is the target branch and has been updated by others. The head branch was created from an older version of the base (when it was 1.0.26) and then the base was updated to 1.0.28. The head branch then updated the version to 1.0.27.
+
+   In versioning, it is common to take the higher version when there is a conflict in version numbers? But the rule does not say that.
+
+   Alternatively, we might consider that the base branch's change is a release that happened after the head branch was created, so the head branch should have been rebased on the latest base? But we are doing a merge.
+
+   However, the rule says: prefer HEAD unless base has an obvious bug fix. Since we don't have evidence of a bug fix, we take HEAD? But that would downgrade the version.
+
+   Another perspective: the head branch's change to the version is a feature branch's version bump (maybe for a feature release) and the base branch's change is a different release (maybe a hotfix). But we don't know.
+
+   Given the ambiguity, let's look at the rest of the file: there are no other changes. The only difference is the version and the newline at the end.
+
+   The rule also says: "If the base added something the head doesn't have, incorporate it". The base has a version of 1.0.28, which the head does not have (the head has 1.0.27). And the head has a version of 1.0.27, which the base does not have (the base has 1.0.28). So we have two different values for the same field.
+
+   We cannot incorporate both.
+
+   Since the base branch is the target branch and we are merging the head branch into it, and the base branch has already advanced the version to 1.0.28, it would be odd to downgrade to 1.0.27. Therefore, we should keep the base's version? But the rule says to prefer HEAD unless base has an obvious bug fix.
+
+   However, note that the base branch's change might be a release that is independent of the head branch's work. The head branch might have been working on a feature and bumped the version to 1.0.27 for a feature release, but then the base branch had a hotfix release to 1.0.28. In that case, the correct version after merging should be 1.0.28 (or even higher, but we don't have that).
+
+   But we are not doing a version bump; we are just resolving the conflict.
+
+   Given the rule: "If they modify the same logic, prefer the HEAD branch (PR author's intent) unless the base has an obvious bug fix or security patch"
+
+   We have no information that the base change is a bug fix or security patch. Therefore, we must prefer the HEAD branch's version? That would be 1.0.27.
+
+   However, let's consider the newline: the base branch has a newline at the end and the head branch does not. The rule says to keep all meaningful changes. The newline change is a change from base to head: base has it, head does not. So if we take the head's version, we would also take the head's newline setting (i.e., no newline). But the base branch has the newline and we are merging into base, so we might want to keep the newline? 
+
+   However, the rule does not specify how to handle whitespace. But note: the diff shows that the head branch does not have a newline at the end, while the base does. Since we are resolving the conflict for the merge into base, and the base already has the newline, and the head branch's change (removing the newline) is not meaningful (it's just whitespace), we might choose to keep the newline.
+
+   But the rule says: keep ALL meaningful changes from both branches. The removal of the newline is a change in the head branch. If we consider it meaningful, then we should remove it? But then we lose the base's newline.
+
+   Alternatively, we can consider that the newline at the end of file is not meaningful and ignore it? But the diff marks it as a change.
+
+   Given the TOML specification does not require a newline at the end, and many tools are tolerant, we might choose to keep the newline because it is present in the base (the target branch) and the ancestor, and only the head branch removed it. Since the head branch's change is just whitespace and not functional, we can discard it? But the rule says to keep all meaningful changes.
+
+   How to decide if it's meaningful? In practice, a missing newline at the end of file can cause issues in some tools (like `wc -l` or when concatenating files). So it is meaningful.
+
+   Therefore, we have two conflicting changes:
+        - version: base says 1.0.28, head says 1.0.27
+        - newline: base says present, head says absent
+
+   For the version, we must choose one. For the newline, we must choose one.
+
+   According to the rule for the version: prefer HEAD unless base has an obvious bug fix -> we choose head's version (1.0.27) because we don't have evidence of bug fix.
+
+   For the newline: the head branch changed it (removed it) and the base branch kept it (from ancestor). So the head branch has a change (removal) and the base branch does not have a change (it kept the ancestor's state). Therefore, we should keep the head branch's change? But wait, the base branch did not change it from the ancestor? Actually, the ancestor had a newline? We don't know for sure from the provided text, but the diff output implies that the base has a newline and the head does not, and the ancestor is the same as base in terms of newline? 
+
+   The ancestor file version as provided ends with the line "vulture = "^2.16"" and then the code block ends. We don't see a newline, but in the context of the file versions, it's common to assume that the file ends with a newline unless stated otherwise. However, the diff output explicitly says that the head branch does not have a newline at the end, implying that the base and ancestor do.
+
+   Therefore, the ancestor had a newline. The base branch kept it (so no change from ancestor). The head branch removed it (so a change from ancestor).
+
+   Now, when merging, we have:
+        base: kept the newline (same as ancestor)
+        head: removed the newline (changed from ancestor)
+
+   The rule: keep ALL meaningful changes from both branches. The head branch made a meaningful change (removing the newline) and the base branch did not make a change to the newline (it kept the ancestor's state). Therefore, we should keep the head branch's change? That would mean removing the newline.
+
+   But then we have:
+        version: 1.0.27 (from head)
+        newline: absent (from head)
+
+   However, note that the base branch has a change to the version (from 1.0.26 to 1.0.28) that we are overriding with the head's version (1.0.27). This means we are losing the base branch's version bump.
+
+   Alternatively, we might interpret the rule differently: the rule says "When both modify the same code", meaning the same lines. For the version line, both branches modified it. For the newline, it's not a line of code but a file ending. The diff shows it as a change in the last line? Actually, the diff shows the last line as unchanged but then notes the missing newline.
+
+   Given the complexity and the fact that the problem states it's a TRUE CONFLICT only for the version (because the diff output only shows the version line as changed in the hunk, and the newline is noted separately), I think the primary conflict is the version.
+
+   And the rule for the version: prefer HEAD unless base has an obvious bug fix.
+
+   Since we don't have evidence of bug fix, we take the head's version: 1.0.27.
+
+   For the newline: we are not told it's a conflict, but the diff shows it as a change. However, the rule says to keep all meaningful changes. The head branch changed it (removed the newline) and the base branch did not change it (so it's the same as ancestor). Therefore, we should incorporate the head branch's change? That means we remove the newline.
+
+   But wait: the base branch is the target branch and we are merging the head branch into it. The base branch currently has the newline. If we remove the newline, we are changing the base branch's file to not have a newline at the end.
+
+   However, the rule does not say to prefer the base branch for whitespace. It says to keep all meaningful changes from both branches.
+
+   Therefore, we will:
+        - Set the version to "1.0.27" (from head)
+        - Remove the newline at the end of file (from head)
+
+   But note: the ancestor and base both had the newline, and the head removed it. So by taking the head's change, we are removing the newline.
+
+   However, let's check the provided head file version: it ends with "vulture = "^2.16"" and then nothing else (so no newline). The base file version as provided in the context ends the same way? Actually, in the text provided, the base file version is shown as:
+
+        [build-system]
+        requires = ["poetry-core"]
+        build-backend = "poetry.core.masonry.api"
+
+        [tool.poetry]
+        name = "awi-backend"
+        version = "1.0.28"
+        description = "AI Backend for WhatsApp Intelligence Monitor"
+        authors = ["shenald-dev <shenald@example.com>"]
+        readme = "README.md"
+        package-mode = false
+
+        [tool.poetry.dependencies]
+        python = "^3.11"
+        fastapi = "^0.110.0"
+        uvicorn = "^0.29.0"
+        sqlalchemy = "^2.0.29"
+        asyncpg = "^0.29.0"
+        pydantic = "^2.6.4"
+        pydantic-settings = "^2.2.1"
+        langchain = "^0.1.13"
+        langchain-openai = "^0.1.0"
+        chromadb = "^0.4.24"
+        redis = "^5.0.3"
+        celery = "^5.3.6"
+        python-dotenv = "^1.0.1"
+        psycopg2-binary = "^2.9.9"
+        orjson = "^3.11.8"
+
+        [tool.poetry.group.dev.dependencies]
+        pytest = "^8.1.1"
+        ruff = "^0.3.4"
+        vulture = "^2.16"
+
+   And then the code block ends. There is no blank line after the last line, so it's ambiguous. But the diff output tells us that the base has a newline and the head does not.
+
+   Therefore, to follow the head branch's change, we must not have a newline at the end.
+
+   However, note that the rule says: "Maintain proper toml syntax". TOML does not require a newline at the end, so it is valid either way.
+
+   But let's see what the ancestor and base have: they have a newline (according to the diff). The head does not.
+
+   Since we are taking the head's version and the head's newline change, we will produce a file without a newline at the end.
+
+   However, wait: the diff output for the head vs base shows that the head branch does not have a newline, but the base branch does. And we are merging head into base. The base branch currently has the newline. If we take the head's change, we are removing the newline.
+
+   But note: the head branch was created from the ancestor (which had the newline) and then the head branch removed the newline. The base branch also started from the ancestor and kept the newline, then changed the version to 1.0.28.
+
+   When we merge, we are combining:
+        base: version=1.0.28, newline=present
+        head: version=1.0.27, newline=absent
+
+   And we are choosing for version: head's value (1.0.27)
+   and for newline: head's value (absent)
+
+   Therefore, the resolved file should have:
+        version = "1.0.27"
+        and no newline at the end.
+
+   However, let's double-check the rule: "If they modify the same logic, prefer the HEAD branch (PR author's intent) unless the base has an obvious bug fix or security patch"
+
+   The version is the same logic (the version string). We are preferring HEAD.
+
+   The newline is not the same logic? It's a different aspect. But the rule says to keep ALL meaningful changes from both branches. The head branch made a change to the newline (removed it) and the base branch did not make a change to the newline (so we take the head branch's change because it is a change from the ancestor and the base branch did not change it?).
+
+   Actually, the base branch did not change the newline from the ancestor, so the ancestor's state is newline present. The head branch changed it to absent. Therefore, the merged file should reflect the head branch's change for the newline? 
+
+   But note: the base branch has a change to the version that we are overriding. We are not keeping the base branch's change to the version because we are taking the head's version. Similarly, we are not keeping the base branch's state for the newline because we are taking the head's change for the newline.
+
+   However, the base branch's state for the newline is the same as the ancestor, and the head branch changed it. So by taking the head's change, we are getting the head branch's state.
+
+   Therefore, the resolved file should be:
+
+        [build-system]
+        requires = ["poetry-core"]
+        build-backend = "poetry.core.masonry.api"
+
+        [tool.poetry]
+        name = "awi-backend"
+        version = "1.0.27"
+        description = "AI Backend for WhatsApp Intelligence Monitor"
+        authors = ["shenald-dev <shenald@example.com>"]
+        readme = "README.md"
+        package-mode = false
+
+        [tool.poetry.dependencies]
+        python = "^3.11"
+        fastapi = "^0.110.0"
+        uvicorn = "^0.29.0"
+        sqlalchemy = "^2.0.29"
+        asyncpg = "^0.29.0"
+        pydantic = "^2.6.4"
+        pydantic-settings = "^2.2.1"
+        langchain = "^0.1.13"
+        langchain-openai = "^0.1.0"
+        chromadb = "^0.4.24"
+        redis = "^5.0.3"
+        celery = "^5.3.6"
+        python-dotenv = "^1.0.1"
+        psycopg2-binary = "^2.9.9"
+        orjson = "^3.11.8"
+
+        [tool.poetry.group.dev.dependencies]
+        pytest = "^8.1.1"
+        ruff = "^0.3.4"
+        vulture = "^2.16"
+
+   And then no newline at the end.
+
+   But wait: the head branch's file version as provided in the context does not show a newline, so we output exactly that.
+
+   However, note that the base branch's file version as provided in the context also does not show a newline in the text? But the diff says it has one. We must rely on the diff.
+
+   Since the diff says the base has a newline and the head does not, and we are taking the head's version for the conflicting line and the head's state for the newline, we output without a trailing newline.
+
+   But let's consider: what if the base branch's change to the version is actually a bug fix? We are not told, so we assume it's not.
+
+   However, there is another factor: the base branch is the target branch and has newer changes from others. The version number in the base branch is higher. In software development, when merging a feature branch, if the main branch has bumped the version, we usually want to keep the higher version? But the rule does not say that.
+
+   Given the strict adherence to the rule, we choose the head's version.
+
+   But note: the rule says "prefer the HEAD branch (PR author's intent)". The PR author set the version to 1.0.27. They might have intended that to be the next version. However, the base branch has already released 1.0.28, so 1.0.27 is now an old version. This doesn't make sense.
+
+   This suggests that the base branch's change might be a mistake? Or the PR author should have rebased.
+
+   However, we are to follow the rules as given.
+
+   Therefore, we output the file with version = "1.0.27" and without a trailing newline.
+
+   But wait: the diff output for the head changes vs base shows that the head branch has the version as 1.0.27 and the base has 1.0.28, and the head branch does not have a newline.
+
+   However, there is a twist: the diff output also shows that in the head branch, the line "vulture = "^2.16"" is present and then there's no newline. But note that the diff output says:
+
+        +vulture = "^2.16"
+        \ No newline at end of file
+
+   This means that the head branch's file ends with the string "vulture = "^2.16"" and then nothing else (no newline).
+
+   So we will output exactly that.
+
+   Let's write the resolved file:
+
+        [build-system]
+        requires = ["poetry-core"]
+        build-backend = "poetry.core.masonry.api"
+
+        [tool.poetry]
+        name = "awi-backend"
+        version = "1.0.27"
+        description = "AI Backend for WhatsApp Intelligence Monitor"
+        authors = ["shenald-dev <shenald@example.com>"]
+        readme = "README.md"
+        package-mode = false
+
+        [tool.poetry.dependencies]
+        python = "^3.11"
+        fastapi = "^0.110.0"
+        uvicorn = "^0.29.0"
+        sqlalchemy = "^2.0.29"
+        asyncpg = "^0.29.0"
+        pydantic = "^2.6.4"
+        pydantic-settings = "^2.2.1"
+        langchain = "^0.1.13"
+        langchain-openai = "^0.1.0"
+        chromadb = "^0.4.24"
+        redis = "^5.0.3"
+        celery = "^5.3.6"
+        python-dotenv = "^1.0.1"
+        psycopg2-binary = "^2.9.9"
+        orjson = "^3.11.8"
+
+        [tool.poetry.group.dev.dependencies]
+        pytest = "^8.1.1"
+        ruff = "^0.3.4"
+        vulture = "^2.16"
+
+   And then we stop (no newline after the last line).
+
+   However, note that the ancestor and base versions provided in the context do have a newline? But we are not using them for the newline.
+
+   But wait: the head branch's file version as provided in the context is:
+
+        [build-system]
+        requires = ["poetry-core"]
+        build-backend = "poetry.core.masonry.api"
+
+        [tool.poetry]
+        name = "awi-backend"
+        version = "1.0.27"
+        description = "AI Backend for WhatsApp Intelligence Monitor"
+        authors = ["shenald-dev <shenald@example.com>"]
+        readme = "README.md"
+        package-mode = false
+
+        [tool.poetry.dependencies]
+        python = "^3.11"
+        fastapi = "^0.110.0"
+        uvicorn = "^0.29.0"
+        sqlalchemy = "^2.0.29"
+        asyncpg = "^0.29.0"
+        pydantic = "^2.6.4"
+        pydantic-settings = "^2.2.1"
+        langchain = "^0.1.13"
+        langchain-openai = "^0.1.0"
+        chromadb = "^0.4.24"
+        redis = "^5.0.3"
+        celery = "^5.3.6"
+        python-dotenv = "^1.0.1"
+        psycopg2-binary = "^2.9.9"
+        orjson = "^3.11.8"
+
+        [tool.poetry.group.dev.dependencies]
+        pytest = "^8.1.1"
+        ruff = "^0.3.4"
+        vulture = "^2.16"
+
+   And this is exactly what we have above, and the context says that the head branch does not have a newline at the end. So we output without a newline.
+
+   However, when we output in a terminal, the next prompt might appear on the same line. But that's acceptable for a TOML file? It is valid.
+
+   But note: many style guides and tools (like `prettier`) expect a newline at the end. However, we are following the head branch's intent.
+
+   Given the above, we output the file without a trailing newline.
+
+   However, let's reconsider the version: is there a way to keep both changes? We cannot have two versions.
+
+   Another idea: since the base branch changed the version to 1.0.28 and the head branch changed it to 1.0.27, and the base branch is the target branch, we might take the maximum version? But the rule does not say that.
+
+   The rule says: when both modify the same logic, prefer HEAD unless base has an obvious bug fix.
+
+   We have no information about bug fix, so we take HEAD.
+
+   Therefore, we go with version = "1.0.27".
+
+   But note: the base branch's change to the version is a forward change (from 1.0.26 to 1.0.28
