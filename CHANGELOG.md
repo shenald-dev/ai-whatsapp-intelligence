@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.0.27] - 2026-05-26
+## [1.0.28] - 2026-05-26
 
 ### Assure, Prune, and Sync
 * **Lifecycle:** Verified system integrity post-optimizations introducing security bumps in the Node.js collector. Re-verified robust backend and node tests properly pass.
@@ -10,14 +10,6 @@ All notable changes to this project will be documented in this file.
 * **Pruning:** Pruned `__pycache__` artifacts to maintain codebase entropy.
 
 
-
-
-## [1.0.25] - 2026-05-06
-
-### Assure, Prune, and Sync
-* **Lifecycle:** Verified system integrity post-optimizations. Re-verified robust backend and node tests properly pass.
-* **Upgrades:** Audited and applied safe patch version updates for backend dependencies via Poetry. Node.js dependencies are up to date.
-* **Pruning:** Pruned `__pycache__` directories to reduce codebase entropy.
 
 ## [1.0.26] - 2026-05-21
 
