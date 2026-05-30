@@ -34,7 +34,7 @@ class BoundedTTLCache:
         if key not in self.cache:
             return None
         value, timestamp = self.cache[key]
-        # Use time.monotonic() to ensure TTL calculation is immune to system clock adjustments (NTP, leap seconds, etc.)
+        # Use time.monotonic() instead of time.time() to ensure TTL calculation is immune to system clock adjustments (NTP, leap seconds, etc.)
         if time.monotonic() - timestamp > self.ttl:
             del self.cache[key]
             return None
@@ -44,7 +44,7 @@ class BoundedTTLCache:
     def put(self, key: str, value):
         if key in self.cache:
             self.cache.move_to_end(key)
-        # Use time.monotonic() to ensure TTL calculation is immune to system clock adjustments (NTP, leap seconds, etc.)
+        # Use time.monotonic() instead of time.time() to ensure TTL calculation is immune to system clock adjustments (NTP, leap seconds, etc.)
         self.cache[key] = (value, time.monotonic())
         if len(self.cache) > self.capacity:
             self.cache.popitem(last=False)
