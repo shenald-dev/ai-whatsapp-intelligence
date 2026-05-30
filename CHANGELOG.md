@@ -193,3 +193,9 @@ All notable changes to this project will be documented in this file.
 * **Performance:** Replaced object fetch with direct SQL UPDATE in Celery worker hot path (`backend/app/workers/tasks.py`) to minimize database bandwidth and serialization overhead for large payloads.
 * **Lifecycle:** Verified structural soundness of Celery optimizations. Pruned stale `__pycache__` artifacts to maintain codebase cleanliness.
 * **Dependencies:** Safely updated Python packages `idna`, `requests`, `click`, `huggingface-hub`, `posthog`, and `tiktoken` to their latest patch versions.
+
+## [1.0.28] - 2026-05-12
+
+* **Performance:** Replaced object fetch with direct SQL UPDATE in Celery worker hot path (`backend/app/workers/tasks.py`) to minimize database bandwidth and serialization overhead for large payloads.
+* **Lifecycle:** Verified structural soundness of Celery optimizations. Pruned stale `__pycache__` artifacts to maintain codebase cleanliness.
+* **Dependencies:** Safely updated Python packages `idna`, `requests`, `click`, `huggingface-hub`, `posthog`, and `tiktoken` to their latest patch versions.
