@@ -27,11 +27,9 @@ def process_message(message_id: str):
     """Celery task worker to enrich a message with AI."""
     session = SessionLocal()
     try:
-        msg = session.get(Message, message_id, options=[load_only(Message.content, Message.group_id, Message.sender_id, Message.is_analyzed)])
-<<<<<<< HEAD
-        # Use load_only to selectively fetch necessary columns to optimize database bandwidth and memory.
-=======
->>>>>>> origin/master
+        # Fetch only specific attributes to prevent eager loading of large unused columns.
+        # This optimization is safe because the task only updates is_analyzed and does not access other Message attributes later, thus avoiding unintended lazy loads or stale data.
+        msg = session.get(Message, message_id, options=[load_only(Message.content, Message.group_id, Message.sender_id, Message.is_analyzed)])>>>>>>> origin/master
         if not msg or msg.is_analyzed or not msg.content:
             return {"status": "skipped", "reason": "Not found, analyzed, or empty"}
 
