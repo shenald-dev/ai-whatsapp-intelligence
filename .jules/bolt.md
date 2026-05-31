@@ -367,6 +367,31 @@ In `backend/app/workers/tasks.py`, the `process_message` Celery task fetched the
 Action:
 Used `load_only` within `session.get(Message, message_id, options=[load_only(...)])` to specifically fetch only the required columns (`content`, `group_id`, `sender_id`, `is_analyzed`). This optimization minimizes database bandwidth and memory consumption while preserving the ORM contract.
 
+## 2026-05-23 — Use monotonic time for reliable TTL cache
+
+Learning:
+Using `time.time()` for TTL calculations is vulnerable to system clock adjustments (like NTP syncs or resets), potentially causing premature cache invalidation or artificially extended TTLs.
+
+Action:
+Use `time.monotonic()` instead of `time.time()` for all duration, timeout, and cache TTL calculations in Python to ensure reliable, monotonically increasing time measurement.
+## 2026-05-22 — Improve reliability of cache Time-To-Live (TTL) calculations
+
+Learning:
+Using `time.time()` for cache Time-To-Live (TTL) calculations is unreliable because it is subject to system clock adjustments (like NTP syncs or resets), which can lead to premature cache invalidation or artificially extended TTLs.
+
+Action:
+Replaced `time.time()` with `time.monotonic()` in `backend/app/api/endpoints.py` for the `BoundedTTLCache` implementation. Always use `time.monotonic()` for reliable duration, timeout, or cache TTL calculations in Python to ensure immunity against system clock changes.
+
+Learning:
+
+Action:
+## 2026-05-19 — Prevent inaccurate TTL caching with monotonic clocks
+
+Learning:
+Using `time.time()` for cache Time-To-Live (TTL) calculations in caching systems (like `BoundedTTLCache` in `backend/app/api/endpoints.py`) is unsafe. `time.time()` relies on the system clock, which can be modified by NTP syncs or manual time adjustments. This can lead to premature cache invalidation or artificially extended TTLs.
+
+Action:
+Always use `time.monotonic()` for precise, monotonically increasing time measurement that is immune to system clock adjustments. This guarantees reliable cache invalidation and timeout enforcement.
 ## 2026-05-26 — Prevent cache TTL vulnerability from system clock adjustments
 
 Learning:
@@ -374,3 +399,25 @@ Using `time.time()` for cache Time-To-Live (TTL) calculations is vulnerable to s
 
 Action:
 Always use `time.monotonic()` instead of `time.time()` for reliable duration and timeout calculations, as it is immune to system clock changes.
+
+## 2026-05-22 — Ensure reliable cache invalidation by using monotonic time
+
+Learning:
+Using `time.time()` for cache TTL calculations is susceptible to system clock adjustments (like NTP syncs or manual resets). If the system clock goes backwards, it can cause the TTL to artificially extend, keeping stale data in memory. If it jumps forward, the cache will be prematurely invalidated.
+
+Action:
+Refactored `BoundedTTLCache` in `backend/app/api/endpoints.py` to use `time.monotonic()` instead of `time.time()`. Monotonic time is guaranteed to never go backwards and is immune to system clock adjustments, making it the correct choice for reliable duration and TTL calculations.
+## 2026-05-24 — Reliable TTL Calculation in Caches
+
+Learning:
+For reliable duration, timeout, or cache Time-To-Live (TTL) calculations in Python, `time.time()` can be problematic as it is vulnerable to system clock adjustments (like NTP syncs or resets).
+
+Action:
+Replaced `time.time()` with `time.monotonic()` in the `BoundedTTLCache` to ensure TTL calculation is immune to system clock adjustments, preventing vulnerabilities like premature cache invalidation or artificially extended TTLs.
+## 2026-05-30 — Optimize SQL Count Aggregations
+
+Learning:
+Using `func.count(Model.id)` inside SQLAlchemy generates SQL like `COUNT(messages.id)`. PostgreSQL evaluates the column for `NULL` values during this operation, which adds unnecessary overhead. Using `func.count()` generates `COUNT(*)`, which simply counts the rows without evaluating column data, improving query performance on heavily used endpoints.
+
+Action:
+Prefer `func.count()` over `func.count(Model.column)` when counting total rows or using `FILTER` clauses on queries, unless you specifically need to exclude `NULL` values from the count.
