@@ -374,10 +374,3 @@ Using `time.time()` for cache Time-To-Live (TTL) calculations is vulnerable to s
 
 Action:
 Always use `time.monotonic()` instead of `time.time()` for reliable duration and timeout calculations, as it is immune to system clock changes.
-## 2026-05-30 — Optimize SQL Count Aggregations
-
-Learning:
-Using `func.count(Model.id)` inside SQLAlchemy generates SQL like `COUNT(messages.id)`. PostgreSQL evaluates the column for `NULL` values during this operation, which adds unnecessary overhead. Using `func.count()` generates `COUNT(*)`, which simply counts the rows without evaluating column data, improving query performance on heavily used endpoints.
-
-Action:
-Prefer `func.count()` over `func.count(Model.column)` when counting total rows or using `FILTER` clauses on queries, unless you specifically need to exclude `NULL` values from the count.

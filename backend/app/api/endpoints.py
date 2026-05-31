@@ -23,8 +23,7 @@ class BoundedTTLCache:
     Invalidation strategy:
     Relies purely on Time-To-Live (TTL) expiration to allow the cache to naturally
     cycle out stale data without requiring complex pub/sub invalidation logic from
-    the background Celery workers. Uses time.monotonic() instead of time.time()
-    (immune to system clock adjustments) to prevent TTL vulnerabilities.
+    the background Celery workers.
     """
     def __init__(self, capacity: int, ttl: int):
         self.capacity = capacity
@@ -80,13 +79,13 @@ async def get_group_stats(group_id: str, db: AsyncSession = Depends(get_db)):
         return cached_stats
 
     query = select(
-        func.count().label("total"),
-        func.count().filter(models.Message.is_analyzed.is_(True)).label("analyzed"),
-        func.count().filter(models.Message.sentiment == 'positive').label("positive"),
-        func.count().filter(models.Message.sentiment == 'negative').label("negative"),
-        func.count().filter(models.Message.sentiment == 'neutral').label("neutral"),
-        func.count().filter(models.Message.classification == 'task').label("tasks"),
-        func.count().filter(models.Message.classification == 'decision').label("decisions"),
+        func.count(models.Message.id).label("total"),
+        func.count(models.Message.id).filter(models.Message.is_analyzed.is_(True)).label("analyzed"),
+        func.count(models.Message.id).filter(models.Message.sentiment == 'positive').label("positive"),
+        func.count(models.Message.id).filter(models.Message.sentiment == 'negative').label("negative"),
+        func.count(models.Message.id).filter(models.Message.sentiment == 'neutral').label("neutral"),
+        func.count(models.Message.id).filter(models.Message.classification == 'task').label("tasks"),
+        func.count(models.Message.id).filter(models.Message.classification == 'decision').label("decisions"),
     ).where(models.Message.group_id == group_id)
     
     result = await db.execute(query)
