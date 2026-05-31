@@ -363,10 +363,86 @@ Prefer using a direct SQL `UPDATE` statement via `session.execute(update(Model).
 
 Learning:
 Fetching complete SQLAlchemy models using `session.get(Message, id)` pulls all columns over the network, which is inefficient if the `Message` model contains large unused fields (e.g., long text payloads that aren't needed, or metadata columns).
+## 2026-05-11 — Optimize Celery Worker Database Updates
+
+Learning:
+In `backend/app/workers/tasks.py`, the `process_message` Celery task previously used `session.get(Message, message_id)` to re-fetch the entire `Message` object over the network just to update a few analysis fields (`sentiment`, `classification`, `is_analyzed`) after the AI enrichment step. This is inefficient, especially when `Message` objects contain large `Text` columns (e.g., payloads up to 64KB).
+
+Action:
+Refactored the Celery task to use a direct SQL `UPDATE` statement via `session.execute(update(Message).where(Message.id == message_id).values(...))` instead of fetching the object. This bypasses the network fetch of the large object, reducing DB bandwidth, memory usage, and execution latency for background workers processing hot paths. Applied the same optimization to the exception rollback logic.
+
+## 2026-05-12 — Optimize ORM Object Fetching in Celery Workers
+
+Learning:
+In `backend/app/workers/tasks.py`, the `process_message` Celery task used `session.get(Message, message_id)` to fetch the message for analysis. This pulls down the entire `Message` row as a full SQLAlchemy ORM model instance over the network, which includes potentially large `Text` columns and introduces unnecessary instantiation overhead for fields that are not needed.
+
+Action:
+Refactored the task to use `select(Message.content, Message.group_id, Message.sender_id, Message.is_analyzed).where(Message.id == message_id)` and call `.first()` on the result. This bypasses the overhead of full ORM object allocation and returns a lightweight tuple (`Row`), significantly decreasing memory usage, network bandwidth, and execution latency for background workers.
+## 2026-05-13 — Optimize SQLAlchemy Query via load_only
+
+Learning:
+When retrieving only a subset of fields from a SQLAlchemy model (especially large fields like Text columns) in a hot path, pulling the entire ORM object fetches unnecessary data over the network, wasting memory and database bandwidth.
+
+Action:
+Use `load_only()` within `session.get(Message, message_id, options=[load_only(...)])` to specifically fetch only the required columns (`content`, `group_id`, `sender_id`, `is_analyzed`). This optimization minimizes database bandwidth and memory consumption while preserving the ORM contract.
+
+
+## 2024-05-16 — Database Bandwidth Optimization in Background Workers
+
+Learning:
+Fetching entire SQLAlchemy models, especially those with potentially large text columns like `content`, can unnecessarily consume database bandwidth and memory when only a subset of fields is needed. However, replacing `session.get()` with `select()` queries that return lightweight `Row` tuples strips the ORM contract and creates regression risk if downstream logic expects the full model.
+
+Action:
+When only a subset of fields is required from an ORM model (like within Celery workers), apply the `load_only` option within `session.get()` (e.g., `session.get(Model, id, options=[load_only(Model.col1, Model.col2)])`) to optimize memory and network usage while safely preserving the ORM structure.
+
+## 2026-05-18 — Optimize SQLAlchemy Row Fetching in Celery Worker
+
+Learning:
+In `backend/app/workers/tasks.py`, the `process_message` Celery task used `session.get(Message, message_id)` to re-fetch the entire `Message` object. Since only a few specific fields are needed, this wastes database bandwidth and memory, especially since the `Message` model contains a large `Text` field (`content`).
+
+Action:
+Modified the Celery task to use `load_only` from `sqlalchemy.orm` to fetch only the required fields (`is_analyzed`, `content`, `group_id`, `sender_id`). This optimizes database bandwidth and memory allocation while safely preserving the ORM model contract.
+
+## 2026-05-12 — Optimize Celery Worker Network Overhead with load_only
+
+Learning:
+In `backend/app/workers/tasks.py`, the `process_message` Celery task previously fetched the entire `Message` object using `session.get(Message, message_id)`. Since we only need a few specific fields (`content`, `group_id`, `sender_id`, `is_analyzed`) to perform the AI enrichment, pulling the entire object unnecessarily fetches large text fields or unneeded columns over the network, wasting memory and database bandwidth. Furthermore, accessing fields not included in a tuple unpacking structure inside a synchronous context from an AsyncSession would crash, but since this celery task uses a sync engine, it just wastes I/O.
+
+Action:
+Refactored the `session.get` call in `process_message` to use `options=[load_only(Message.content, Message.group_id, Message.sender_id, Message.is_analyzed)]`. This selectively fetches only the required columns, bypassing the network fetch of unneeded data, reducing DB bandwidth, memory usage, and execution latency for background workers processing hot paths.
+## 2026-05-19 — Optimize Celery Worker Database Data Fetching
+
+Learning:
+In `backend/app/workers/tasks.py`, the `process_message` Celery task fetched the entire `Message` object using `session.get(Message, message_id)`. This caused SQLAlchemy to eagerly load all mapped columns by default, including potentially large unneeded fields. Since `Message` can contain large text payloads, fetching everything consumes unnecessary network bandwidth and memory inside background workers.
 
 Action:
 Used `load_only` within `session.get(Message, message_id, options=[load_only(...)])` to specifically fetch only the required columns (`content`, `group_id`, `sender_id`, `is_analyzed`). This optimization minimizes database bandwidth and memory consumption while preserving the ORM contract.
 
+## 2026-05-23 — Use monotonic time for reliable TTL cache
+
+Learning:
+Using `time.time()` for TTL calculations is vulnerable to system clock adjustments (like NTP syncs or resets), potentially causing premature cache invalidation or artificially extended TTLs.
+
+Action:
+Use `time.monotonic()` instead of `time.time()` for all duration, timeout, and cache TTL calculations in Python to ensure reliable, monotonically increasing time measurement.
+## 2026-05-22 — Improve reliability of cache Time-To-Live (TTL) calculations
+
+Learning:
+Using `time.time()` for cache Time-To-Live (TTL) calculations is unreliable because it is subject to system clock adjustments (like NTP syncs or resets), which can lead to premature cache invalidation or artificially extended TTLs.
+
+Action:
+Replaced `time.time()` with `time.monotonic()` in `backend/app/api/endpoints.py` for the `BoundedTTLCache` implementation. Always use `time.monotonic()` for reliable duration, timeout, or cache TTL calculations in Python to ensure immunity against system clock changes.
+
+Learning:
+
+Action:
+## 2026-05-19 — Prevent inaccurate TTL caching with monotonic clocks
+
+Learning:
+Using `time.time()` for cache Time-To-Live (TTL) calculations in caching systems (like `BoundedTTLCache` in `backend/app/api/endpoints.py`) is unsafe. `time.time()` relies on the system clock, which can be modified by NTP syncs or manual time adjustments. This can lead to premature cache invalidation or artificially extended TTLs.
+
+Action:
+Always use `time.monotonic()` for precise, monotonically increasing time measurement that is immune to system clock adjustments. This guarantees reliable cache invalidation and timeout enforcement.
 ## 2026-05-26 — Prevent cache TTL vulnerability from system clock adjustments
 
 Learning:
@@ -374,3 +450,32 @@ Using `time.time()` for cache Time-To-Live (TTL) calculations is vulnerable to s
 
 Action:
 Always use `time.monotonic()` instead of `time.time()` for reliable duration and timeout calculations, as it is immune to system clock changes.
+## 2026-05-12 — Optimize memory usage and DB bandwidth with `load_only` in Celery tasks
+
+Learning:
+When a Celery task uses `session.get()` to retrieve an ORM model and requires only a subset of its fields, fetching the entire object (including large `Text` columns) consumes unnecessary database bandwidth and memory.
+
+Action:
+Utilize the `load_only` option in `session.get()` (e.g., `options=[load_only(Model.col1, Model.col2)]`) to selectively fetch only the needed columns. This optimizes database bandwidth and memory usage by avoiding the network overhead associated with transferring massive, unused fields, while safely preserving the ORM contract.
+
+## 2026-05-22 — Ensure reliable cache invalidation by using monotonic time
+
+Learning:
+Using `time.time()` for cache TTL calculations is susceptible to system clock adjustments (like NTP syncs or manual resets). If the system clock goes backwards, it can cause the TTL to artificially extend, keeping stale data in memory. If it jumps forward, the cache will be prematurely invalidated.
+
+Action:
+Refactored `BoundedTTLCache` in `backend/app/api/endpoints.py` to use `time.monotonic()` instead of `time.time()`. Monotonic time is guaranteed to never go backwards and is immune to system clock adjustments, making it the correct choice for reliable duration and TTL calculations.
+## 2026-05-24 — Reliable TTL Calculation in Caches
+
+Learning:
+For reliable duration, timeout, or cache Time-To-Live (TTL) calculations in Python, `time.time()` can be problematic as it is vulnerable to system clock adjustments (like NTP syncs or resets).
+
+Action:
+Replaced `time.time()` with `time.monotonic()` in the `BoundedTTLCache` to ensure TTL calculation is immune to system clock adjustments, preventing vulnerabilities like premature cache invalidation or artificially extended TTLs.
+## 2026-05-30 — Optimize SQL Count Aggregations
+
+Learning:
+Using `func.count(Model.id)` inside SQLAlchemy generates SQL like `COUNT(messages.id)`. PostgreSQL evaluates the column for `NULL` values during this operation, which adds unnecessary overhead. Using `func.count()` generates `COUNT(*)`, which simply counts the rows without evaluating column data, improving query performance on heavily used endpoints.
+
+Action:
+Prefer `func.count()` over `func.count(Model.column)` when counting total rows or using `FILTER` clauses on queries, unless you specifically need to exclude `NULL` values from the count.
