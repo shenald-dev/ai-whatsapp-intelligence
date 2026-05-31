@@ -118,9 +118,14 @@ def test_get_recent_messages_pagination():
     mock_db = AsyncMock()
 
     mock_execute_result = MagicMock()
-    mock_execute_result.all.return_value = [
-        ("msg1", "Hello", "neutral", "discussion")
-    ]
+
+    mock_row = MagicMock()
+    mock_row.id = "msg1"
+    mock_row.content = "Hello"
+    mock_row.sentiment = "neutral"
+    mock_row.classification = "discussion"
+
+    mock_execute_result.all.return_value = [mock_row]
     mock_db.execute.return_value = mock_execute_result
 
     app.dependency_overrides[get_db] = lambda: mock_db
@@ -145,10 +150,16 @@ def test_get_groups_pagination():
     mock_db = AsyncMock()
 
     mock_execute_result = MagicMock()
-    mock_execute_result.all.return_value = [
-        ("grp1", "Group 1"),
-        ("grp2", "Group 2")
-    ]
+
+    mock_row1 = MagicMock()
+    mock_row1.id = "grp1"
+    mock_row1.name = "Group 1"
+
+    mock_row2 = MagicMock()
+    mock_row2.id = "grp2"
+    mock_row2.name = "Group 2"
+
+    mock_execute_result.all.return_value = [mock_row1, mock_row2]
     mock_db.execute.return_value = mock_execute_result
 
     app.dependency_overrides[get_db] = lambda: mock_db
@@ -167,3 +178,20 @@ def test_get_groups_limit_validation():
     # limit > 100 should be rejected by validation
     response = client.get("/api/v1/dashboard/groups?limit=150")
     assert response.status_code == 422
+
+def test_cache_ttl_uses_monotonic_time():
+    import time
+    from app.api.endpoints import BoundedTTLCache
+
+    # Create cache with 0.1s TTL
+    cache = BoundedTTLCache(capacity=10, ttl=0.1)
+
+    # Put item
+    cache.put("key1", "value1")
+    assert cache.get("key1") == "value1"
+
+    # Sleep past TTL
+    time.sleep(0.15)
+
+    # Item should be expired based on monotonic time
+    assert cache.get("key1") is None
