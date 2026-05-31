@@ -388,6 +388,13 @@ We are given a merge conflict in CHANGELOG.md. We have three versions: ancestor,
 * **Upgrades:** Audited dependencies and safely bumped `python` dependencies via Poetry and Node.js dependencies via npm.
 * **Pruning:** Pruned `__pycache__` directories to maintain codebase entropy. Addressed `vulture` static analysis warning in Pydantic validator by renaming unused `cls` variable to `_cls`.
 
+## [1.0.27] - 2026-05-26
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity post-optimizations introducing security bumps in the Node.js collector. Re-verified robust backend and node tests properly pass.
+* **Upgrades:** Audited dependencies and safely bumped 8 Python dependencies (`idna`, `click`, `wrapt`, `httptools`, `huggingface-hub`, `sqlalchemy`, `kubernetes`, `posthog`) via Poetry. Verified Node.js dependencies are up to date.
+* **Pruning:** Pruned `__pycache__` artifacts to maintain codebase entropy.
+
 
 ## [1.0.25] - 2026-05-18
 
