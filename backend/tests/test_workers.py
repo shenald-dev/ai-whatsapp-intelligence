@@ -1,3 +1,4 @@
+import pytest
 from app.db.models import Message, Group, User
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, load_only
