@@ -25,7 +25,6 @@ Perfect for teams, communities, and digital agencies who need to extract the "si
 * **🧠 Vector Memory:** Integrates **ChromaDB** for semantic search and topic tracking over time.
 * **📊 Gorgeous Analytics Dashboard:** A glassmorphic, modern UI built with Next.js and TailwindCSS.
 * **📬 Intelligent Insights:** Daily & Weekly AI-generated summaries (Who said what, key outcomes, overall sentiment).
-* **⚡ Highly Optimized Workers:** Celery tasks perform direct SQL UPDATEs without fetching objects, maximizing efficiency.
 
 ---
 
