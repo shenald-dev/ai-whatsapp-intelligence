@@ -132,7 +132,21 @@ We are given a merge conflict in CHANGELOG.md. We have three versions: ancestor,
 * **Upgrades:** Audited dependencies and safely bumped 8 Python dependencies (`idna`, `click`, `wrapt`, `httptools`, `huggingface-hub`, `sqlalchemy`, `kubernetes`, `posthog`) via Poetry. Verified Node.js dependencies are up to date.
 * **Pruning:** Pruned `__pycache__` artifacts to maintain codebase entropy.
 
+## [1.0.27] - 2026-05-26
 
+## [1.0.26] - 2026-05-21
+
+* **Maintenance**: Assure lifecycle, prune entropy.
+* **Dependencies**: Bumped `axios` and 19 minor python packages.
+* **Performance**: Optimized DB object fetches with `load_only` in Celery workers.
+
+## [1.0.25] - 2026-05-12
+
+* **Lifecycle:** Verified system integrity post-optimizations in `tasks.py` which refactored Celery task to use a direct SQL `UPDATE` statement. Verified test suites and `vulture` static analysis appropriately pass.
+* **Dependencies:** Bumped Python dependencies safely (`idna`, `requests`, `posthog`). Checked Node.js dependencies safely.
+* **Pruning:** Pruned `__pycache__` directories to reduce codebase entropy.
+* **Upgrades:** Audited dependencies and safely bumped `python` dependencies via Poetry and Node.js dependencies via npm.
+* **Pruning:** Pruned `__pycache__` directories to maintain codebase entropy. Addressed `vulture` static analysis warning in Pydantic validator by renaming unused `cls` variable to `_cls`.
 
 ## [1.0.26] - 2026-05-21
 
