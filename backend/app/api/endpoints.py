@@ -23,7 +23,8 @@ class BoundedTTLCache:
     Invalidation strategy:
     Relies purely on Time-To-Live (TTL) expiration to allow the cache to naturally
     cycle out stale data without requiring complex pub/sub invalidation logic from
-    the background Celery workers.
+    the background Celery workers. Uses time.monotonic() instead of time.time()
+    (immune to system clock adjustments) to prevent TTL vulnerabilities.
     """
     def __init__(self, capacity: int, ttl: int):
         self.capacity = capacity
