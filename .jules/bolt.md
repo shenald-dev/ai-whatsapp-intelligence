@@ -374,17 +374,3 @@ Using `time.time()` for cache Time-To-Live (TTL) calculations in caching systems
 
 Action:
 Always use `time.monotonic()` for precise, monotonically increasing time measurement that is immune to system clock adjustments. This guarantees reliable cache invalidation and timeout enforcement.
-## 2026-05-26 — Prevent cache TTL vulnerability from system clock adjustments
-
-Learning:
-Using `time.time()` for cache Time-To-Live (TTL) calculations is vulnerable to system clock adjustments (like NTP syncs), which can lead to premature cache invalidation or artificially extended TTLs.
-
-Action:
-Always use `time.monotonic()` instead of `time.time()` for reliable duration and timeout calculations, as it is immune to system clock changes.
-## 2026-05-30 — Optimize SQL Count Aggregations
-
-Learning:
-Using `func.count(Model.id)` inside SQLAlchemy generates SQL like `COUNT(messages.id)`. PostgreSQL evaluates the column for `NULL` values during this operation, which adds unnecessary overhead. Using `func.count()` generates `COUNT(*)`, which simply counts the rows without evaluating column data, improving query performance on heavily used endpoints.
-
-Action:
-Prefer `func.count()` over `func.count(Model.column)` when counting total rows or using `FILTER` clauses on queries, unless you specifically need to exclude `NULL` values from the count.
