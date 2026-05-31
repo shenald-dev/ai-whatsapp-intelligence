@@ -20,6 +20,34 @@ We are given a merge conflict in CHANGELOG.md. We have three versions: ancestor,
  1. We note that the base (master) and head (PR branch) both have changes from the ancestor.
  2. The conflict is in the entire file (from line 1 to the end) because the diff shows that the head branch has replaced the entire content of the base branch (with some indentation changes and truncation in the diff for brevity).
 
+## [1.0.28] - 2026-05-27
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity post-optimizations. Re-verified robust backend and node tests properly pass after migrating to a direct SQL `UPDATE` statement in the `process_message` Celery task.
+* **Upgrades:** Checked minor/patch bumps for dependencies. Checked dependencies safely. Bumped project versions to `1.0.28`.
+* **Pruning:** Checked unused imports and cleaned `__pycache__` artifacts to reduce codebase entropy.
+
+## [1.0.27] - 2026-05-26
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity post-optimizations introducing security bumps in the Node.js collector. Re-verified robust backend and node tests properly pass.
+* **Upgrades:** Audited dependencies and safely bumped 8 Python dependencies (`idna`, `click`, `wrapt`, `httptools`, `huggingface-hub`, `sqlalchemy`, `kubernetes`, `posthog`) via Poetry. Verified Node.js dependencies are up to date.
+* **Pruning:** Pruned `__pycache__` artifacts to maintain codebase entropy.
+
+## [1.0.27] - 2026-05-25
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity post-optimizations introducing `ws` upgrade. Re-verified robust backend and node tests properly pass.
+* **Upgrades:** Audited dependencies and safely bumped `python` dependencies via Poetry and Node.js dependencies via npm.
+* **Pruning:** Pruned an unused import in test_workers.py.
+
+## [1.0.26] - 2026-05-21
+
+* **Maintenance**: Assure lifecycle, prune entropy.
+* **Dependencies**: Bumped `axios` and 19 minor python packages.
+* **Performance**: Optimized DB object fetches with `load_only` in Celery workers.
+
+## [1.0.25] - 2026-05-12
  However, note the provided diff (Head changes vs base) shows:
    @@ -1,164 +1,10 @@
    -# Changelog
