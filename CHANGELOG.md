@@ -1,6 +1,34 @@
+## [1.0.28] - 2026-05-27
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity post-optimizations. Re-verified robust backend and node tests properly pass after migrating to a direct SQL `UPDATE` statement in the `process_message` Celery task.
+* **Upgrades:** Checked minor/patch bumps for dependencies. Checked dependencies safely. Bumped project versions to `1.0.28`.
+* **Pruning:** Pruned `__pycache__` artifacts to maintain repository cleanliness and reduce entropy.
+
+## [1.0.27] - 2026-05-25
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity post-optimizations introducing `ws` upgrade. Re-verified robust backend and node tests properly pass.
+* **Upgrades:** Audited dependencies and safely bumped `python` dependencies via Poetry and Node.js dependencies via npm.
+* **Pruning:** Pruned an unused import in test_workers.py.
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
+
+## [1.0.29] - 2026-05-30
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Replaced positional indexing with SQLAlchemy 2.0+ NamedTuple attribute access for trusted Row objects in dashboard API endpoints to improve code maintainability and prevent regression bugs on schema changes.
+* **Upgrades:** Synced dependencies across both Python and Node.js environments.
+* **Pruning:** Pruned `__pycache__` artifacts and verified static analysis.
+
+## [1.0.27] - 2026-05-26
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity post-optimizations introducing security bumps in the Node.js collector. Re-verified robust backend and node tests properly pass.
+* **Upgrades:** Audited dependencies and safely bumped 8 Python dependencies (`idna`, `click`, `wrapt`, `httptools`, `huggingface-hub`, `sqlalchemy`, `kubernetes`, `posthog`) via Poetry. Verified Node.js dependencies are up to date.
+* **Pruning:** Pruned `__pycache__` artifacts to maintain codebase entropy.
 
 
 
