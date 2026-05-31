@@ -36,7 +36,6 @@ def process_message(message_id: str):
         )
         if not msg or msg.is_analyzed or not msg.content:
             return {"status": "skipped", "reason": "Not found, analyzed, or empty"}
-
         # Extract needed fields before committing to prevent lazy loading.
         # DO NOT access other unmapped fields here (e.g. timestamp) as they
         # will trigger a deferred lazy load query due to `load_only`.
