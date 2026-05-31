@@ -169,6 +169,12 @@ We are given a merge conflict in CHANGELOG.md. We have three versions: ancestor,
 
 
 
+## [1.0.24] - 2026-05-06
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Replaced `session.get()` followed by attribute assignment with direct `session.execute(update(...))` in the Celery worker hot path `process_message` to significantly reduce database network bandwidth and memory overhead. Verified that test suites continue to pass.
+* **Upgrades:** No updates this cycle.
+* **Pruning:** Pruned `__pycache__` directories.
 ## [1.0.25] - 2026-05-06
 
 ### Assure, Prune, and Sync

@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine, update
-from sqlalchemy.orm import sessionmakerimport os
-from dotenv import load_dotenv
+from sqlalchemy.orm import sessionmaker
+import osfrom dotenv import load_dotenv
 import logging
 
 from ..db.models import Message
@@ -45,25 +45,20 @@ def process_message(message_id: str):
         sentiment = analysis.get("sentiment")
         classification = analysis.get("classification")
 
-        # Update DB directly without fetching the potentially large Message payload
-        # This bypasses the ORM's session.get() to avoid fetching the large `content` (up to 64KB) over the network
-        # just to update the metadata fields, significantly improving database efficiency on this hot path.
-        # Parameterization is inherently handled by SQLAlchemy's `update().values(...)` construct.
-        stmt = (
+        sentiment = analysis.get("sentiment")
+        classification = analysis.get("classification")
+
+        # Re-acquire the message in a new transaction using direct UPDATE
+        result = session.execute(
             update(Message)
             .where(Message.id == message_id)
-            .values(
-                sentiment=sentiment,
-                classification=classification,
-                is_analyzed=True
-            )
+            .values(sentiment=sentiment, classification=classification, is_analyzed=True)
         )
-        result = session.execute(stmt)
         if result.rowcount == 0:
             return {"status": "error", "reason": "Message deleted during analysis"}
 
-        # Store message in ChromaDB for semantic search        metadata = {
-            "group_id": group_id,
+        # Store message in ChromaDB for semantic search
+        metadata = {            "group_id": group_id,
             "sender_id": sender_id,
             "sentiment": sentiment,
             "classification": classification
@@ -76,6 +71,16 @@ def process_message(message_id: str):
         except Exception as e:
             # Revert analysis state so the task can be safely retried
             logging.error(f"Failed to store embedding for {message_id}: {e}")
+<<<<<<< HEAD
+            session.execute(
+                update(Message)
+                .where(Message.id == message_id)
+                .values(sentiment=None, classification=None, is_analyzed=False)
+            )
+            session.commit()
+            raise e
+=======
+>>>>>>> origin/master
 
             revert_stmt = (
                 update(Message)
