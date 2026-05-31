@@ -23,8 +23,7 @@ class BoundedTTLCache:
     Invalidation strategy:
     Relies purely on Time-To-Live (TTL) expiration to allow the cache to naturally
     cycle out stale data without requiring complex pub/sub invalidation logic from
-    the background Celery workers. Uses time.monotonic() instead of time.time()
-    (immune to system clock adjustments) to prevent TTL vulnerabilities.
+    the background Celery workers.
     """
     def __init__(self, capacity: int, ttl: int):
         self.capacity = capacity
@@ -35,6 +34,7 @@ class BoundedTTLCache:
         if key not in self.cache:
             return None
         value, timestamp = self.cache[key]
+        # Use time.monotonic() instead of time.time() to ensure TTL calculation is immune to system clock adjustments (NTP, leap seconds, etc.)
         if time.monotonic() - timestamp > self.ttl:
             del self.cache[key]
             return None
@@ -44,6 +44,7 @@ class BoundedTTLCache:
     def put(self, key: str, value):
         if key in self.cache:
             self.cache.move_to_end(key)
+        # Use time.monotonic() instead of time.time() to ensure TTL calculation is immune to system clock adjustments (NTP, leap seconds, etc.)
         self.cache[key] = (value, time.monotonic())
         if len(self.cache) > self.capacity:
             self.cache.popitem(last=False)
@@ -60,6 +61,7 @@ async def get_groups(
     db: AsyncSession = Depends(get_db)
 ):
     """Fetch all monitored groups."""
+    # Ensure select columns exactly match the tuple unpacking order: id=row[0], name=row[1]
     result = await db.execute(
         select(models.Group.id, models.Group.name)
         .order_by(models.Group.created_at.desc())
@@ -68,7 +70,7 @@ async def get_groups(
     )
     # Using model_construct is safe here as data originates from trusted PostgreSQL rows.
     # Note: Ensure data source remains trusted if this query changes in the future.
-    return [GroupResponse.model_construct(id=row.id, name=row.name) for row in result.all()]
+    return [GroupResponse.model_construct(id=row[0], name=row[1]) for row in result.all()]
 
 @router.get("/groups/{group_id}/stats")
 async def get_group_stats(group_id: str, db: AsyncSession = Depends(get_db)):
@@ -80,13 +82,13 @@ async def get_group_stats(group_id: str, db: AsyncSession = Depends(get_db)):
         return cached_stats
 
     query = select(
-        func.count().label("total"),
-        func.count().filter(models.Message.is_analyzed.is_(True)).label("analyzed"),
-        func.count().filter(models.Message.sentiment == 'positive').label("positive"),
-        func.count().filter(models.Message.sentiment == 'negative').label("negative"),
-        func.count().filter(models.Message.sentiment == 'neutral').label("neutral"),
-        func.count().filter(models.Message.classification == 'task').label("tasks"),
-        func.count().filter(models.Message.classification == 'decision').label("decisions"),
+        func.count(models.Message.id).label("total"),
+        func.count(models.Message.id).filter(models.Message.is_analyzed.is_(True)).label("analyzed"),
+        func.count(models.Message.id).filter(models.Message.sentiment == 'positive').label("positive"),
+        func.count(models.Message.id).filter(models.Message.sentiment == 'negative').label("negative"),
+        func.count(models.Message.id).filter(models.Message.sentiment == 'neutral').label("neutral"),
+        func.count(models.Message.id).filter(models.Message.classification == 'task').label("tasks"),
+        func.count(models.Message.id).filter(models.Message.classification == 'decision').label("decisions"),
     ).where(models.Message.group_id == group_id)
     
     result = await db.execute(query)
@@ -133,4 +135,4 @@ async def get_recent_messages(
     )
     # Using model_construct is safe here as data originates from trusted PostgreSQL rows.
     # Note: Ensure data source remains trusted if this query changes in the future.
-    return [MessageResponse.model_construct(id=row.id, content=row.content, sentiment=row.sentiment, classification=row.classification) for row in result.all()]
+    return [MessageResponse.model_construct(id=row[0], content=row[1], sentiment=row[2], classification=row[3]) for row in result.all()]

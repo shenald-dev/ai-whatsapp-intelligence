@@ -381,6 +381,14 @@ Using `time.time()` for cache Time-To-Live (TTL) calculations is vulnerable to s
 
 Action:
 Always use `time.monotonic()` instead of `time.time()` for reliable duration and timeout calculations, as it is immune to system clock changes.
+
+## 2026-05-24 — Reliable TTL Calculation in Caches
+
+Learning:
+For reliable duration, timeout, or cache Time-To-Live (TTL) calculations in Python, `time.time()` can be problematic as it is vulnerable to system clock adjustments (like NTP syncs or resets).
+
+Action:
+Replaced `time.time()` with `time.monotonic()` in the `BoundedTTLCache` to ensure TTL calculation is immune to system clock adjustments, preventing vulnerabilities like premature cache invalidation or artificially extended TTLs.
 ## 2026-05-30 — Optimize SQL Count Aggregations
 
 Learning:

@@ -20,6 +20,13 @@ We are given a merge conflict in CHANGELOG.md. We have three versions: ancestor,
  1. We note that the base (master) and head (PR branch) both have changes from the ancestor.
  2. The conflict is in the entire file (from line 1 to the end) because the diff shows that the head branch has replaced the entire content of the base branch (with some indentation changes and truncation in the diff for brevity).
 
+## [1.0.27] - 2026-05-26
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity post-optimizations introducing security bumps in the Node.js collector. Re-verified robust backend and node tests properly pass.
+* **Upgrades:** Audited dependencies and safely bumped 8 Python dependencies (`idna`, `click`, `wrapt`, `httptools`, `huggingface-hub`, `sqlalchemy`, `kubernetes`, `posthog`) via Poetry. Verified Node.js dependencies are up to date.
+* **Pruning:** Pruned `__pycache__` artifacts to maintain codebase entropy.
+
 ## [1.0.28] - 2026-05-27
 
 ### Assure, Prune, and Sync
