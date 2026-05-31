@@ -400,6 +400,13 @@ Using `time.time()` for cache Time-To-Live (TTL) calculations is vulnerable to s
 Action:
 Always use `time.monotonic()` instead of `time.time()` for reliable duration and timeout calculations, as it is immune to system clock changes.
 
+## 2026-05-22 — Ensure reliable cache invalidation by using monotonic time
+
+Learning:
+Using `time.time()` for cache TTL calculations is susceptible to system clock adjustments (like NTP syncs or manual resets). If the system clock goes backwards, it can cause the TTL to artificially extend, keeping stale data in memory. If it jumps forward, the cache will be prematurely invalidated.
+
+Action:
+Refactored `BoundedTTLCache` in `backend/app/api/endpoints.py` to use `time.monotonic()` instead of `time.time()`. Monotonic time is guaranteed to never go backwards and is immune to system clock adjustments, making it the correct choice for reliable duration and TTL calculations.
 ## 2026-05-24 — Reliable TTL Calculation in Caches
 
 Learning:
