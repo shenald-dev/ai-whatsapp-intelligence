@@ -62,7 +62,7 @@ async def get_groups(
     db: AsyncSession = Depends(get_db)
 ):
     """Fetch all monitored groups."""
-    # Ensure select columns exactly match the tuple unpacking order: id=row[0], name=row[1]
+    # Ensure select columns exactly match the tuple unpacking order: id=row.id, name=row.name
     result = await db.execute(
         select(models.Group.id, models.Group.name)
         .order_by(models.Group.created_at.desc())
@@ -71,7 +71,7 @@ async def get_groups(
     )
     # Using model_construct is safe here as data originates from trusted PostgreSQL rows.
     # Note: Ensure data source remains trusted if this query changes in the future.
-    return [GroupResponse.model_construct(id=row[0], name=row[1]) for row in result.all()]
+    return [GroupResponse.model_construct(id=row.id, name=row.name) for row in result.all()]
 
 @router.get("/groups/{group_id}/stats")
 async def get_group_stats(group_id: str, db: AsyncSession = Depends(get_db)):
@@ -136,4 +136,4 @@ async def get_recent_messages(
     )
     # Using model_construct is safe here as data originates from trusted PostgreSQL rows.
     # Note: Ensure data source remains trusted if this query changes in the future.
-    return [MessageResponse.model_construct(id=row[0], content=row[1], sentiment=row[2], classification=row[3]) for row in result.all()]
+    return [MessageResponse.model_construct(id=row.id, content=row.content, sentiment=row.sentiment, classification=row.classification) for row in result.all()]
