@@ -367,13 +367,6 @@ In `backend/app/workers/tasks.py`, the `process_message` Celery task fetched the
 Action:
 Used `load_only` within `session.get(Message, message_id, options=[load_only(...)])` to specifically fetch only the required columns (`content`, `group_id`, `sender_id`, `is_analyzed`). This optimization minimizes database bandwidth and memory consumption while preserving the ORM contract.
 
-## 2026-05-19 — Prevent inaccurate TTL caching with monotonic clocks
-
-Learning:
-Using `time.time()` for cache Time-To-Live (TTL) calculations in caching systems (like `BoundedTTLCache` in `backend/app/api/endpoints.py`) is unsafe. `time.time()` relies on the system clock, which can be modified by NTP syncs or manual time adjustments. This can lead to premature cache invalidation or artificially extended TTLs.
-
-Action:
-Always use `time.monotonic()` for precise, monotonically increasing time measurement that is immune to system clock adjustments. This guarantees reliable cache invalidation and timeout enforcement.
 ## 2026-05-26 — Prevent cache TTL vulnerability from system clock adjustments
 
 Learning:
@@ -389,10 +382,3 @@ For reliable duration, timeout, or cache Time-To-Live (TTL) calculations in Pyth
 
 Action:
 Replaced `time.time()` with `time.monotonic()` in the `BoundedTTLCache` to ensure TTL calculation is immune to system clock adjustments, preventing vulnerabilities like premature cache invalidation or artificially extended TTLs.
-## 2026-05-30 — Optimize SQL Count Aggregations
-
-Learning:
-Using `func.count(Model.id)` inside SQLAlchemy generates SQL like `COUNT(messages.id)`. PostgreSQL evaluates the column for `NULL` values during this operation, which adds unnecessary overhead. Using `func.count()` generates `COUNT(*)`, which simply counts the rows without evaluating column data, improving query performance on heavily used endpoints.
-
-Action:
-Prefer `func.count()` over `func.count(Model.column)` when counting total rows or using `FILTER` clauses on queries, unless you specifically need to exclude `NULL` values from the count.
