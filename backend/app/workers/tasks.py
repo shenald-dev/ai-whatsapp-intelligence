@@ -28,8 +28,13 @@ def process_message(message_id: str):
     session = SessionLocal()
     try:
         msg = session.get(Message, message_id, options=[load_only(Message.content, Message.group_id, Message.sender_id, Message.is_analyzed)])
-        if not msg or msg.is_analyzed or not msg.content:            return {"status": "skipped", "reason": "Not found, analyzed, or empty"}
+        if not msg or msg.is_analyzed or not msg.content:
+            return {"status": "skipped", "reason": "Not found, analyzed, or empty"}
 
+        # Extract needed fields before committing to prevent lazy loading
+        content = msg.content
+        group_id = msg.group_id
+        sender_id = msg.sender_id
         # Extract needed fields before committing
         content = row.content
         group_id = row.group_id
@@ -40,30 +45,26 @@ def process_message(message_id: str):
         # Run AI analysis (async block within sync celery task)
         analysis = ai_engine.analyze_message_sync(content)
 
-        # Update DB using a direct SQL UPDATE statement
-        # Use execution_options(synchronize_session='fetch') to ensure ORM events and identity map are updated
-        stmt = (
-            update(Message)
-            .where(Message.id == message_id)
-            .values(
-                sentiment=analysis.get("sentiment"),
-                classification=analysis.get("classification"),
-                is_analyzed=True
-            ).execution_options(synchronize_session="fetch")
-        )
-        res = session.execute(stmt)
-        if res.rowcount == 0:
-            return {"status": "error", "reason": "Message deleted during analysis"}
+        # Update DB directly without fetching the entire object over the network
+        sentiment = analysis.get("sentiment")
+        classification = analysis.get("classification")
 
-        # Explicitly expire the session to ensure subsequent accesses fetch the updated state
-        session.expire_all()        
-        # Store message in ChromaDB for semantic search
+        stmt = update(Message).where(Message.id == message_id).values(
+            sentiment=sentiment,
+            classification=classification,
+            is_analyzed=True
+        )
+        result = session.execute(stmt)
+
+        if result.rowcount == 0:
+            return {"status": "error", "reason": "Message deleted during analysis"}
+                # Store message in ChromaDB for semantic search
         metadata = {
             "group_id": group_id,
             "sender_id": sender_id,
-            "sentiment": analysis.get("sentiment"),
-            "classification": analysis.get("classification")        }
-
+            "sentiment": sentiment,
+            "classification": classification
+        }
         # Commit early to release DB lock before network I/O
         session.commit()
 
@@ -72,18 +73,13 @@ def process_message(message_id: str):
         except Exception as e:
             # Revert analysis state so the task can be safely retried
             logging.error(f"Failed to store embedding for {message_id}: {e}")
-            stmt_revert = (
-                update(Message)
-                .where(Message.id == message_id)
-                .values(
-                    is_analyzed=False,
-                    sentiment=None,
-                    classification=None
-                ).execution_options(synchronize_session="fetch")
+            stmt = update(Message).where(Message.id == message_id).values(
+                is_analyzed=False,
+                sentiment=None,
+                classification=None
             )
-            session.execute(stmt_revert)
-            session.expire_all()            session.commit()
-            raise e
+            session.execute(stmt)
+            session.commit()            raise e
 
         return {"status": "success", "message_id": message_id}
         
