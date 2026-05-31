@@ -26,7 +26,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="AI WhatsApp Intelligence API",
     description="Backend API for ingesting, analyzing, and retrieving WhatsApp group intelligence.",
-    version="1.0.24",    lifespan=lifespan,
+version="1.0.28",
+    lifespan=lifespan,
     default_response_class=ORJSONResponse
 )
 

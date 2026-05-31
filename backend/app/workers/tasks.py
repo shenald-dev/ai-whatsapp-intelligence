@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine, update
-from sqlalchemy.orm import sessionmaker
-import osfrom dotenv import load_dotenv
+from sqlalchemy.orm import sessionmaker, load_only
+import os
+from dotenv import load_dotenv
 import logging
 
 from ..db.models import Message
@@ -27,7 +28,8 @@ def process_message(message_id: str):
     session = SessionLocal()
     try:
         msg = session.get(Message, message_id, options=[load_only(Message.content, Message.group_id, Message.sender_id, Message.is_analyzed)])
-        if not msg or msg.is_analyzed or not msg.content:            return {"status": "skipped", "reason": "Not found, analyzed, or empty"}
+if not msg or msg.is_analyzed or not msg.content:
+            return {"status": "skipped", "reason": "Not found, analyzed, or empty"}
 
         # Extract needed fields before committing to prevent lazy loading
         content = msg.content
@@ -45,18 +47,20 @@ def process_message(message_id: str):
         sentiment = analysis.get("sentiment")
         classification = analysis.get("classification")
 
+# Update DB directly without fetching the entire object over the network
+        # Re-acquire the message in a new transaction using direct UPDATE
         sentiment = analysis.get("sentiment")
         classification = analysis.get("classification")
 
-        # Re-acquire the message in a new transaction using direct UPDATE
-        result = session.execute(
-            update(Message)
-            .where(Message.id == message_id)
-            .values(sentiment=sentiment, classification=classification, is_analyzed=True)
+        stmt = update(Message).where(Message.id == message_id).values(
+            sentiment=sentiment,
+            classification=classification,
+            is_analyzed=True
         )
+        result = session.execute(stmt)
+
         if result.rowcount == 0:
             return {"status": "error", "reason": "Message deleted during analysis"}
-
         # Store message in ChromaDB for semantic search
         metadata = {            "group_id": group_id,
             "sender_id": sender_id,
@@ -71,12 +75,12 @@ def process_message(message_id: str):
         except Exception as e:
             # Revert analysis state so the task can be safely retried
             logging.error(f"Failed to store embedding for {message_id}: {e}")
-<<<<<<< HEAD
-            session.execute(
-                update(Message)
-                .where(Message.id == message_id)
-                .values(sentiment=None, classification=None, is_analyzed=False)
+stmt = update(Message).where(Message.id == message_id).values(
+                sentiment=None,
+                classification=None,
+                is_analyzed=False
             )
+            session.execute(stmt)
             session.commit()
             raise e
 =======

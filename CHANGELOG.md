@@ -167,7 +167,31 @@ We are given a merge conflict in CHANGELOG.md. We have three versions: ancestor,
 * **Dependencies**: Bumped `axios` and 19 minor python packages.
 * **Performance**: Optimized DB object fetches with `load_only` in Celery workers.
 
+## [1.0.27] - 2026-05-26
 
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity post-optimizations introducing security bumps in the Node.js collector. Re-verified robust backend and node tests properly pass.
+* **Upgrades:** Audited dependencies and safely bumped 8 Python dependencies (`idna`, `click`, `wrapt`, `httptools`, `huggingface-hub`, `sqlalchemy`, `kubernetes`, `posthog`) via Poetry. Verified Node.js dependencies are up to date.
+* **Pruning:** Pruned `__pycache__` artifacts to maintain codebase entropy. Pruned an unused import in test_workers.py.
+
+## [1.0.26] - 2026-05-21
+
+* **Maintenance**: Assure lifecycle, prune entropy.
+* **Dependencies**: Bumped `axios` and 19 minor python packages.
+* **Performance**: Optimized DB object fetches with `load_only` in Celery workers.
+## [1.0.25] - 2026-05-12
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity post-optimizations introducing direct SQL `UPDATE` queries in the Celery worker. Re-verified robust backend and node tests properly pass.
+* **Upgrades:** Audited dependencies and safely bumped `python` dependencies via Poetry and Node.js dependencies via npm.
+* **Pruning:** Pruned `__pycache__` directories to maintain codebase entropy. Addressed `vulture` static analysis warning in Pydantic validator by renaming unused `cls` variable to `_cls`.
+
+## [1.0.24] - 2026-05-09
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Verified system integrity and test suite coverage for both Node.js and Python projects. Evaluated that API latency is reduced using `ORJSONResponse` across endpoints as expected.
+* **Upgrades:** Safely bumped Node dependency `axios` to `^1.16.0` and bumped 15 Python backend dependencies to their latest minor/patch versions.
+* **Pruning:** Pruned `__pycache__` directories to reduce codebase entropy.
 
 ## [1.0.24] - 2026-05-06
 
