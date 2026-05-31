@@ -431,6 +431,13 @@ Using `time.time()` for cache Time-To-Live (TTL) calculations is vulnerable to s
 
 Action:
 Always use `time.monotonic()` instead of `time.time()` for reliable duration and timeout calculations, as it is immune to system clock changes.
+## 2026-05-12 — Optimize memory usage and DB bandwidth with `load_only` in Celery tasks
+
+Learning:
+When a Celery task uses `session.get()` to retrieve an ORM model and requires only a subset of its fields, fetching the entire object (including large `Text` columns) consumes unnecessary database bandwidth and memory.
+
+Action:
+Utilize the `load_only` option in `session.get()` (e.g., `options=[load_only(Model.col1, Model.col2)]`) to selectively fetch only the needed columns. This optimizes database bandwidth and memory usage by avoiding the network overhead associated with transferring massive, unused fields, while safely preserving the ORM contract.
 
 ## 2026-05-22 — Ensure reliable cache invalidation by using monotonic time
 
