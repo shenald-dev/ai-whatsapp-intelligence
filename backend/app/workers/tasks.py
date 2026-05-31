@@ -27,8 +27,10 @@ def process_message(message_id: str):
     """Celery task worker to enrich a message with AI."""
     session = SessionLocal()
     try:
-        msg = session.get(Message, message_id, options=[load_only(Message.content, Message.group_id, Message.sender_id, Message.is_analyzed)])
-        if not msg or msg.is_analyzed or not msg.content:
+        # load_only is used to prevent fetching large unused columns (like timestamp, is_media)
+        # to save memory and DB bandwidth. These specific columns are required for the initial
+        # condition check before AI analysis and metadata for Chroma; other columns are not needed.
+        msg = session.get(Message, message_id, options=[load_only(Message.is_analyzed, Message.content, Message.group_id, Message.sender_id)])        if not msg or msg.is_analyzed or not msg.content:
             return {"status": "skipped", "reason": "Not found, analyzed, or empty"}
 
         # Extract needed fields before committing to prevent lazy loading
