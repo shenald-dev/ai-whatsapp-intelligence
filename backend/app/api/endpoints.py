@@ -24,6 +24,9 @@ class BoundedTTLCache:
     Relies purely on Time-To-Live (TTL) expiration to allow the cache to naturally
     cycle out stale data without requiring complex pub/sub invalidation logic from
     the background Celery workers.
+
+    Note: time.monotonic() is used instead of time.time() to ensure TTL calculations
+    are immune to system clock adjustments (like NTP syncs).
     """
     def __init__(self, capacity: int, ttl: int):
         self.capacity = capacity
@@ -34,7 +37,7 @@ class BoundedTTLCache:
         if key not in self.cache:
             return None
         value, timestamp = self.cache[key]
-        if time.time() - timestamp > self.ttl:
+        if time.monotonic() - timestamp > self.ttl:
             del self.cache[key]
             return None
         self.cache.move_to_end(key)
@@ -43,7 +46,7 @@ class BoundedTTLCache:
     def put(self, key: str, value):
         if key in self.cache:
             self.cache.move_to_end(key)
-        self.cache[key] = (value, time.time())
+        self.cache[key] = (value, time.monotonic())
         if len(self.cache) > self.capacity:
             self.cache.popitem(last=False)
 
