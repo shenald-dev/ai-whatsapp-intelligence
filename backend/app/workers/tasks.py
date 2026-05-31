@@ -27,22 +27,20 @@ def process_message(message_id: str):
     """Celery task worker to enrich a message with AI."""
     session = SessionLocal()
     try:
-        # We explicitly use load_only to avoid fetching large text fields or other unneeded columns
-        # over the network. Only the fields required for AI analysis are fetched.
-        msg = session.get(
-            Message,
-            message_id,
-            options=[load_only(Message.is_analyzed, Message.content, Message.group_id, Message.sender_id)]
-        )
-        if not msg or msg.is_analyzed or not msg.content:
-            return {"status": "skipped", "reason": "Not found, analyzed, or empty"}
-        # Extract needed fields before committing to prevent lazy loading.
-        # DO NOT access other unmapped fields here (e.g. timestamp) as they
-        # will trigger a deferred lazy load query due to `load_only`.
-        content = msg.content
-        group_id = msg.group_id
-        sender_id = msg.sender_id
+        # OPTIMIZATION: Fetch only the required fields natively to avoid full ORM object allocation overhead.
+        # This replaces session.get() which fetches all columns (including large text payloads).
+        # When no message is found, .first() returns None, matching the behavior of session.get().
+        from sqlalchemy import select
+        stmt = select(Message.content, Message.group_id, Message.sender_id, Message.is_analyzed).where(Message.id == message_id)
+        row = session.execute(stmt).first()
 
+        if not row or row.is_analyzed or not row.content:
+            return {"status": "skipped", "reason": "Not found, analyzed, or empty"}
+
+        # Extract needed fields before committing
+        content = row.content
+        group_id = row.group_id
+        sender_id = row.sender_id
         # Release the database connection back to the pool before blocking on the network call
         session.commit()
 
