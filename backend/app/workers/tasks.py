@@ -1,5 +1,5 @@
 from sqlalchemy import create_engine, update
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, load_only
 import os
 from dotenv import load_dotenv
 import logging
@@ -41,7 +41,6 @@ def process_message(message_id: str):
         content = row.content
         group_id = row.group_id
         sender_id = row.sender_id
-
         # Release the database connection back to the pool before blocking on the network call
         session.commit()
 
