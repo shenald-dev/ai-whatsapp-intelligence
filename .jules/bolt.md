@@ -351,6 +351,18 @@ Uncompressed large JSON payloads (like lists of groups and messages) over the ne
 Action:
 Added `GZipMiddleware` to `backend/app/main.py` with `minimum_size=1000` to efficiently reduce payload size for endpoints returning large lists.
 
+## 2026-05-11 — Optimize Database Update for Large Models
+
+Learning:
+When updating a subset of fields on a SQLAlchemy model containing large columns (e.g., `Text` fields up to 64KB) within a hot path (like Celery workers), using `session.get()` followed by attribute assignment unnecessarily fetches the large payload over the network again.
+
+Action:
+Prefer using a direct SQL `UPDATE` statement via `session.execute(update(Model).where(...).values(...))` instead of `session.get()`. This avoids fetching large payloads over the network when we only need to write data, thereby improving database efficiency and reducing latency.
+
+## 2026-05-12 — Optimize Message Fetch in Celery Worker
+
+Learning:
+Fetching complete SQLAlchemy models using `session.get(Message, id)` pulls all columns over the network, which is inefficient if the `Message` model contains large unused fields (e.g., long text payloads that aren't needed, or metadata columns).
 ## 2026-05-11 — Optimize Celery Worker Database Updates
 
 Learning:

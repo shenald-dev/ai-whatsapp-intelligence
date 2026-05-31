@@ -27,15 +27,8 @@ def process_message(message_id: str):
     """Celery task worker to enrich a message with AI."""
     session = SessionLocal()
     try:
-        # OPTIMIZATION: Fetch only the required fields natively to avoid full ORM object allocation overhead.
-        # This replaces session.get() which fetches all columns (including large text payloads).
-        # When no message is found, .first() returns None, matching the behavior of session.get().
-        from sqlalchemy import select
-        stmt = select(Message.content, Message.group_id, Message.sender_id, Message.is_analyzed).where(Message.id == message_id)
-        row = session.execute(stmt).first()
-
-        if not row or row.is_analyzed or not row.content:
-            return {"status": "skipped", "reason": "Not found, analyzed, or empty"}
+        msg = session.get(Message, message_id, options=[load_only(Message.content, Message.group_id, Message.sender_id, Message.is_analyzed)])
+        if not msg or msg.is_analyzed or not msg.content:            return {"status": "skipped", "reason": "Not found, analyzed, or empty"}
 
         # Extract needed fields before committing
         content = row.content
@@ -47,27 +40,29 @@ def process_message(message_id: str):
         # Run AI analysis (async block within sync celery task)
         analysis = ai_engine.analyze_message_sync(content)
 
-        # Update DB directly without fetching the entire object over the network
-        sentiment = analysis.get("sentiment")
-        classification = analysis.get("classification")
-
-        stmt = update(Message).where(Message.id == message_id).values(
-            sentiment=sentiment,
-            classification=classification,
-            is_analyzed=True
+        # Update DB using a direct SQL UPDATE statement
+        # Use execution_options(synchronize_session='fetch') to ensure ORM events and identity map are updated
+        stmt = (
+            update(Message)
+            .where(Message.id == message_id)
+            .values(
+                sentiment=analysis.get("sentiment"),
+                classification=analysis.get("classification"),
+                is_analyzed=True
+            ).execution_options(synchronize_session="fetch")
         )
-        result = session.execute(stmt)
-
-        if result.rowcount == 0:
+        res = session.execute(stmt)
+        if res.rowcount == 0:
             return {"status": "error", "reason": "Message deleted during analysis"}
-        
+
+        # Explicitly expire the session to ensure subsequent accesses fetch the updated state
+        session.expire_all()        
         # Store message in ChromaDB for semantic search
         metadata = {
             "group_id": group_id,
             "sender_id": sender_id,
-            "sentiment": sentiment,
-            "classification": classification
-        }
+            "sentiment": analysis.get("sentiment"),
+            "classification": analysis.get("classification")        }
 
         # Commit early to release DB lock before network I/O
         session.commit()
@@ -77,13 +72,17 @@ def process_message(message_id: str):
         except Exception as e:
             # Revert analysis state so the task can be safely retried
             logging.error(f"Failed to store embedding for {message_id}: {e}")
-            stmt = update(Message).where(Message.id == message_id).values(
-                is_analyzed=False,
-                sentiment=None,
-                classification=None
+            stmt_revert = (
+                update(Message)
+                .where(Message.id == message_id)
+                .values(
+                    is_analyzed=False,
+                    sentiment=None,
+                    classification=None
+                ).execution_options(synchronize_session="fetch")
             )
-            session.execute(stmt)
-            session.commit()
+            session.execute(stmt_revert)
+            session.expire_all()            session.commit()
             raise e
 
         return {"status": "success", "message_id": message_id}
