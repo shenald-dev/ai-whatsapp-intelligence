@@ -27,11 +27,9 @@ def process_message(message_id: str):
     """Celery task worker to enrich a message with AI."""
     session = SessionLocal()
     try:
-        # We explicitly exclude large unused text fields (like `is_media` and `quoted_msg_id`) using `load_only`.
-        # This optimizes performance by significantly reducing database bandwidth and memory consumption per task.
-        # Note: If future logic requires additional fields, they must be manually added to this load_only list
-        # to prevent performance regressions from accidental N+1 lazy-loading database calls.
-        msg = session.get(Message, message_id, options=[load_only(Message.is_analyzed, Message.content, Message.group_id, Message.sender_id)])
+        # Use load_only to fetch only the required fields, saving memory and DB bandwidth,
+        # especially since the Message table can contain large Text columns.
+        msg = session.get(Message, message_id, options=[load_only(Message.content, Message.group_id, Message.sender_id, Message.is_analyzed)])
         if not msg or msg.is_analyzed or not msg.content:
             return {"status": "skipped", "reason": "Not found, analyzed, or empty"}
 
