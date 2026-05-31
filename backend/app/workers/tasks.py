@@ -35,12 +35,13 @@ def process_message(message_id: str):
         content = msg.content
         group_id = msg.group_id
         sender_id = msg.sender_id
-
         # Release the database connection back to the pool before blocking on the network call
         session.commit()
 
         # Run AI analysis (async block within sync celery task)
         analysis = ai_engine.analyze_message_sync(content)
+        sentiment = analysis.get("sentiment")
+        classification = analysis.get("classification")
 
         # Update DB directly without fetching the entire object over the network.
         # Note: Direct UPDATE statements bypass standard ORM listeners, hybrid properties, and version columns.
@@ -66,7 +67,6 @@ def process_message(message_id: str):
             "sentiment": sentiment,
             "classification": classification
         }
-
         # Commit early to release DB lock before network I/O
         session.commit()
 
@@ -76,14 +76,13 @@ def process_message(message_id: str):
             # Revert analysis state so the task can be safely retried
             logging.error(f"Failed to store embedding for {message_id}: {e}")
             stmt = update(Message).where(Message.id == message_id).values(
-                is_analyzed=False,
                 sentiment=None,
-                classification=None
+                classification=None,
+                is_analyzed=False
             )
             session.execute(stmt)
             session.commit()
             raise e
-
         return {"status": "success", "message_id": message_id}
         
     except Exception as e:
