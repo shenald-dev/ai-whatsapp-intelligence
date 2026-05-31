@@ -120,10 +120,10 @@ def test_get_recent_messages_pagination():
     mock_execute_result = MagicMock()
 
     mock_row = MagicMock()
-    mock_row.id = "msg1"
-    mock_row.content = "Hello"
-    mock_row.sentiment = "neutral"
-    mock_row.classification = "discussion"
+    mock_row = ("msg1", "Hello", "neutral", "discussion")
+
+
+
 
     mock_execute_result.all.return_value = [mock_row]
     mock_db.execute.return_value = mock_execute_result
@@ -151,13 +151,9 @@ def test_get_groups_pagination():
 
     mock_execute_result = MagicMock()
 
-    mock_row1 = MagicMock()
-    mock_row1.id = "grp1"
-    mock_row1.name = "Group 1"
+    mock_row1 = ("grp1", "Group 1")
 
-    mock_row2 = MagicMock()
-    mock_row2.id = "grp2"
-    mock_row2.name = "Group 2"
+    mock_row2 = ("grp2", "Group 2")
 
     mock_execute_result.all.return_value = [mock_row1, mock_row2]
     mock_db.execute.return_value = mock_execute_result
