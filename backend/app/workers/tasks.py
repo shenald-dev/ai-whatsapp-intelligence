@@ -31,8 +31,7 @@ def process_message(message_id: str):
         # This reduces network bandwidth and memory footprint. Ensure newly added attributes used below
         # are explicitly added to this load_only tuple to prevent lazy-loading crashes.
         msg = session.get(Message, message_id, options=[load_only(Message.content, Message.group_id, Message.sender_id, Message.is_analyzed)])
-        if not msg or msg.is_analyzed or not msg.content:
-            return {"status": "skipped", "reason": "Not found, analyzed, or empty"}
+        if not msg or msg.is_analyzed or not msg.content:            return {"status": "skipped", "reason": "Not found, analyzed, or empty"}
 
         # Extract needed fields before committing to prevent lazy loading
         content = msg.content
