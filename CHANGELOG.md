@@ -16,6 +16,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.29] - 2026-05-30
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Replaced positional indexing with SQLAlchemy 2.0+ NamedTuple attribute access for trusted Row objects in dashboard API endpoints to improve code maintainability and prevent regression bugs on schema changes.
+* **Upgrades:** Synced dependencies across both Python and Node.js environments.
+* **Pruning:** Pruned `__pycache__` artifacts and verified static analysis.
+
 ## [1.0.27] - 2026-05-26
 
 ### Assure, Prune, and Sync

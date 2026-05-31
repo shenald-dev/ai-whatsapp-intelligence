@@ -1,13 +1,19 @@
-## Improvements Made
-- Replaced `func.count(models.Message.id)` with `func.count()` in `get_group_stats` API endpoint.
+## APEX FORGE Run Report
 
-## Why It Matters
-Using `func.count(Column)` in SQLAlchemy checks for `NULL` values before counting, adding unnecessary overhead. Using `func.count()` simply counts the rows (`COUNT(*)`), resulting in faster database execution on this frequently hit analytics endpoint. This will reduce overall API latency and DB CPU load.
+**What changed:**
+1. Replaced positional indexing (`row[0]`, `row[1]`) with explicit NamedTuple attribute access (`row.id`, `row.name`, `row.content`, etc.) when mapping trusted SQLAlchemy `Row` tuples into Pydantic models in dashboard API endpoints (`get_groups` and `get_recent_messages`).
+2. Updated Pytest mocks in `backend/tests/test_dashboard.py` to match the SQLAlchemy `Row` attribute behavior.
+3. Synchronized dependency lockfiles across both Python and Node.js components.
+4. Cut a new release and updated versions to `1.0.29` consistently across `collector/package.json`, `backend/pyproject.toml`, `backend/app/main.py`, and `CHANGELOG.md`.
 
-## How It Was Verified
-- `pytest` for backend tests.
-- `npm test` for collector tests.
-- Locally reviewed the SQL emitted with `postgresql.dialect()` via a scratchpad to ensure the output shifted from `COUNT(messages.id)` to `COUNT(*)`.
+**Why it matters:**
+Using explicit attribute access for SQLAlchemy `Row` mapping enforces better code maintainability, clarity, and prevents downstream regression vulnerabilities (silent mapping bugs) that could occur if database columns are reordered or added within the `select()` statements.
 
-## Remaining Risk
-None. The optimization strictly reduces DB overhead while providing the exact same count given the nature of the table structure.
+**How it was verified:**
+The modification was completely verified by applying tests over the refactored endpoints. `test_dashboard.py` was updated, and the full backend suite (`poetry run pytest`) as well as the Node.js suite (`npm run test`) were run, both passing 100%. Lockfile sync was verified via `git status` and a code review tool confirmed changes as commit-ready.
+
+**Is the repository ready?**
+Yes, all tests pass successfully, lockfiles are synchronized, the versions align, the repository is verified clean via linter (`ruff`/`vulture`), and the commit is correctly tagged.
+
+**Remaining limitation or risk:**
+There are no major remaining technical limitations or newly introduced risks. The changes are strictly behavioral-preserving implementations explicitly allowed by the ORM architecture.
