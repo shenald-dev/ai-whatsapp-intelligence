@@ -30,15 +30,17 @@ def process_message(message_id: str):
         # load_only is used to prevent fetching large unused columns (like timestamp, is_media)
         # to save memory and DB bandwidth. These specific columns are required for the initial
         # condition check before AI analysis and metadata for Chroma; other columns are not needed.
-        msg = session.get(Message, message_id, options=[load_only(Message.is_analyzed, Message.content, Message.group_id, Message.sender_id)])
-        if not msg or msg.is_analyzed or not msg.content:
+        msg = session.get(Message, message_id, options=[load_only(Message.is_analyzed, Message.content, Message.group_id, Message.sender_id)])        if not msg or msg.is_analyzed or not msg.content:
             return {"status": "skipped", "reason": "Not found, analyzed, or empty"}
 
         # Extract needed fields before committing to prevent lazy loading
         content = msg.content
         group_id = msg.group_id
         sender_id = msg.sender_id
-
+        # Extract needed fields before committing
+        content = row.content
+        group_id = row.group_id
+        sender_id = row.sender_id
         # Release the database connection back to the pool before blocking on the network call
         session.commit()
 
@@ -58,15 +60,13 @@ def process_message(message_id: str):
 
         if result.rowcount == 0:
             return {"status": "error", "reason": "Message deleted during analysis"}
-        
-        # Store message in ChromaDB for semantic search
+                # Store message in ChromaDB for semantic search
         metadata = {
             "group_id": group_id,
             "sender_id": sender_id,
             "sentiment": sentiment,
             "classification": classification
         }
-
         # Commit early to release DB lock before network I/O
         session.commit()
 
@@ -81,8 +81,7 @@ def process_message(message_id: str):
                 classification=None
             )
             session.execute(stmt)
-            session.commit()
-            raise e
+            session.commit()            raise e
 
         return {"status": "success", "message_id": message_id}
         
