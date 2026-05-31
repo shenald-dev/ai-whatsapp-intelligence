@@ -1,3 +1,11 @@
+## 2024-05-31 — NamedTuple Indexing in Endpoints
+
+Learning:
+In SQLAlchemy 2.0+, `Row` objects explicitly act as `NamedTuple`s. Manual tuple indexing `row[X]` should be avoided in favor of explicitly using `NamedTuple` fields like `row.id` to improve readability and prevent fragility if columns change.
+
+Action:
+Replaced manual tuple indexing with explicit attribute access in `backend/app/api/endpoints.py`.
+
 ## 2024-03-17 — Refactored group dashboard API to prevent OOM errors and reduce latency
 
 Learning:
