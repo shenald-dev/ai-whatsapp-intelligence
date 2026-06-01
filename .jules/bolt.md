@@ -1,3 +1,11 @@
+## 2026-06-02 — Optimize SQLAlchemy COUNT(*) Aggregations
+
+Learning:
+Using `func.count(Model.id)` inside SQLAlchemy generates SQL like `COUNT(messages.id)`. PostgreSQL evaluates the specified column for `NULL` values during this operation, which adds unnecessary overhead. Using `func.count()` translates directly to `COUNT(*)`, which simply counts the rows without evaluating column data, improving query performance on heavily used endpoints.
+
+Action:
+Prefer `func.count()` over `func.count(Model.column)` when counting total rows or using `FILTER` clauses on queries, unless you specifically need to exclude `NULL` values from the count.
+
 ## 2024-05-31 — NamedTuple Indexing in Endpoints
 
 Learning:
