@@ -1,8 +1,13 @@
 <div align="center">
-  <img src="./assets/logo.png" alt="AI WhatsApp Intelligence Logo" width="200" style="border-radius: 20px" />
+  <img src="./assets/logo.png" alt="AI WhatsApp Intelligence Logo" width="250" style="border-radius: 20px" />
 
-  **A fully automated, real-time intelligence hub for your WhatsApp groups.**  
-  *Extract decisions, track sentiment, surface tasks, and generate insights autonomously using LangChain and LLMs.*
+  <br/>
+
+  <h1>💬 AI WhatsApp Intelligence</h1>
+  <p><b>Real-Time Group Chat Monitor & Intelligence Hub</b></p>
+  <i>Extract decisions, track sentiment, surface tasks, and generate insights autonomously using LangChain and LLMs.</i>
+  
+  <br/>
   
   [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
   [![FastAPI](https://img.shields.io/badge/FastAPI-0.110-009688.svg)](https://fastapi.tiangolo.com/)
@@ -12,28 +17,40 @@
 
 ---
 
+## 📑 Table of Contents
+- [🌟 Overview](#-overview)
+- [🚀 Enterprise Features](#-enterprise-features)
+- [🏗️ System Architecture](#️-system-architecture)
+- [🛠️ Quick Start Guide](#️-quick-start-guide)
+- [📸 Portfolio Preview](#-portfolio-preview)
+- [🔒 Privacy & Security](#-privacy--security)
+- [🤝 Contributing](#-contributing)
+
+---
+
 ## 🌟 Overview
 
 The **AI WhatsApp Group Intelligence Monitor** is an enterprise-grade stack that seamlessly connects to your WhatsApp account, listens to designated group chats, and uses AI to transform raw conversation logs into highly structured, actionable intelligence.
 
-Perfect for teams, communities, and digital agencies who need to extract the "signal from the noise" in high-volume chat environments.
-
-### 🚀 Key Features
-
-* **📡 Headless WhatsApp Collector:** Uses `whatsapp-web.js` to securely listen to groups without draining your phone battery. Now features HTTP Keep-Alive connection pooling for enhanced webhook dispatch throughput and lower latency.
-* **🤖 Cognitive AI Engine:** Powered by LangChain and OpenRouter (Anthropic Haiku / OpenAI).
-* **🎯 Message Classification:** Automatically flags messages as `Task`, `Decision`, `Question`, or `Announcement`.
-* **🧠 Vector Memory:** Integrates **ChromaDB** for semantic search and topic tracking over time.
-* **📊 Gorgeous Analytics Dashboard:** A glassmorphic, modern UI built with Next.js and TailwindCSS.
-* **📬 Intelligent Insights:** Daily & Weekly AI-generated summaries (Who said what, key outcomes, overall sentiment).
-* **🗜️ High-Performance API:** FastAPI backend uses `GZipMiddleware` to compress large JSON responses, saving network bandwidth and reducing latency for dashboard analytics.
-
+Perfect for teams, communities, and digital agencies who need to extract the "signal from the noise" in high-volume chat environments without constantly reading hundreds of messages.
 
 ---
 
-## 🏗️ Architecture
+## 🚀 Enterprise Features
 
-The system is decoupled into three massively scalable microservices, all orchestrated via Docker.
+* **📡 Headless WhatsApp Collector:** Uses `whatsapp-web.js` to securely listen to groups without draining your phone battery. Features HTTP Keep-Alive connection pooling for enhanced webhook dispatch throughput.
+* **🤖 Cognitive AI Engine:** Powered by LangChain and OpenRouter (Anthropic Haiku / OpenAI GPT-4o).
+* **🎯 Message Classification:** Automatically flags messages as `Task`, `Decision`, `Question`, or `Announcement`.
+* **🧠 Vector Memory Tracking:** Integrates **ChromaDB** for semantic search and topic tracking over time (e.g. "What did we decide about the UI design last week?").
+* **📊 Gorgeous Analytics Dashboard:** A glassmorphic, modern UI built with Next.js and TailwindCSS to visualize the chat data.
+* **📬 Intelligent Insights:** Generates daily & weekly AI summaries (Who said what, key outcomes, overall sentiment trajectory).
+* **🗜️ High-Performance API:** FastAPI backend uses `GZipMiddleware` to compress large JSON responses, saving network bandwidth and reducing latency for dashboard analytics.
+
+---
+
+## 🏗️ System Architecture
+
+The system is decoupled into three massively scalable microservices, orchestrated via Docker.
 
 ```mermaid
 graph TD
@@ -78,9 +95,10 @@ graph TD
 ## 🛠️ Quick Start Guide
 
 ### 1. Prerequisites
-- Docker & Docker Compose
+- Docker & Docker Compose installed
 - Node.js 20+
 - Python 3.11+
+- An OpenAI or OpenRouter API key
 
 ### 2. Infrastructure Setup
 Spin up PostgreSQL, Redis, and ChromaDB:
@@ -96,7 +114,7 @@ source venv/bin/activate  # or venv\Scripts\activate on Windows
 pip install poetry
 poetry install
 
-# Populate mock data for testing
+# Populate mock data for testing (optional)
 python seed.py
 
 # Start the API server
@@ -130,8 +148,17 @@ npm run dev
 
 ---
 
-## 🔒 Privacy First
-By default, this system stores **all data locally** in your own Postgres/ChromaDB instances. AI inferences can be configured to use local LLMs (via Ollama or Llama.cpp) through LangChain, ensuring end-to-end privacy for sensitive company chats.
+## 🔒 Privacy & Security
+
+By default, this system stores **all data locally** in your own Postgres/ChromaDB instances. AI inferences can be configured to use local LLMs (via Ollama or Llama.cpp) through LangChain instead of cloud providers, ensuring end-to-end privacy for sensitive company chats. No messages are stored externally.
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions to make the intelligence hub even smarter.
+- 🐛 **Found a bug?** Open an issue.
+- ✨ **Have a feature idea?** Submit a PR (e.g., adding Telegram or Discord adapters).
 
 ---
 *Built by a creative vibe coder with ❤️ and AI.*
