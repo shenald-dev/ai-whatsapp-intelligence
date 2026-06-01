@@ -14,5 +14,3 @@ Optimized the SQLAlchemy aggregations in the `get_group_stats` endpoint within `
 
 **Readiness and remaining risks:**
 The codebase remains robust, fully tested, and shippable. No architectural or security risks were introduced.
-
-Version bumped to 1.0.29 across components and updated lock files.
