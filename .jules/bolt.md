@@ -509,3 +509,11 @@ Using `func.count(Model.id)` inside SQLAlchemy generates SQL like `COUNT(message
 
 Action:
 Prefer `func.count()` over `func.count(Model.column)` when counting total rows or using `FILTER` clauses on queries, unless you specifically need to exclude `NULL` values from the count.
+
+## 2026-06-01 — Use func.count() over func.count(column)
+
+Learning:
+Using `func.count()` translates to `COUNT(*)` in PostgreSQL, which is faster for counting rows on frequently hit endpoints as it skips NULL checks.
+
+Action:
+Always prefer `func.count()` over `func.count(Model.column)` when the exact column count isn't required.
