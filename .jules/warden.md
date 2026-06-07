@@ -31,3 +31,14 @@ Entropy pruned: 5 one-off scripts deleted to maintain repository cleanliness and
 
 **Alignment / Deferred:**
 Codebase paths fully aligned and stable. All tests fully passed. Repository hygiene maintained.
+
+## 2026-06-07 — WARDEN Run
+
+QA Status: verified
+Dead Code Removed: 111 lines
+Dependencies Bumped: 0
+Security: Critical=0, High=0
+Docs Updated: .jules/warden.md
+Release: none
+
+AI Summary: Identified and pruned 5 one-off agent scripts (fix_*.py, resolve_warden.py) left behind in the root directory. Verified recent SQL COUNT(*) optimizations and NamedTuple indexing fixes via test suite. Updated warden ledger and prepared a patch release (v1.0.29) for the cleanup.
