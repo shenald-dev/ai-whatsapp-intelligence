@@ -15,7 +15,7 @@
   },
   "warden": {
     "qa_status": "verified",
-    "dead_code_removed_lines": 18,
+    "dead_code_removed_lines": 0,
     "dependencies_bumped": [],
     "security_critical": 0,
     "security_high": 0,
