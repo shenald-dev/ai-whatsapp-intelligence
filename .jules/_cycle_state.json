@@ -15,15 +15,13 @@
   },
   "warden": {
     "qa_status": "verified",
-    "dead_code_removed_lines": 111,
+    "dead_code_removed_lines": 18,
     "dependencies_bumped": [],
     "security_critical": 0,
     "security_high": 0,
     "security_medium": 0,
     "security_low": 0,
-    "docs_updated": [
-      ".jules/warden.md"
-    ],
+    "docs_updated": [],
     "release_version": null,
     "blockers": []
   }
