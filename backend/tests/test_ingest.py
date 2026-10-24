@@ -139,3 +139,32 @@ def test_ingest_message_timestamp_validation():
 
     response = client.post("/api/v1/ingest", json=payload_large_timestamp)
     assert response.status_code == 422
+
+def test_ingest_message_500_error_hides_secret():
+    client = TestClient(app)
+
+    mock_db = AsyncMock()
+    # Simulate a database exception that contains a secret
+    mock_db.execute.side_effect = Exception("Connection refused: postgresql://user:MY_SUPER_SECRET_PASSWORD@localhost:5432/db")
+
+    app.dependency_overrides[get_db] = lambda: mock_db
+    app.dependency_overrides[get_api_key] = lambda: "valid-key"
+
+    payload = {
+        "message_id": "msg1",
+        "group_id": "grp1",
+        "group_name": "Group 1",
+        "sender_id": "usr1",
+        "sender_name": "User 1",
+        "content": "Hello",
+        "timestamp": 1700000000,
+        "is_media": False
+    }
+
+    response = client.post("/api/v1/ingest", json=payload)
+
+    assert response.status_code == 500
+
+    data = response.json()
+    assert "MY_SUPER_SECRET_PASSWORD" not in str(data)
+    assert data.get("detail") == "Internal Server Error"

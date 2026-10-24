@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 import collections
 from sqlalchemy.dialects.postgresql import insert
+import logging
 
 from .db.database import engine, get_db
 from .db import models
@@ -128,7 +129,8 @@ async def ingest_message(
 
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        logging.error(f"Database error during ingest: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
     # If inserted_id is None, it means the message was already inserted by a concurrent request
     if not inserted_id:
