@@ -47,9 +47,6 @@ def process_message(message_id: str):
         # Note: Direct UPDATE statements bypass standard ORM listeners, hybrid properties, and version columns.
         # This is safe here because the `Message` model currently has no such listeners
         # attached to `sentiment`, `classification`, or `is_analyzed`, and no versioning columns.
-        sentiment = analysis.get("sentiment")
-        classification = analysis.get("classification")
-
         stmt = update(Message).where(Message.id == message_id).values(
             sentiment=sentiment,
             classification=classification,
