@@ -525,3 +525,11 @@ Using `func.count()` translates to `COUNT(*)` in PostgreSQL, which is faster for
 
 Action:
 Always prefer `func.count()` over `func.count(Model.column)` when the exact column count isn't required.
+
+## 2026-06-19 — Prevent Information Exposure in API Exceptions
+
+Learning:
+Explicitly catching raw exceptions and returning them in 500 HTTP responses (e.g., `raise HTTPException(status_code=500, detail=str(e))`) creates a critical Information Exposure vulnerability. Database connection errors often include full connection URIs with embedded plain-text passwords and sensitive schema details, which should never be leaked to the client.
+
+Action:
+Always log the raw exception internally for debugging, but return a generic message like `"Internal Server Error"` to the client.
