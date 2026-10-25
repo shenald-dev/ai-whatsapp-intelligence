@@ -108,3 +108,14 @@ Docs Updated: CHANGELOG.md, .jules/warden.md
 Release: none
 
 AI Summary: Repository is stable and clean. Removed duplicated assignment logic in `process_message` Celery task (`tasks.py`). Addressed NPM high severity vulnerabilities in the Node.js collector dependencies via `npm audit fix`. Tests pass for both backend and collector. Updated CHANGELOG.md and .jules/warden.md. No further lifecycle actions required this cycle.
+
+## 2026-06-21 — WARDEN Run
+
+QA Status: verified
+Dead Code Removed: 0 lines
+Dependencies Bumped: 0
+Security: Critical=0, High=0
+Docs Updated: CHANGELOG.md, .jules/warden.md
+Release: none
+
+AI Summary: Identified and fixed missing `await` regression in `forwardToBackend(payload)` call within `collector/src/index.js` message handler, preventing unhandled promise rejections. Pruned `__pycache__` directories across the repository to maintain cleanliness and reduce entropy. No obsolete dependencies found. Test suite passing.

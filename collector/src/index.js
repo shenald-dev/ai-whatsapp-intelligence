@@ -98,7 +98,7 @@ client.on('message', async (msg) => {
         };
 
         // Forward to backend asynchronously
-        forwardToBackend(payload);
+        await forwardToBackend(payload);
         
     } catch (error) {
         console.error('⚠️ Error processing message:', error.message);

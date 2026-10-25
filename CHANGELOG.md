@@ -5,9 +5,9 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Assure, Prune, and Sync
-* **Lifecycle:** Verified system integrity post-optimizations. Fixed duplicate assignment logic in `process_message` Celery task.
+* **Lifecycle:** Verified system integrity post-optimizations. Fixed duplicate assignment logic in `process_message` Celery task. Fixed missing `await` regression in `forwardToBackend` call inside `collector/src/index.js` message handler.
 * **Upgrades:** Addressed NPM high severity vulnerabilities in the Node.js collector dependencies.
-* **Pruning:** Pruned dead duplicate assignments in `tasks.py`.
+* **Pruning:** Pruned dead duplicate assignments in `tasks.py`. Pruned `__pycache__` artifacts to maintain codebase entropy.
 
 ## [1.0.28] - 2026-05-27
 
