@@ -87,7 +87,7 @@ async def seed_db():
             )
             
             messages.append(msg)
-            analysis_tasks.append(ai_engine.analyze_message(content))
+            analysis_tasks.append(asyncio.to_thread(ai_engine.analyze_message_sync, content))
 
         # Execute all AI analysis concurrently
         analyses = await asyncio.gather(*analysis_tasks)
