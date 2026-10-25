@@ -181,3 +181,7 @@ All notable changes to this project will be documented in this file.
 ### Assure, Prune, and Sync
 * **Lifecycle:** Verified system integrity post-optimizations. Pruned `__pycache__` artifacts to reduce codebase entropy. Verified static analysis with no dead code found.
 * **Upgrades:** Bumped safe minor/patch versions for node dependency `dotenv` and multiple python backend dependencies (`click`, `orjson`, `huggingface-hub`, `sqlalchemy`, etc).
+
+### Assure, Prune, and Sync
+* **Lifecycle:** Resolved asyncio event loop blocking in `seed.py` by offloading `ai_engine.analyze_message_sync` to `asyncio.to_thread`.
+* **Pruning:** Added `.vulture_whitelist.py` in the backend to prune static analysis false positives on FastAPI endpoints and Celery tasks, achieving a zero-warning vulture run.
