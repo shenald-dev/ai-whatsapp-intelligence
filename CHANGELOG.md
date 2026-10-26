@@ -187,3 +187,6 @@ All notable changes to this project will be documented in this file.
 ### Assure, Prune, and Sync
 * **Lifecycle:** Resolved asyncio event loop blocking in `seed.py` by offloading `ai_engine.analyze_message_sync` to `asyncio.to_thread`.
 * **Pruning:** Added `.vulture_whitelist.py` in the backend to prune static analysis false positives on FastAPI endpoints and Celery tasks, achieving a zero-warning vulture run.
+
+## [Unreleased]
+**Fixed:** Resolved a data consistency bug in the Celery worker by ensuring the vector embedding network upload happens atomically within the database transaction boundary.

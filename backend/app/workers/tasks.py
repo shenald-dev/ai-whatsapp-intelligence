@@ -57,29 +57,25 @@ def process_message(message_id: str):
         if result.rowcount == 0:
             return {"status": "error", "reason": "Message deleted during analysis"}
         
-        # Store message in ChromaDB for semantic search
+        # Store message in ChromaDB for semantic search BEFORE committing DB.
+        # This prevents split-brain bugs if the network call to ChromaDB fails or the worker crashes.
         metadata = {
             "group_id": group_id,
             "sender_id": sender_id,
             "sentiment": sentiment,
             "classification": classification
         }
-        # Commit early to release DB lock before network I/O
-        session.commit()
 
         try:
             store_message_embedding(message_id, content, metadata)
         except Exception as e:
-            # Revert analysis state so the task can be safely retried
+            # Revert the uncommitted UPDATE in memory
+            session.rollback()
             logging.error(f"Failed to store embedding for {message_id}: {e}")
-            stmt = update(Message).where(Message.id == message_id).values(
-                sentiment=None,
-                classification=None,
-                is_analyzed=False
-            )
-            session.execute(stmt)
-            session.commit()
             raise e
+
+        session.commit()
+
         return {"status": "success", "message_id": message_id}
         
     except Exception as e:
