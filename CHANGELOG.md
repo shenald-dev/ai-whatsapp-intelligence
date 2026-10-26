@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+**[Fixed]:** Fixed unused import warnings for `pytest` and `unittest.mock.MagicMock` in `backend/tests/test_orm_bypass.py` and `backend/tests/test_tasks.py` and ignored module-level import errors (E402) in `backend/tests/test_tasks.py` to achieve zero warnings from static code analysis (ruff).
+
 ### Assure, Prune, and Sync
 * **Lifecycle:** Verified system integrity post-optimizations. Fixed duplicate assignment logic in `process_message` Celery task. Fixed missing `await` regression in `forwardToBackend` call inside `collector/src/index.js` message handler.
 * **Upgrades:** Addressed NPM high severity vulnerabilities in the Node.js collector dependencies.
