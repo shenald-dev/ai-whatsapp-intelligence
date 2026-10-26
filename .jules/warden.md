@@ -32,3 +32,9 @@ Docs Updated: none
 Release: none
 
 AI Summary: Resolved asyncio event loop blocking in `seed.py` by offloading `ai_engine.analyze_message_sync` to `asyncio.to_thread`. Added `.vulture_whitelist.py` in the backend to prune static analysis false positives on FastAPI endpoints and Celery tasks, achieving a zero-warning vulture run.
+
+## 2026-10-26 — Lifecycle & Assurance Ledger
+
+- **QA & Veto Actions:** Fixed `pytest` and `unittest.mock.MagicMock` import unused warnings by removing them from `backend/tests/test_orm_bypass.py` and `backend/tests/test_tasks.py` and adding `noqa: E402` to module level imports.
+- **Entropy Pruned:** Pruned unused test imports and false positives from static code analysis (ruff).
+- **Deferred / Blocked:** None.
