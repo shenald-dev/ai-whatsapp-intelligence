@@ -1,6 +1,5 @@
 import os
 import pytest
-from unittest.mock import MagicMock
 
 # Mock the environment variable BEFORE importing tasks
 # Note SQLite doesn't support max_overflow, so we must patch create_engine
@@ -17,8 +16,8 @@ sqlalchemy.create_engine = mock_create_engine
 os.environ["SYNC_DATABASE_URL"] = "sqlite:///:memory:"
 os.environ["REDIS_URL"] = "redis://localhost:6379/0"
 
-from app.workers.tasks import process_message, engine, SessionLocal
-import app.db.models as models
+from app.workers.tasks import process_message, engine, SessionLocal  # noqa: E402
+import app.db.models as models  # noqa: E402
 
 @pytest.fixture
 def db_session():

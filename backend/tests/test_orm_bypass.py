@@ -1,4 +1,3 @@
-import pytest
 from app.db.models import Message
 from sqlalchemy import event
 

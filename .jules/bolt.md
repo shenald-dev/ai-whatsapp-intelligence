@@ -533,3 +533,8 @@ Explicitly catching raw exceptions and returning them in 500 HTTP responses (e.g
 
 Action:
 Always log the raw exception internally for debugging, but return a generic message like `"Internal Server Error"` to the client.
+
+## 2026-10-26 — Prevent Data Inconsistency (Split-Brain) in Distributed Workers
+
+- **Learning:** In distributed systems, executing network calls (like uploading to ChromaDB) outside of a database transaction boundary—or attempting manual compensations (like executing another UPDATE to revert)—leaves the system vulnerable to data corruption if a crash occurs in between.
+- **Action:** Ensure atomic consistency across distinct systems by moving the idempotent external network call inside the database transaction boundary *before* `session.commit()`. If the external call fails, executing a simple `session.rollback()` reverts the uncommitted state atomically, preventing split-brain bugs.
