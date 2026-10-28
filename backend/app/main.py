@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 import collections
 from sqlalchemy.dialects.postgresql import insert
 import logging
+import re
 
 from .db.database import engine, get_db
 from .db import models
@@ -67,6 +68,10 @@ class SimpleLRUCache:
 
 # Cache for entity existence checks
 entity_cache = SimpleLRUCache(1000)
+
+def sanitize_error_msg(error_msg: str) -> str:
+    """Sanitizes connection URIs in error messages to prevent secret leaks."""
+    return re.sub(r"(://[^@]*?:)[^@]+(@)", r"\1***\2", error_msg)
 
 @app.get("/")
 async def root():
@@ -129,7 +134,8 @@ async def ingest_message(
 
     except Exception as e:
         await db.rollback()
-        logging.error(f"Database error during ingest: {e}")
+        safe_error = sanitize_error_msg(str(e))
+        logging.error(f"Database error during ingest: {safe_error}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
     # If inserted_id is None, it means the message was already inserted by a concurrent request
