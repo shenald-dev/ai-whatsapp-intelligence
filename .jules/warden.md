@@ -49,3 +49,14 @@ Docs Updated: CHANGELOG.md, .jules/warden.md
 Release: none
 
 AI Summary: Verified system integrity post-optimizations. Deferred NPM vulnerability fixes in the Node.js Collector (`extract-zip`, `tar-fs`, `ws`, `zod`, `basic-ftp`) because `npm audit fix` requires forcing a breaking major version downgrade on `whatsapp-web.js` (from `1.34.7` to `1.34.2`). Test suites passed.
+
+## 2026-10-29 — WARDEN Run
+
+QA Status: verified
+Dead Code Removed: 0 lines
+Dependencies Bumped: 0
+Security: Critical=1, High=0
+Docs Updated: CHANGELOG.md, .jules/warden.md, .jules/bolt.md
+Release: none
+
+AI Summary: Resolved a critical Information Exposure vulnerability where raw `asyncpg`/`SQLAlchemy` exceptions were logged verbatim during webhook ingestion, leaking the database connection URI (including passwords). Added a robust regex sanitizer `sanitize_error_msg` to mask credentials in exception strings before they reach the logger. Created `test_log_leak.py` to assert the secret is properly redacted from captured logs. Test suite is completely stable and aligned.
