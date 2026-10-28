@@ -191,3 +191,6 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 **Fixed:** Resolved a data consistency bug in the Celery worker by ensuring the vector embedding network upload happens atomically within the database transaction boundary.
 **Assurance:** Verified system integrity post-optimizations. Deferred NPM vulnerability fixes in the Node.js Collector (`extract-zip`, `tar-fs`, `ws`, `zod`, `basic-ftp`) due to breaking major version constraints.
+
+## [Unreleased]
+**[Fixed]:** Sanitized database connection string secrets from being leaked into internal application error logs.

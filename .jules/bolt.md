@@ -538,3 +538,8 @@ Always log the raw exception internally for debugging, but return a generic mess
 
 - **Learning:** In distributed systems, executing network calls (like uploading to ChromaDB) outside of a database transaction boundary—or attempting manual compensations (like executing another UPDATE to revert)—leaves the system vulnerable to data corruption if a crash occurs in between.
 - **Action:** Ensure atomic consistency across distinct systems by moving the idempotent external network call inside the database transaction boundary *before* `session.commit()`. If the external call fails, executing a simple `session.rollback()` reverts the uncommitted state atomically, preventing split-brain bugs.
+
+## 2026-10-29 — Prevent Secret Leaks in Exception Logs
+
+- **Learning:** Directly logging raw exceptions like `logging.error(f"Database error during ingest: {e}")` when catching database errors can inadvertently leak plain-text passwords embedded in connection URIs (e.g., from `asyncpg` or `SQLAlchemy` connection strings).
+- **Action:** Always sanitize raw exception strings using a regex pattern (e.g., `re.sub(r"(://[^@]*?:)[^@]+(@)", r"\1***\2", error_msg)`) before writing them to application logs, balancing the need for detailed debugging with strict secret redaction.
