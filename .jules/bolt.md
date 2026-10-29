@@ -543,3 +543,8 @@ Always log the raw exception internally for debugging, but return a generic mess
 
 - **Learning:** Directly logging raw exceptions like `logging.error(f"Database error during ingest: {e}")` when catching database errors can inadvertently leak plain-text passwords embedded in connection URIs (e.g., from `asyncpg` or `SQLAlchemy` connection strings).
 - **Action:** Always sanitize raw exception strings using a regex pattern (e.g., `re.sub(r"(://[^@]*?:)[^@]+(@)", r"\1***\2", error_msg)`) before writing them to application logs, balancing the need for detailed debugging with strict secret redaction.
+
+## 2026-10-31 — Prevent Indefinite Blocking on External LLM Network Calls
+
+- **Learning:** Background tasks (like Celery workers) executing synchronous third-party client integrations (e.g., LangChain LLM initializations without default timeouts) are vulnerable to infinite hangs if the external network or API provider (like OpenRouter) becomes unresponsive. This leads to silent starvation of the worker pool.
+- **Action:** Always explicitly configure `request_timeout` and `max_retries` when instantiating external network clients (like `ChatOpenAI`) to ensure they fail fast and safely hand off back to the background task runner's retry loop.
