@@ -3,6 +3,7 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+**[Assurance]:** Updated psycopg2-binary to 2.9.13 and completed Warden lifecycle audit without identifying regressions.
 
 **[Fixed]:** Fixed unused import warnings for `pytest` and `unittest.mock.MagicMock` in `backend/tests/test_orm_bypass.py` and `backend/tests/test_tasks.py` and ignored module-level import errors (E402) in `backend/tests/test_tasks.py` to achieve zero warnings from static code analysis (ruff).
 

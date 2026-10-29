@@ -1,4 +1,3 @@
-import pytest
 import logging
 from unittest.mock import AsyncMock
 from fastapi.testclient import TestClient
