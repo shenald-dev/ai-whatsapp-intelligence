@@ -13,6 +13,7 @@
   [![FastAPI](https://img.shields.io/badge/FastAPI-0.110-009688.svg)](https://fastapi.tiangolo.com/)
   [![Next.js](https://img.shields.io/badge/Next.js-14-black.svg)](https://nextjs.org)
   [![LangChain](https://img.shields.io/badge/LangChain-AI-orange.svg)](https://langchain.com)
+  [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 </div>
 
 ---
@@ -162,3 +163,8 @@ We welcome contributions to make the intelligence hub even smarter.
 
 ---
 *Built by a creative vibe coder with ❤️ and AI.*
+
+
+## 📄 License
+
+This project is licensed under the [GNU General Public License v3.0 (GPL-3.0-or-later)](LICENSE).
