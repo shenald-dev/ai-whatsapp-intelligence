@@ -1,3 +1,7 @@
 __pycache__/
+*.pyc
 node_modules/
 .wwebjs_auth/
+.chroma_data/
+.pytest_cache/
+.env.local

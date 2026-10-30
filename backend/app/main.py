@@ -1,8 +1,9 @@
 from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import ORJSONResponse
+from fastapi.responses import ORJSONResponse, HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql import text
 import os
 from datetime import datetime, timezone
 from contextlib import asynccontextmanager
@@ -12,8 +13,10 @@ import logging
 
 from .db.database import engine, get_db, sanitize_error_msg
 from .db import models
+from .db.chroma import get_collection_stats
 from .api.schemas import MessageIngest
 from .api.endpoints import router as dashboard_router
+from .api.stream import event_bus
 from .workers.celery_config import celery_app
 from .api.auth import get_api_key
 
@@ -26,19 +29,19 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="AI WhatsApp Intelligence API",
-    description="Backend API for ingesting, analyzing, and retrieving WhatsApp group intelligence.",
-    version="1.0.29",
+    description="Enterprise API & Real-Time Intelligence Engine for WhatsApp group conversations.",
+    version="1.1.0",
     lifespan=lifespan,
     default_response_class=ORJSONResponse
 )
 
 # CORS Setup
-allowed_origins_raw = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000")
-allowed_origins = [origin.strip() for origin in allowed_origins_raw.split(",")]
+allowed_origins_raw = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:8000")
+allowed_origins = [origin.strip() for origin in allowed_origins_raw.split(",") if origin.strip()]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=allowed_origins if allowed_origins else ["*"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type", "X-API-Key"],
@@ -70,9 +73,36 @@ entity_cache = SimpleLRUCache(1000)
 
 @app.get("/")
 async def root():
-    return {"status": "online", "service": "awi_backend"}
+    return {
+        "status": "online",
+        "service": "awi_backend",
+        "version": "1.1.0",
+        "dashboard_ui": "/dashboard",
+        "docs_url": "/docs",
+        "health_check": "/health"
+    }
 
-# Ingestion Webhook used by the Node.js Collector
+@app.get("/health")
+async def health_check(db: AsyncSession = Depends(get_db)):
+    """System health check verifying database and vector store connectivity."""
+    db_status = "connected"
+    try:
+        await db.execute(text("SELECT 1"))
+    except Exception as e:
+        db_status = f"unhealthy: {sanitize_error_msg(str(e))}"
+
+    vector_stats = get_collection_stats()
+
+    is_healthy = db_status == "connected" and vector_stats.get("status") == "online"
+    return {
+        "status": "healthy" if is_healthy else "degraded",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "database": db_status,
+        "chromadb": vector_stats,
+        "version": "1.1.0"
+    }
+
+# Ingestion Webhook used by the Node.js Collector & CLI Simulator
 @app.post("/api/v1/ingest")
 async def ingest_message(
     payload: MessageIngest, 
@@ -139,5 +169,511 @@ async def ingest_message(
         
     # Trigger a Celery task to run AI enrichment asynchronously
     background_tasks.add_task(celery_app.send_task, "enrich_message", args=[inserted_id])
+
+    # Broadcast real-time message.ingested event over SSE stream
+    background_tasks.add_task(
+        event_bus.publish,
+        "message.ingested",
+        {
+            "message_id": inserted_id,
+            "group_id": payload.group_id,
+            "group_name": payload.group_name,
+            "sender_name": payload.sender_name,
+            "content": payload.content,
+            "timestamp": payload.timestamp
+        }
+    )
     
     return {"status": "success", "message_id": inserted_id}
+
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard_ui():
+    """Interactive glassmorphic web dashboard for AI WhatsApp Intelligence."""
+    html_content = """<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI WhatsApp Intelligence Hub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 500: '#25D366', 600: '#128C7E', 700: '#075E54' }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { background: #0B0F17; color: #F3F4F6; font-family: ui-sans-serif, system-ui, sans-serif; }
+    .glass-card { background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
+    .glass-input { background: rgba(31, 41, 55, 0.6); border: 1px solid rgba(255, 255, 255, 0.12); color: #FFF; }
+    .glass-input:focus { border-color: #25D366; outline: none; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+  <!-- Top Navigation -->
+  <header class="border-b border-gray-800 bg-gray-900/60 backdrop-blur-md sticky top-0 z-50 px-6 py-3 flex items-center justify-between">
+    <div class="flex items-center space-x-3">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-700 to-brand-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
+        <i class="fa-brands fa-whatsapp text-xl"></i>
+      </div>
+      <div>
+        <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+          AI WhatsApp Intelligence <span class="text-xs font-mono font-medium px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-500 border border-brand-500/30">v1.1</span>
+        </h1>
+        <p class="text-xs text-gray-400">Autonomous Group Monitor & Vector RAG Hub</p>
+      </div>
+    </div>
+    <div class="flex items-center space-x-4">
+      <div id="sse-badge" class="flex items-center space-x-2 text-xs px-3 py-1.5 rounded-full bg-gray-800 border border-gray-700 text-gray-300">
+        <span class="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" id="sse-dot"></span>
+        <span id="sse-text">Connecting Stream...</span>
+      </div>
+      <div class="flex items-center space-x-2">
+        <input type="password" id="api-key-input" placeholder="X-API-Key" class="glass-input text-xs px-3 py-1.5 rounded-lg w-32 focus:w-48 transition-all">
+        <button onclick="saveApiKey()" class="text-xs px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700">Save</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="flex-1 p-6 grid grid-cols-12 gap-6 max-w-7xl mx-auto w-full">
+    <!-- Left Column: KPI Stats & Group Switcher -->
+    <div class="col-span-12 lg:col-span-4 space-y-6">
+      <!-- Monitored Groups Selector -->
+      <div class="glass-card rounded-2xl p-5 shadow-xl">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-2">
+            <i class="fa-solid fa-users text-brand-500"></i> Monitored Groups
+          </h2>
+          <button onclick="loadGroups()" class="text-xs text-gray-400 hover:text-white"><i class="fa-solid fa-arrows-rotate"></i></button>
+        </div>
+        <div id="groups-list" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+          <div class="text-xs text-gray-500 italic p-3 text-center">Loading monitored groups...</div>
+        </div>
+      </div>
+
+      <!-- High-Level KPI Cards -->
+      <div class="grid grid-cols-2 gap-3">
+        <div class="glass-card rounded-xl p-4">
+          <div class="text-xs text-gray-400">Total Messages</div>
+          <div class="text-2xl font-bold text-white mt-1" id="stat-total">0</div>
+          <div class="text-[10px] text-gray-500 mt-1" id="stat-analyzed">0 analyzed</div>
+        </div>
+        <div class="glass-card rounded-xl p-4">
+          <div class="text-xs text-gray-400">Tasks Detected</div>
+          <div class="text-2xl font-bold text-amber-400 mt-1" id="stat-tasks">0</div>
+          <div class="text-[10px] text-gray-500 mt-1">Action items flagged</div>
+        </div>
+        <div class="glass-card rounded-xl p-4">
+          <div class="text-xs text-gray-400">Decisions Made</div>
+          <div class="text-2xl font-bold text-emerald-400 mt-1" id="stat-decisions">0</div>
+          <div class="text-[10px] text-gray-500 mt-1">Consensus points</div>
+        </div>
+        <div class="glass-card rounded-xl p-4">
+          <div class="text-xs text-gray-400">Sentiment Health</div>
+          <div class="text-2xl font-bold text-brand-500 mt-1" id="stat-sentiment">--</div>
+          <div class="text-[10px] text-gray-500 mt-1" id="stat-sentiment-sub">pos / neg ratio</div>
+        </div>
+      </div>
+
+      <!-- Quick Briefing & Export Card -->
+      <div class="glass-card rounded-2xl p-5 shadow-xl space-y-4">
+        <h2 class="text-sm font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-2">
+          <i class="fa-solid fa-file-invoice text-brand-500"></i> Executive Briefing
+        </h2>
+        <div class="flex items-center space-x-2">
+          <select id="briefing-hours" class="glass-input text-xs rounded-lg px-3 py-2 flex-1">
+            <option value="24">Last 24 Hours</option>
+            <option value="72" selected>Last 3 Days (72h)</option>
+            <option value="168">Last 7 Days</option>
+            <option value="720">Last 30 Days</option>
+          </select>
+          <button onclick="fetchBriefing()" class="bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-all shadow-lg shadow-brand-600/30">
+            Generate
+          </button>
+        </div>
+        <div class="flex items-center justify-between pt-2 border-t border-gray-800 text-xs">
+          <span class="text-gray-400">Export Report:</span>
+          <div class="space-x-1">
+            <button onclick="exportReport('markdown')" class="px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-300">.MD</button>
+            <button onclick="exportReport('csv')" class="px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-300">.CSV</button>
+            <button onclick="exportReport('json')" class="px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-300">.JSON</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Search, Ask AI & Feed -->
+    <div class="col-span-12 lg:col-span-8 space-y-6">
+      <!-- Ask-AI Conversational RAG Bar -->
+      <div class="glass-card rounded-2xl p-5 shadow-xl">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-sm font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-2">
+            <i class="fa-solid fa-brain text-purple-400"></i> Ask Group Memory (RAG)
+          </h2>
+          <span class="text-[11px] text-gray-500">Vector-grounded answers with citations</span>
+        </div>
+        <div class="flex space-x-2">
+          <input type="text" id="ask-input" placeholder="e.g., 'What did Alex decide about the database migration?' or 'What are the open bugs?'" class="glass-input rounded-xl px-4 py-2.5 text-sm flex-1">
+          <button onclick="askAI()" id="ask-btn" class="bg-purple-600 hover:bg-purple-500 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-purple-600/30 flex items-center gap-2">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> <span>Ask</span>
+          </button>
+        </div>
+        <!-- Ask Answer Display Box -->
+        <div id="ask-answer-box" class="hidden mt-4 p-4 rounded-xl bg-purple-950/20 border border-purple-500/20 text-sm space-y-3">
+          <div class="text-gray-200 font-medium" id="ask-answer-text"></div>
+          <div id="ask-citations" class="border-t border-purple-500/10 pt-2 space-y-1"></div>
+        </div>
+      </div>
+
+      <!-- Semantic Search Bar -->
+      <div class="glass-card rounded-2xl p-4 shadow-xl flex items-center space-x-3">
+        <i class="fa-solid fa-magnifying-glass text-gray-400 pl-2"></i>
+        <input type="text" id="search-input" onkeyup="if(event.key==='Enter') executeSearch()" placeholder="Semantic Vector Search across messages (type and press Enter)..." class="bg-transparent border-none text-sm text-white placeholder-gray-500 flex-1 focus:outline-none">
+        <button onclick="executeSearch()" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-lg border border-gray-700">Search</button>
+      </div>
+
+      <!-- Tabbed Views: Live Feed vs Briefing Results vs Search Results -->
+      <div class="glass-card rounded-2xl p-5 shadow-xl min-h-[400px]">
+        <div class="flex items-center justify-between border-b border-gray-800 pb-3 mb-4">
+          <div class="flex space-x-4">
+            <button onclick="switchTab('feed')" id="tab-feed" class="text-sm font-semibold text-brand-500 border-b-2 border-brand-500 pb-2">Live Message Feed</button>
+            <button onclick="switchTab('briefing')" id="tab-briefing" class="text-sm font-semibold text-gray-400 hover:text-white pb-2">Executive Briefing</button>
+            <button onclick="switchTab('search')" id="tab-search" class="text-sm font-semibold text-gray-400 hover:text-white pb-2">Search Results</button>
+          </div>
+          <div class="text-xs text-gray-500" id="current-group-label">No group selected</div>
+        </div>
+
+        <!-- View 1: Message Feed -->
+        <div id="view-feed" class="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+          <div class="text-sm text-gray-500 italic p-6 text-center">Select a group on the left to inspect intelligence messages.</div>
+        </div>
+
+        <!-- View 2: Executive Briefing Content -->
+        <div id="view-briefing" class="hidden space-y-6 max-h-[500px] overflow-y-auto pr-2">
+          <div class="text-sm text-gray-500 italic p-6 text-center">Click 'Generate' on the left to produce an autonomous executive briefing.</div>
+        </div>
+
+        <!-- View 3: Search Results Content -->
+        <div id="view-search" class="hidden space-y-3 max-h-[500px] overflow-y-auto pr-1">
+          <div class="text-sm text-gray-500 italic p-6 text-center">Run a semantic vector query above to inspect matched messages and similarity scores.</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    let selectedGroupId = null;
+    let selectedGroupName = '';
+    let apiKey = localStorage.getItem('awi_api_key') || '';
+
+    if (apiKey) document.getElementById('api-key-input').value = apiKey;
+
+    function saveApiKey() {
+      apiKey = document.getElementById('api-key-input').value.trim();
+      localStorage.setItem('awi_api_key', apiKey);
+      alert('API Key saved!');
+      loadGroups();
+    }
+
+    function getHeaders() {
+      const h = { 'Content-Type': 'application/json' };
+      if (apiKey) h['X-API-Key'] = apiKey;
+      return h;
+    }
+
+    // Load Groups
+    async function loadGroups() {
+      try {
+        const res = await fetch('/api/v1/dashboard/groups', { headers: getHeaders() });
+        if (!res.ok) throw new Error('Failed to load groups');
+        const groups = await res.json();
+        const container = document.getElementById('groups-list');
+        container.innerHTML = '';
+        if (groups.length === 0) {
+          container.innerHTML = '<div class="text-xs text-gray-500 p-2 text-center">No groups recorded yet.</div>';
+          return;
+        }
+        groups.forEach((g, idx) => {
+          const btn = document.createElement('button');
+          btn.className = `w-full text-left px-3 py-2.5 rounded-xl text-xs font-medium transition-all flex items-center justify-between ${
+            (selectedGroupId === g.id || (!selectedGroupId && idx === 0))
+              ? 'bg-brand-600/20 text-brand-400 border border-brand-500/30'
+              : 'text-gray-300 hover:bg-gray-800'
+          }`;
+          btn.innerHTML = `<span class="truncate">${g.name}</span><i class="fa-solid fa-chevron-right text-[10px] text-gray-600"></i>`;
+          btn.onclick = () => selectGroup(g.id, g.name);
+          container.appendChild(btn);
+        });
+
+        if (!selectedGroupId && groups.length > 0) {
+          selectGroup(groups[0].id, groups[0].name);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function selectGroup(id, name) {
+      selectedGroupId = id;
+      selectedGroupName = name;
+      document.getElementById('current-group-label').innerText = name;
+      await Promise.all([loadStats(), loadMessages()]);
+      loadGroups(); // re-render active highlight
+    }
+
+    async function loadStats() {
+      if (!selectedGroupId) return;
+      try {
+        const res = await fetch(`/api/v1/dashboard/groups/${selectedGroupId}/stats`, { headers: getHeaders() });
+        if (!res.ok) return;
+        const d = await res.json();
+        document.getElementById('stat-total').innerText = d.total_messages;
+        document.getElementById('stat-analyzed').innerText = `${d.ai_analyzed} analyzed`;
+        document.getElementById('stat-tasks').innerText = d.tasks_detected;
+        document.getElementById('stat-decisions').innerText = d.decisions_detected;
+        const pos = d.sentiment_distribution?.positive || 0;
+        const neg = d.sentiment_distribution?.negative || 0;
+        document.getElementById('stat-sentiment').innerText = `${pos} / ${neg}`;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function loadMessages() {
+      if (!selectedGroupId) return;
+      try {
+        const res = await fetch(`/api/v1/dashboard/groups/${selectedGroupId}/messages?limit=50`, { headers: getHeaders() });
+        if (!res.ok) return;
+        const msgs = await res.json();
+        const container = document.getElementById('view-feed');
+        container.innerHTML = '';
+        if (msgs.length === 0) {
+          container.innerHTML = '<div class="text-sm text-gray-500 italic p-6 text-center">No messages recorded for this group yet.</div>';
+          return;
+        }
+        msgs.forEach(m => {
+          container.appendChild(createMessageCard(m));
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function createMessageCard(m) {
+      const card = document.createElement('div');
+      card.className = 'p-3.5 rounded-xl bg-gray-800/40 border border-gray-800 hover:border-gray-700 transition-all text-xs space-y-2';
+      
+      let badgeColor = 'bg-gray-700 text-gray-300';
+      if (m.sentiment === 'positive') badgeColor = 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+      else if (m.sentiment === 'negative') badgeColor = 'bg-rose-500/20 text-rose-400 border border-rose-500/30';
+
+      let clsBadge = '';
+      if (m.classification === 'task') clsBadge = '<span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold uppercase text-[10px]">TASK</span>';
+      else if (m.classification === 'decision') clsBadge = '<span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold uppercase text-[10px]">DECISION</span>';
+      else if (m.classification === 'question') clsBadge = '<span class="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 font-semibold uppercase text-[10px]">QUESTION</span>';
+
+      card.innerHTML = `
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            ${clsBadge}
+            <span class="px-2 py-0.5 rounded text-[10px] ${badgeColor}">${m.sentiment || 'unrated'}</span>
+          </div>
+          <span class="text-[10px] text-gray-500 font-mono">${m.id.substring(0, 8)}</span>
+        </div>
+        <p class="text-gray-200 leading-relaxed">${escapeHtml(m.content)}</p>
+      `;
+      return card;
+    }
+
+    async function executeSearch() {
+      const q = document.getElementById('search-input').value.trim();
+      if (!q) return;
+      switchTab('search');
+      const container = document.getElementById('view-search');
+      container.innerHTML = '<div class="text-sm text-gray-400 p-6 text-center"><i class="fa-solid fa-spinner animate-spin"></i> Searching vector space...</div>';
+
+      try {
+        const res = await fetch('/api/v1/dashboard/search', {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({ query: q, group_id: selectedGroupId || null, limit: 15 })
+        });
+        const data = await res.json();
+        container.innerHTML = '';
+        if (!data.results || data.results.length === 0) {
+          container.innerHTML = `<div class="text-sm text-gray-400 p-6 text-center">No messages found matching "${escapeHtml(q)}".</div>`;
+          return;
+        }
+
+        data.results.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'p-3.5 rounded-xl bg-gray-800/40 border border-gray-800 text-xs space-y-2';
+          const simPct = Math.round(item.similarity * 100);
+          div.innerHTML = `
+            <div class="flex items-center justify-between">
+              <span class="font-semibold text-gray-300">${escapeHtml(item.sender_name || 'User')} in ${escapeHtml(item.group_name || 'Group')}</span>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-400 border border-brand-500/30">${simPct}% match</span>
+            </div>
+            <p class="text-gray-200">${escapeHtml(item.content)}</p>
+          `;
+          container.appendChild(div);
+        });
+      } catch (e) {
+        container.innerHTML = `<div class="text-sm text-red-400 p-4">Search failed: ${e.message}</div>`;
+      }
+    }
+
+    async function askAI() {
+      const question = document.getElementById('ask-input').value.trim();
+      if (!question) return;
+
+      const btn = document.getElementById('ask-btn');
+      const box = document.getElementById('ask-answer-box');
+      const textEl = document.getElementById('ask-answer-text');
+      const citeEl = document.getElementById('ask-citations');
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Synthesizing...';
+      box.classList.remove('hidden');
+      textEl.innerText = 'Consulting conversation memory & synthesizing answer...';
+      citeEl.innerHTML = '';
+
+      try {
+        const res = await fetch('/api/v1/dashboard/ask', {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({ question, group_id: selectedGroupId || null })
+        });
+        const data = await res.json();
+        textEl.innerText = data.answer;
+        if (data.citations && data.citations.length > 0) {
+          citeEl.innerHTML = '<div class="text-[10px] uppercase font-semibold text-purple-400">Sources:</div>';
+          data.citations.forEach(c => {
+            const row = document.createElement('div');
+            row.className = 'text-[11px] text-gray-400 italic';
+            row.innerText = `• "${c.snippet}" — ${c.sender_name}`;
+            citeEl.appendChild(row);
+          });
+        }
+      } catch (e) {
+        textEl.innerText = `Error: ${e.message}`;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> <span>Ask</span>';
+      }
+    }
+
+    async function fetchBriefing() {
+      if (!selectedGroupId) {
+        alert('Please select a group first.');
+        return;
+      }
+      switchTab('briefing');
+      const hours = document.getElementById('briefing-hours').value;
+      const container = document.getElementById('view-briefing');
+      container.innerHTML = '<div class="text-sm text-gray-400 p-8 text-center"><i class="fa-solid fa-spinner animate-spin"></i> Generating autonomous intelligence briefing...</div>';
+
+      try {
+        const res = await fetch(`/api/v1/dashboard/groups/${selectedGroupId}/briefing?hours=${hours}`, { headers: getHeaders() });
+        const b = await res.json();
+
+        let decisionsHtml = b.key_decisions.length ? b.key_decisions.map(d => `<li class="text-xs text-gray-300">• <b>${escapeHtml(d.decision)}</b> ${d.decider ? `(by ${escapeHtml(d.decider)})` : ''}</li>`).join('') : '<li class="text-xs text-gray-500 italic">None recorded</li>';
+        let tasksHtml = b.action_items.length ? b.action_items.map(t => `<li class="text-xs text-gray-300">• <span class="text-amber-400">[${t.urgency.toUpperCase()}]</span> <b>${escapeHtml(t.task)}</b> ${t.assignee ? `— @${escapeHtml(t.assignee)}` : ''}</li>`).join('') : '<li class="text-xs text-gray-500 italic">None recorded</li>';
+
+        container.innerHTML = `
+          <div class="space-y-4">
+            <div class="p-4 rounded-xl bg-gray-800/60 border border-gray-700">
+              <h3 class="text-xs font-semibold uppercase text-brand-400 tracking-wider mb-2">Executive Summary</h3>
+              <p class="text-sm text-gray-200 leading-relaxed">${escapeHtml(b.executive_summary)}</p>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="p-4 rounded-xl bg-gray-800/40 border border-gray-800">
+                <h3 class="text-xs font-semibold uppercase text-emerald-400 tracking-wider mb-2"><i class="fa-solid fa-check"></i> Key Decisions</h3>
+                <ul class="space-y-1.5">${decisionsHtml}</ul>
+              </div>
+              <div class="p-4 rounded-xl bg-gray-800/40 border border-gray-800">
+                <h3 class="text-xs font-semibold uppercase text-amber-400 tracking-wider mb-2"><i class="fa-solid fa-list-check"></i> Action Items</h3>
+                <ul class="space-y-1.5">${tasksHtml}</ul>
+              </div>
+            </div>
+          </div>
+        `;
+      } catch (e) {
+        container.innerHTML = `<div class="text-sm text-red-400 p-4">Briefing failed: ${e.message}</div>`;
+      }
+    }
+
+    function exportReport(fmt) {
+      if (!selectedGroupId) {
+        alert('Please select a group first.');
+        return;
+      }
+      const hours = document.getElementById('briefing-hours').value;
+      window.open(`/api/v1/dashboard/groups/${selectedGroupId}/export?format=${fmt}&hours=${hours}`, '_blank');
+    }
+
+    function switchTab(t) {
+      ['feed', 'briefing', 'search'].forEach(tab => {
+        document.getElementById(`view-${tab}`).classList.add('hidden');
+        document.getElementById(`tab-${tab}`).className = 'text-sm font-semibold text-gray-400 hover:text-white pb-2';
+      });
+      document.getElementById(`view-${t}`).classList.remove('hidden');
+      document.getElementById(`tab-${t}`).className = 'text-sm font-semibold text-brand-500 border-b-2 border-brand-500 pb-2';
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // Connect to Server-Sent Events (SSE) Stream
+    function initSSE() {
+      const evtSource = new EventSource('/api/v1/dashboard/stream');
+      const dot = document.getElementById('sse-dot');
+      const text = document.getElementById('sse-text');
+
+      evtSource.addEventListener('connected', () => {
+        dot.className = 'w-2 h-2 rounded-full bg-emerald-400';
+        text.innerText = 'Live Feed Connected';
+      });
+
+      evtSource.addEventListener('message.ingested', (e) => {
+        const payload = JSON.parse(e.data);
+        if (selectedGroupId && payload.group_id === selectedGroupId) {
+          const container = document.getElementById('view-feed');
+          const card = createMessageCard({
+            id: payload.message_id,
+            content: payload.content,
+            sentiment: 'neutral',
+            classification: 'pending'
+          });
+          container.prepend(card);
+          loadStats();
+        }
+      });
+
+      evtSource.onerror = () => {
+        dot.className = 'w-2 h-2 rounded-full bg-rose-500';
+        text.innerText = 'Reconnecting...';
+      };
+    }
+
+    window.onload = () => {
+      loadGroups();
+      initSSE();
+    };
+  </script>
+</body>
+</html>
+"""
+    return HTMLResponse(content=html_content)

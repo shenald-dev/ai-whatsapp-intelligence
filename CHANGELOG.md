@@ -3,6 +3,16 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Major Evolution & Next-Gen Capabilities
+* **Conversational Vector RAG:** Implemented `/api/v1/dashboard/ask` with LangChain synthesis and citation tracking, allowing natural language question-answering grounded in WhatsApp conversation history.
+* **Hybrid Semantic Vector Search:** Implemented `/api/v1/dashboard/search` combining ChromaDB cosine vector search with fallback keyword retrieval and metadata filtering.
+* **Autonomous Executive Briefings & Exporters:** Introduced `/api/v1/dashboard/groups/{id}/briefing` and `/export` supporting Markdown, CSV, and JSON formats for executive digests, action items, and decision logs.
+* **Real-Time SSE Stream:** Built an in-memory asynchronous broadcast bus and `/api/v1/dashboard/stream` endpoint for instant event streaming to dashboards and listeners.
+* **Developer CLI & High-Fidelity Simulator:** Introduced `python -m app.cli` with `health`, `search`, `ask`, `briefing`, and `simulate` commands for seamless testing and demonstration without physical devices.
+* **Built-in Glassmorphic Dashboard:** Implemented a modern, zero-dependency interactive dashboard served directly at `/dashboard` with live SSE feed, RAG Q&A, and briefing downloads.
+* **Infrastructure Resilience:** Upgraded `ChromaDB` client initialization with automatic fallback from remote HTTP containers to local persistent storage (`.chroma_data`) and in-memory execution.
+* **Hygiene & Cleanup:** Removed broken submodule gitlink for `frontend/` and replaced it with clean web client files; pruned orphaned root `package-lock.json`.
+
 * **Reliability:** Hardened message collection pipeline in collector with strict entity ID validation, lifted string truncation helper out of the per-message callback hot path, and sanitized timestamps and media flags to eliminate 422 ingestion validation errors.
 * **Security:** Centralized database connection URI sanitization in `app.db.database` and protected dashboard endpoints (`/groups`, `/groups/{id}/stats`, `/groups/{id}/messages`) against credential leakage in server logs on database connection errors.
 * **Hygiene:** Pruned orphaned merge conflict artifacts (`CHANGELOG.md.master` and `.jules/warden.md.master`).

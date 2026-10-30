@@ -4,15 +4,15 @@
   <br/>
 
   <h1>💬 AI WhatsApp Intelligence</h1>
-  <p><b>Real-Time Group Chat Monitor & Intelligence Hub</b></p>
-  <i>Extract decisions, track sentiment, surface tasks, and generate insights autonomously using LangChain and LLMs.</i>
+  <p><b>Real-Time Group Chat Monitor, Vector RAG & Intelligence Hub</b></p>
+  <i>Extract decisions, track sentiment, surface action items, and synthesize executive intelligence briefings autonomously using LangChain, ChromaDB, and LLMs.</i>
   
   <br/>
   
   [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
   [![FastAPI](https://img.shields.io/badge/FastAPI-0.110-009688.svg)](https://fastapi.tiangolo.com/)
-  [![Next.js](https://img.shields.io/badge/Next.js-14-black.svg)](https://nextjs.org)
   [![LangChain](https://img.shields.io/badge/LangChain-AI-orange.svg)](https://langchain.com)
+  [![ChromaDB](https://img.shields.io/badge/ChromaDB-VectorStore-purple.svg)](https://www.trychroma.com/)
   [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 </div>
 
@@ -22,73 +22,88 @@
 - [🌟 Overview](#-overview)
 - [🚀 Enterprise Features](#-enterprise-features)
 - [🏗️ System Architecture](#️-system-architecture)
+- [💻 Developer CLI & Simulator](#-developer-cli--simulator)
 - [🛠️ Quick Start Guide](#️-quick-start-guide)
-- [📸 Portfolio Preview](#-portfolio-preview)
+- [📸 Dashboard Preview](#-dashboard-preview)
 - [🔒 Privacy & Security](#-privacy--security)
 - [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
 
 ---
 
 ## 🌟 Overview
 
-The **AI WhatsApp Group Intelligence Monitor** is an enterprise-grade stack that seamlessly connects to your WhatsApp account, listens to designated group chats, and uses AI to transform raw conversation logs into highly structured, actionable intelligence.
+The **AI WhatsApp Intelligence Hub** is an enterprise-grade conversation intelligence platform. It connects to WhatsApp, continuously monitors team and community groups, vectors conversation history into high-dimensional embeddings, and leverages state-of-the-art LLMs to transform high-volume chat streams into structured, actionable intelligence.
 
-Perfect for teams, communities, and digital agencies who need to extract the "signal from the noise" in high-volume chat environments without constantly reading hundreds of messages.
+Perfect for engineering managers, product teams, operations leads, and community builders who need to extract the "signal from the noise" without reading hundreds of messages every hour.
 
 ---
 
 ## 🚀 Enterprise Features
 
-* **📡 Headless WhatsApp Collector:** Uses `whatsapp-web.js` to securely listen to groups without draining your phone battery. Features HTTP Keep-Alive connection pooling for enhanced webhook dispatch throughput.
-* **🤖 Cognitive AI Engine:** Powered by LangChain and OpenRouter (Anthropic Haiku / OpenAI GPT-4o).
-* **🎯 Message Classification:** Automatically flags messages as `Task`, `Decision`, `Question`, or `Announcement`.
-* **🧠 Vector Memory Tracking:** Integrates **ChromaDB** for semantic search and topic tracking over time (e.g. "What did we decide about the UI design last week?").
-* **📊 Gorgeous Analytics Dashboard:** A glassmorphic, modern UI built with Next.js and TailwindCSS to visualize the chat data.
-* **📬 Intelligent Insights:** Generates daily & weekly AI summaries (Who said what, key outcomes, overall sentiment trajectory).
-* **🗜️ High-Performance API:** FastAPI backend uses `GZipMiddleware` to compress large JSON responses, saving network bandwidth and reducing latency for dashboard analytics.
+* **📡 Headless WhatsApp Collector:** Automated `whatsapp-web.js` collector with HTTP Keep-Alive connection pooling, strict payload truncation, and schema validation.
+* **🧠 Conversational Vector RAG (`/ask`):** Ask natural language questions over group history (e.g. *"What did Alex decide about the database migration?"* or *"What bugs were reported today?"*) and receive accurate, vector-grounded answers with direct message citations.
+* **🔍 Hybrid Semantic Vector Search (`/search`):** Query group memory with cosine similarity matching against embedded messages, with automatic relational keyword fallback.
+* **⚡ Real-Time Intelligence Stream (SSE):** Server-Sent Events feed (`/stream`) delivering instantaneous updates to dashboards and monitoring tools as messages are ingested and analyzed.
+* **📊 Autonomous Executive Briefings (`/briefing` & `/export`):** Generates structured briefings across customizable timeframes (24h, 72h, 7d, 30d) with:
+  - High-level Executive Summary
+  - Formal Decisions Log (with deciders and citations)
+  - Prioritized Action Items (with detected urgency levels and assignees)
+  - Open Questions & Pending Discussions
+  - Multi-Format One-Click Export (`.md`, `.csv`, `.json`)
+* **💻 Interactive Developer CLI & Simulator (`python -m app.cli`):** Built-in CLI for subsystem health checks, terminal semantic search, RAG queries, and high-fidelity chat stream simulation.
+* **🖥️ Built-In Glassmorphic Dashboard:** Zero-setup web UI served directly at `/dashboard` featuring live SSE streaming, search, Ask-AI chat, and briefing downloads.
 
 ---
 
 ## 🏗️ System Architecture
 
-The system is decoupled into three massively scalable microservices, orchestrated via Docker.
-
 ```mermaid
 graph TD
-    subgraph Data Source
-        W[WhatsApp Groups]
+    subgraph Ingestion Layer
+        W[WhatsApp Groups] -->|WebSocket| WC[Node.js Collector]
+        SIM[CLI Simulator] -->|HTTP Webhook| API[FastAPI Ingestion Engine]
+        WC -->|JSON Webhook| API
     end
 
-    subgraph Collector Node.js
-        WC[whatsapp-web.js Client]
+    subgraph Processing & Storage
+        API -->|UPSERT Message| PG[(PostgreSQL Structured DB)]
+        API -->|Enqueue Task| R[(Redis Task Queue)]
+        R --> CEL[Celery Workers]
+        CEL --> AI[LangChain AI Engine]
+        AI -->|Store Embeddings| CH[(ChromaDB Vector Store)]
+        AI -->|Update Intelligence| PG
     end
 
-    subgraph Backend Python FastAPI
-        API[FastAPI Ingestion Endpoint]
-        CEL[Celery Workers Async]
-        AI[LangChain AI Engine]
+    subgraph Real-Time & Consumer Layer
+        API -->|Publish Events| SSE[Server-Sent Events Stream]
+        SSE --> DASH[Web Analytics Dashboard]
+        API -->|RAG / Briefing / Search| DASH
+        API -->|CLI Queries| CLI[Terminal Developer CLI]
     end
+```
 
-    subgraph Persistence Layer
-        PG[(PostgreSQL Structured Data)]
-        R[(Redis Queue/Cache)]
-        CH[(ChromaDB Embeddings)]
-    end
+---
 
-    subgraph Frontend Next.js
-        DASH[React Analytics Dashboard]
-    end
+## 💻 Developer CLI & Simulator
 
-    W -.->|QR Scan/Socket| WC
-    WC ==>|JSON Webhook| API
-    API -->|Raw Message| PG
-    API -->|Queue Task| R
-    R --> CEL
-    CEL --> AI
-    AI -->|Fetch Context| CH
-    AI -->|Store Vectors| CH
-    AI -.->|Update Intelligence| PG
-    DASH ==>|REST| API
+Test, search, and simulate conversations from your terminal without needing a physical phone:
+
+```bash
+# 1. Check subsystem health (PostgreSQL, ChromaDB, AI Engine)
+python -m app.cli health
+
+# 2. Simulate realistic WhatsApp conversations into the pipeline
+python -m app.cli simulate --group dev_core --count 8
+
+# 3. Perform semantic vector search from the terminal
+python -m app.cli search "database migration"
+
+# 4. Ask conversational questions over group history (RAG)
+python -m app.cli ask "What did the team decide about Redis 7?"
+
+# 5. Generate and print an executive briefing
+python -m app.cli briefing --group dev_core --hours 72
 ```
 
 ---
@@ -96,18 +111,17 @@ graph TD
 ## 🛠️ Quick Start Guide
 
 ### 1. Prerequisites
-- Docker & Docker Compose installed
+- Docker & Docker Compose
 - Node.js 20+
 - Python 3.11+
-- An OpenAI or OpenRouter API key
 
 ### 2. Infrastructure Setup
-Spin up PostgreSQL, Redis, and ChromaDB:
+Start PostgreSQL, Redis, and ChromaDB:
 ```bash
 docker-compose up -d
 ```
 
-### 3. Backend (FastAPI + AI Engine)
+### 3. Backend Setup
 ```bash
 cd backend
 python -m venv venv
@@ -115,55 +129,46 @@ source venv/bin/activate  # or venv\Scripts\activate on Windows
 pip install poetry
 poetry install
 
-# Populate mock data for testing (optional)
+# Populate seed intelligence data (optional)
 python seed.py
 
-# Start the API server
+# Launch the FastAPI intelligence server
 uvicorn app.main:app --reload --port 8000
 ```
+Visit the interactive dashboard immediately in your browser:
+👉 **`http://localhost:8000/dashboard`**
 
-### 4. Collector (Node.js WhatsApp Client)
+### 4. Collector Setup (WhatsApp Web Bridge)
 ```bash
 cd collector
 npm install
-node src/index.js
-# Scan the QR code in your terminal with your phone!
-```
-
-### 5. Frontend Dashboard (Next.js)
-```bash
-cd frontend
-npm install
-npm run dev
-# Open http://localhost:3000
+npm start
+# Scan the terminal QR code with WhatsApp on your phone
 ```
 
 ---
 
-## 📸 Portfolio Preview
-*(The glassmorphic intelligence dashboard running locally)*
+## 📸 Dashboard Preview
 
 <div align="center">
-  <img src="./assets/dashboard_preview.png" alt="Dashboard Preview" />
+  <img src="./assets/dashboard_preview.png" alt="Dashboard Preview" width="850" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);" />
 </div>
 
 ---
 
 ## 🔒 Privacy & Security
 
-By default, this system stores **all data locally** in your own Postgres/ChromaDB instances. AI inferences can be configured to use local LLMs (via Ollama or Llama.cpp) through LangChain instead of cloud providers, ensuring end-to-end privacy for sensitive company chats. No messages are stored externally.
+- **Local-First Data Sovereignty:** All conversation records and vector embeddings reside on your self-hosted infrastructure.
+- **Credential Protection:** Automatic connection URI sanitization prevents database credentials from leaking into application logs.
+- **Constant-Time Authentication:** API keys validated via `secrets.compare_digest` to mitigate timing attack vectors.
 
 ---
 
 ## 🤝 Contributing
 
-We welcome contributions to make the intelligence hub even smarter.
-- 🐛 **Found a bug?** Open an issue.
-- ✨ **Have a feature idea?** Submit a PR (e.g., adding Telegram or Discord adapters).
+Contributions are welcome! Please submit issues or pull requests for additional channel connectors (e.g. Slack, Telegram, Discord), specialized analytical classifiers, or UI enhancements.
 
 ---
-*Built by a creative vibe coder with ❤️ and AI.*
-
 
 ## 📄 License
 

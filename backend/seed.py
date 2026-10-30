@@ -108,7 +108,7 @@ async def seed_db():
             store_message_embedding(msg.id, msg.content, metadata)
 
         await session.commit()
-        print("✅ Database successfully seeded with AI intelligence!")
+        print("[OK] Database successfully seeded with AI intelligence!")
 
 if __name__ == "__main__":
     asyncio.run(seed_db())
