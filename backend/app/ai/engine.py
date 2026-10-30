@@ -37,7 +37,7 @@ class AIEngine:
                 openai_api_base=BASE_URL,
                 model_name="anthropic/claude-3-haiku:beta", # Fast & cheap on OpenRouter
                 temperature=0.1,
-                request_timeout=15.0,
+                timeout=15.0,
                 max_retries=3
             )
         else:
