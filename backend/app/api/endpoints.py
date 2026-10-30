@@ -1,12 +1,13 @@
 import time
 import collections
-from fastapi import APIRouter, Depends, Query
+import logging
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.sql import func
 from typing import List
 
-from ..db.database import get_db
+from ..db.database import get_db, sanitize_error_msg
 from ..db import models
 from .schemas import MessageResponse, GroupResponse
 from .auth import get_api_key
@@ -62,16 +63,21 @@ async def get_groups(
     db: AsyncSession = Depends(get_db)
 ):
     """Fetch all monitored groups."""
-    # Ensure select columns exactly match the tuple unpacking order: id=row.id, name=row.name
-    result = await db.execute(
-        select(models.Group.id, models.Group.name)
-        .order_by(models.Group.created_at.desc())
-        .limit(limit)
-        .offset(offset)
-    )
-    # Using model_construct is safe here as data originates from trusted PostgreSQL rows.
-    # Note: Ensure data source remains trusted if this query changes in the future.
-    return [GroupResponse.model_construct(id=row.id, name=row.name) for row in result.all()]
+    try:
+        # Ensure select columns exactly match the tuple unpacking order: id=row.id, name=row.name
+        result = await db.execute(
+            select(models.Group.id, models.Group.name)
+            .order_by(models.Group.created_at.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        # Using model_construct is safe here as data originates from trusted PostgreSQL rows.
+        # Note: Ensure data source remains trusted if this query changes in the future.
+        return [GroupResponse.model_construct(id=row.id, name=row.name) for row in result.all()]
+    except Exception as e:
+        safe_error = sanitize_error_msg(str(e))
+        logging.error(f"Database error in get_groups: {safe_error}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @router.get("/groups/{group_id}/stats")
 async def get_group_stats(group_id: str, db: AsyncSession = Depends(get_db)):
@@ -82,42 +88,47 @@ async def get_group_stats(group_id: str, db: AsyncSession = Depends(get_db)):
     if cached_stats is not None:
         return cached_stats
 
-    query = select(
-        func.count().label("total"),
-        func.count().filter(models.Message.is_analyzed.is_(True)).label("analyzed"),
-        func.count().filter(models.Message.sentiment == 'positive').label("positive"),
-        func.count().filter(models.Message.sentiment == 'negative').label("negative"),
-        func.count().filter(models.Message.sentiment == 'neutral').label("neutral"),
-        func.count().filter(models.Message.classification == 'task').label("tasks"),
-        func.count().filter(models.Message.classification == 'decision').label("decisions"),
-    ).where(models.Message.group_id == group_id)
-    
-    result = await db.execute(query)
-    row = result.first()
+    try:
+        query = select(
+            func.count().label("total"),
+            func.count().filter(models.Message.is_analyzed.is_(True)).label("analyzed"),
+            func.count().filter(models.Message.sentiment == 'positive').label("positive"),
+            func.count().filter(models.Message.sentiment == 'negative').label("negative"),
+            func.count().filter(models.Message.sentiment == 'neutral').label("neutral"),
+            func.count().filter(models.Message.classification == 'task').label("tasks"),
+            func.count().filter(models.Message.classification == 'decision').label("decisions"),
+        ).where(models.Message.group_id == group_id)
+        
+        result = await db.execute(query)
+        row = result.first()
 
-    total = row.total if row else 0
-    analyzed = row.analyzed if row else 0
-    positive = row.positive if row else 0
-    negative = row.negative if row else 0
-    neutral = row.neutral if row else 0
-    tasks_found = row.tasks if row else 0
-    decisions_found = row.decisions if row else 0
+        total = (row.total or 0) if row else 0
+        analyzed = (row.analyzed or 0) if row else 0
+        positive = (row.positive or 0) if row else 0
+        negative = (row.negative or 0) if row else 0
+        neutral = (row.neutral or 0) if row else 0
+        tasks_found = (row.tasks or 0) if row else 0
+        decisions_found = (row.decisions or 0) if row else 0
 
-    response_data = {
-        "group_id": group_id,
-        "total_messages": total,
-        "ai_analyzed": analyzed,
-        "sentiment_distribution": {
-            "positive": positive,
-            "negative": negative,
-            "neutral": neutral
-        },
-        "tasks_detected": tasks_found,
-        "decisions_detected": decisions_found
-    }
+        response_data = {
+            "group_id": group_id,
+            "total_messages": total,
+            "ai_analyzed": analyzed,
+            "sentiment_distribution": {
+                "positive": positive,
+                "negative": negative,
+                "neutral": neutral
+            },
+            "tasks_detected": tasks_found,
+            "decisions_detected": decisions_found
+        }
 
-    stats_cache.put(cache_key, response_data)
-    return response_data
+        stats_cache.put(cache_key, response_data)
+        return response_data
+    except Exception as e:
+        safe_error = sanitize_error_msg(str(e))
+        logging.error(f"Database error in get_group_stats: {safe_error}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @router.get("/groups/{group_id}/messages", response_model=List[MessageResponse])
 async def get_recent_messages(
@@ -127,13 +138,18 @@ async def get_recent_messages(
     db: AsyncSession = Depends(get_db)
 ):
     """Fetch recent messages with their AI analysis attached."""
-    result = await db.execute(
-        select(models.Message.id, models.Message.content, models.Message.sentiment, models.Message.classification)
-        .where(models.Message.group_id == group_id)
-        .order_by(models.Message.timestamp.desc())
-        .limit(limit)
-        .offset(offset)
-    )
-    # Using model_construct is safe here as data originates from trusted PostgreSQL rows.
-    # Note: Ensure data source remains trusted if this query changes in the future.
-    return [MessageResponse.model_construct(id=row.id, content=row.content, sentiment=row.sentiment, classification=row.classification) for row in result.all()]
+    try:
+        result = await db.execute(
+            select(models.Message.id, models.Message.content, models.Message.sentiment, models.Message.classification)
+            .where(models.Message.group_id == group_id)
+            .order_by(models.Message.timestamp.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        # Using model_construct is safe here as data originates from trusted PostgreSQL rows.
+        # Note: Ensure data source remains trusted if this query changes in the future.
+        return [MessageResponse.model_construct(id=row.id, content=row.content, sentiment=row.sentiment, classification=row.classification) for row in result.all()]
+    except Exception as e:
+        safe_error = sanitize_error_msg(str(e))
+        logging.error(f"Database error in get_recent_messages: {safe_error}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")

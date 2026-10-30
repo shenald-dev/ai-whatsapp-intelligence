@@ -9,9 +9,8 @@ from contextlib import asynccontextmanager
 import collections
 from sqlalchemy.dialects.postgresql import insert
 import logging
-import re
 
-from .db.database import engine, get_db
+from .db.database import engine, get_db, sanitize_error_msg
 from .db import models
 from .api.schemas import MessageIngest
 from .api.endpoints import router as dashboard_router
@@ -68,10 +67,6 @@ class SimpleLRUCache:
 
 # Cache for entity existence checks
 entity_cache = SimpleLRUCache(1000)
-
-def sanitize_error_msg(error_msg: str) -> str:
-    """Sanitizes connection URIs in error messages to prevent secret leaks."""
-    return re.sub(r"(://[^@]*?:)[^@]+(@)", r"\1***\2", error_msg)
 
 @app.get("/")
 async def root():

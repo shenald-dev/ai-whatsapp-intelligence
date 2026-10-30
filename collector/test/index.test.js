@@ -22,7 +22,7 @@ process.env.API_KEY = 'test_key';
 
 let messageHandler = null;
 
-const { parseAllowedGroups, forwardToBackend } = proxyquire('../src/index.js', {
+const { parseAllowedGroups, safeTruncate, forwardToBackend } = proxyquire('../src/index.js', {
     'axios': axiosMock,
     'whatsapp-web.js': {
         Client: class {
@@ -53,6 +53,13 @@ test('parseAllowedGroups handles empty or null input', () => {
     assert.strictEqual(parseAllowedGroups('').size, 0);
     assert.strictEqual(parseAllowedGroups(null).size, 0);
     assert.strictEqual(parseAllowedGroups(undefined).size, 0);
+});
+
+test('safeTruncate handles edge cases gracefully', () => {
+    assert.strictEqual(safeTruncate(null, 10, 'field'), '');
+    assert.strictEqual(safeTruncate(undefined, 10, 'field'), '');
+    assert.strictEqual(safeTruncate('hello', 10, 'field'), 'hello');
+    assert.strictEqual(safeTruncate('hello world', 5, 'field'), 'hello');
 });
 
 test('forwardToBackend calls axios with correct payload and headers', async () => {
@@ -118,4 +125,52 @@ test('message handler truncates long strings to avoid 422 Unprocessable Entity',
     assert.strictEqual(sentPayload.quoted_msg_id.length, 255);
 
     assert.ok(warningLogged, 'Expected a truncation warning to be logged');
+});
+
+test('message handler safely ignores messages missing essential ID structures', async () => {
+    axiosPostCalledWith = null;
+
+    // Missing id object
+    const brokenMsg = {
+        from: 'group123@g.us',
+        getChat: async () => ({ id: { _serialized: 'grp1' } }),
+        getContact: async () => ({ id: { _serialized: 'usr1' } })
+    };
+    await messageHandler(brokenMsg);
+    assert.strictEqual(axiosPostCalledWith, null, 'Should not forward message without id');
+
+    // Missing chat id
+    const brokenChatMsg = {
+        id: { _serialized: 'msg1' },
+        from: 'group123@g.us',
+        getChat: async () => ({ name: 'Group' }),
+        getContact: async () => ({ id: { _serialized: 'usr1' } })
+    };
+    await messageHandler(brokenChatMsg);
+    assert.strictEqual(axiosPostCalledWith, null, 'Should not forward message without chat id');
+});
+
+test('message handler sanitizes timestamp and boolean media flag', async () => {
+    axiosPostCalledWith = null;
+
+    const validMsg = {
+        id: { _serialized: 'msg_ts_test' },
+        from: 'group123@g.us',
+        body: 'Testing timestamp sanitization',
+        timestamp: 'invalid_string',
+        hasMedia: undefined,
+        hasQuotedMsg: false,
+        getChat: async () => ({ id: { _serialized: 'grp_ts' }, name: 'TS Group' }),
+        getContact: async () => ({ id: { _serialized: 'usr_ts' }, pushname: 'TS User' })
+    };
+
+    const before = Math.floor(Date.now() / 1000);
+    await messageHandler(validMsg);
+    const after = Math.floor(Date.now() / 1000);
+
+    assert.ok(axiosPostCalledWith !== null, 'axios.post should have been called');
+    const payload = axiosPostCalledWith.payload;
+    assert.strictEqual(typeof payload.timestamp, 'number');
+    assert.ok(payload.timestamp >= before && payload.timestamp <= after);
+    assert.strictEqual(payload.is_media, false);
 });

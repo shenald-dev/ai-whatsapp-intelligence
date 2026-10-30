@@ -1,4 +1,5 @@
 import os
+import re
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 from dotenv import load_dotenv
@@ -18,6 +19,10 @@ engine = create_async_engine(
 )
 AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 Base = declarative_base()
+
+def sanitize_error_msg(error_msg: str) -> str:
+    """Sanitizes connection URIs in error messages to prevent secret leaks."""
+    return re.sub(r"(://[^@]*?:)[^@]+(@)", r"\1***\2", error_msg)
 
 async def get_db():
     async with AsyncSessionLocal() as session:

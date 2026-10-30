@@ -34,3 +34,34 @@ def test_ingest_message_500_error_hides_secret_in_logs(caplog):
     assert "MY_SUPER_SECRET_PASSWORD" not in caplog.text
     # But the URL format should be masked
     assert "postgresql://user:***@localhost:5432/db" in caplog.text
+
+def test_dashboard_endpoints_500_error_hides_secret_in_logs(caplog):
+    client = TestClient(app)
+    mock_db = AsyncMock()
+    mock_db.execute.side_effect = Exception("Auth failure: postgresql+asyncpg://admin:DASHBOARD_LEAK_SECRET@db.internal:5432/app")
+
+    app.dependency_overrides[get_db] = lambda: mock_db
+    app.dependency_overrides[get_api_key] = lambda: "valid-key"
+
+    with caplog.at_level(logging.ERROR):
+        # 1. Groups endpoint
+        resp_groups = client.get("/api/v1/dashboard/groups")
+        assert resp_groups.status_code == 500
+        assert "DASHBOARD_LEAK_SECRET" not in caplog.text
+        assert "postgresql+asyncpg://admin:***@db.internal:5432/app" in caplog.text
+
+        caplog.clear()
+
+        # 2. Stats endpoint
+        resp_stats = client.get("/api/v1/dashboard/groups/g123/stats")
+        assert resp_stats.status_code == 500
+        assert "DASHBOARD_LEAK_SECRET" not in caplog.text
+        assert "postgresql+asyncpg://admin:***@db.internal:5432/app" in caplog.text
+
+        caplog.clear()
+
+        # 3. Messages endpoint
+        resp_msgs = client.get("/api/v1/dashboard/groups/g123/messages")
+        assert resp_msgs.status_code == 500
+        assert "DASHBOARD_LEAK_SECRET" not in caplog.text
+        assert "postgresql+asyncpg://admin:***@db.internal:5432/app" in caplog.text

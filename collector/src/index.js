@@ -18,6 +18,15 @@ function parseAllowedGroups(envStr) {
     return new Set(envStr.split(',').map(s => s.trim()).filter(Boolean));
 }
 
+function safeTruncate(str, maxLen, fieldName) {
+    const val = str || '';
+    if (val.length > maxLen) {
+        console.warn(`⚠️ Warning: Truncating ${fieldName} to ${maxLen} characters.`);
+        return val.substring(0, maxLen);
+    }
+    return val;
+}
+
 const ALLOWED_GROUPS = parseAllowedGroups(process.env.ALLOWED_GROUPS);
 const MAX_CONCURRENT_REQUESTS = parseInt(process.env.MAX_CONCURRENT_REQUESTS || '100', 10);
 
@@ -53,47 +62,48 @@ client.on('auth_failure', msg => {
 client.on('message', async (msg) => {
     try {
         // Fast-path early returns to avoid expensive await msg.getChat()
-        if (!msg.from?.endsWith('@g.us')) return;
+        if (!msg?.from?.endsWith('@g.us')) return;
         if (ALLOWED_GROUPS.size > 0 && !ALLOWED_GROUPS.has(msg.from)) return;
+
+        const msgId = msg?.id?._serialized || 'unknown';
 
         // Parallelize expensive asynchronous operations with error handling
         const [chat, contact, quotedMsg] = await Promise.all([
             msg.getChat().catch(e => {
-                console.error(`⚠️ Failed to fetch chat for ${msg.id._serialized}:`, e.message);
+                console.error(`⚠️ Failed to fetch chat for ${msgId}:`, e.message);
                 return null;
             }),
             msg.getContact().catch(e => {
-                console.error(`⚠️ Failed to fetch contact for ${msg.id._serialized}:`, e.message);
+                console.error(`⚠️ Failed to fetch contact for ${msgId}:`, e.message);
                 return null;
             }),
             (msg.hasQuotedMsg ? msg.getQuotedMessage() : Promise.resolve(null)).catch(e => {
-                console.error(`⚠️ Failed to fetch quoted msg for ${msg.id._serialized}:`, e.message);
+                console.error(`⚠️ Failed to fetch quoted msg for ${msgId}:`, e.message);
                 return null;
             })
         ]);
         
-        // Ensure we have the minimum required entities
-        if (!chat || !contact) return;
+        // Ensure we have the minimum required entities with valid IDs
+        const messageId = msg?.id?._serialized;
+        const groupId = chat?.id?._serialized;
+        const senderId = contact?.id?._serialized;
 
-        function safeTruncate(str, maxLen, fieldName) {
-            const val = str || '';
-            if (val.length > maxLen) {
-                console.warn(`⚠️ Warning: Truncating ${fieldName} to ${maxLen} characters.`);
-                return val.substring(0, maxLen);
-            }
-            return val;
-        }
+        if (!messageId || !groupId || !senderId) return;
+
+        const timestamp = typeof msg.timestamp === 'number' && !Number.isNaN(msg.timestamp) && msg.timestamp >= 0
+            ? Math.floor(msg.timestamp)
+            : Math.floor(Date.now() / 1000);
 
         // Construct the payload for the AI backend
         const payload = {
-            message_id: safeTruncate(msg.id._serialized, 255, 'message_id'),
-            group_id: safeTruncate(chat.id._serialized, 255, 'group_id'),
-            group_name: safeTruncate(chat.name, 255, 'group_name'),
-            sender_id: safeTruncate(contact.id._serialized, 255, 'sender_id'),
+            message_id: safeTruncate(messageId, 255, 'message_id'),
+            group_id: safeTruncate(groupId, 255, 'group_id'),
+            group_name: safeTruncate(chat.name || 'Unknown Group', 255, 'group_name'),
+            sender_id: safeTruncate(senderId, 255, 'sender_id'),
             sender_name: safeTruncate(contact.pushname || contact.name || 'Unknown', 255, 'sender_name'),
             content: safeTruncate(msg.body || '', 65536, 'content'),
-            timestamp: msg.timestamp,
-            is_media: msg.hasMedia,
+            timestamp: timestamp,
+            is_media: Boolean(msg.hasMedia),
             quoted_msg_id: quotedMsg?.id?._serialized ? safeTruncate(quotedMsg.id._serialized, 255, 'quoted_msg_id') : null,
         };
 
@@ -133,6 +143,7 @@ if (require.main === module) {
 
 module.exports = {
     parseAllowedGroups,
+    safeTruncate,
     forwardToBackend,
     client // export for testing if needed
 };
