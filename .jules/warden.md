@@ -71,3 +71,14 @@ Docs Updated: CHANGELOG.md, .jules/warden.md
 Release: none
 
 AI Summary: Completed Warden lifecycle audit. Checked for regressions and dead code, finding no new codebase entropy since last run. Bumped `psycopg2-binary` to patch version 2.9.13 via poetry. Test suites completely pass and static analysis remains warning-free.
+
+## 2026-11-01 — WARDEN Run
+
+QA Status: verified
+Dead Code Removed: 0 lines
+Dependencies Bumped: 0
+Security: Critical=0, High=0
+Docs Updated: CHANGELOG.md, .jules/warden.md, .jules/bolt.md
+Release: none
+
+AI Summary: Resolved a reliability issue where background tasks (Celery workers) were vulnerable to infinite hangs because the `chromadb.HttpClient` lacked default request timeouts. Implemented a custom `requests.adapters.HTTPAdapter` injected via patching `chromadb.api.fastapi.FastAPI.__init__` to enforce a 5-second timeout and 3 retry attempts on all external vector database calls.
