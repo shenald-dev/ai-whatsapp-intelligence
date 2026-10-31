@@ -14,10 +14,6 @@ if hasattr(sys.stdout, "reconfigure"):
     except Exception:
         pass
 
-def get_db_session():
-    from app.workers.tasks import SessionLocal
-    return SessionLocal()
-
 def run_health(args):
     """Checks the health of all system components."""
     print("=" * 65)
