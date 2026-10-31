@@ -208,3 +208,6 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 **[Fixed]:** Sanitized database connection string secrets from being leaked into internal application error logs.
+
+## [Unreleased]
+**[Fixed]:** Resolved moderate security vulnerabilities in nested NPM dependencies (`glob` and `minimatch`) within the Node.js Collector by updating package overrides.

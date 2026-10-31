@@ -71,3 +71,14 @@ Docs Updated: CHANGELOG.md, .jules/warden.md
 Release: none
 
 AI Summary: Completed Warden lifecycle audit. Checked for regressions and dead code, finding no new codebase entropy since last run. Bumped `psycopg2-binary` to patch version 2.9.13 via poetry. Test suites completely pass and static analysis remains warning-free.
+
+## 2026-10-31 — WARDEN Run
+
+QA Status: verified
+Dead Code Removed: 0 lines
+Dependencies Bumped: 2
+Security: Critical=0, High=0
+Docs Updated: CHANGELOG.md, .jules/warden.md
+Release: none
+
+AI Summary: Resolved multiple NPM moderate vulnerabilities (glob, minimatch) in the Node.js Collector by injecting `overrides.glob="^15.0.0"` in `package.json` to upgrade vulnerable deep dependencies without degrading top-level required packages like `whatsapp-web.js`. Followed memory guidelines on performing non-breaking clean installations. Verified test suite passes natively.

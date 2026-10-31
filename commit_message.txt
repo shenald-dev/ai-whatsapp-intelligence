@@ -1,0 +1,9 @@
+fix: Resolve nested NPM vulnerabilities in collector
+
+Resolved moderate severity NPM vulnerabilities (glob and minimatch)
+in the Node.js Collector's nested dependencies by applying package.json
+overrides (`glob="^15.0.0"`, `minimatch="^11.0.1"`).
+
+This addresses the security warning safely without causing a breaking major
+version downgrade for the primary `whatsapp-web.js` package. Clean install
+and testing passing.
