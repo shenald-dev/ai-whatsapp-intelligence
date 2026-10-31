@@ -76,3 +76,14 @@ AI Summary: Completed Warden lifecycle audit. Checked for regressions and dead c
 - **QA & Veto Actions:** None required. System is stable.
 - **Entropy Pruned:** Removed dead code (`get_db_session` from `cli.py`). Added multiple endpoint functions and schema variables to `.vulture_whitelist.py` to silence static analysis false positives.
 - **Deferred / Blocked:** None.
+
+## 2026-10-31 — WARDEN Run
+
+QA Status: verified
+Dead Code Removed: 0 lines
+Dependencies Bumped: 2
+Security: Critical=0, High=0
+Docs Updated: CHANGELOG.md, .jules/warden.md
+Release: none
+
+AI Summary: Resolved multiple NPM moderate vulnerabilities (glob, minimatch) in the Node.js Collector by injecting `overrides.glob="^15.0.0"` in `package.json` to upgrade vulnerable deep dependencies without degrading top-level required packages like `whatsapp-web.js`. Followed memory guidelines on performing non-breaking clean installations. Verified test suite passes natively.
