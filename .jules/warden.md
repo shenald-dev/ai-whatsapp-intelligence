@@ -71,3 +71,8 @@ Docs Updated: CHANGELOG.md, .jules/warden.md
 Release: none
 
 AI Summary: Completed Warden lifecycle audit. Checked for regressions and dead code, finding no new codebase entropy since last run. Bumped `psycopg2-binary` to patch version 2.9.13 via poetry. Test suites completely pass and static analysis remains warning-free.
+
+## 2026-10-31 — Lifecycle & Assurance Ledger
+- **QA & Veto Actions:** None required. System is stable.
+- **Entropy Pruned:** Removed dead code (`get_db_session` from `cli.py`). Added multiple endpoint functions and schema variables to `.vulture_whitelist.py` to silence static analysis false positives.
+- **Deferred / Blocked:** None.
