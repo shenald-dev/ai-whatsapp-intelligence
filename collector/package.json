@@ -20,7 +20,9 @@
   },
   "overrides": {
     "puppeteer": "25.13.0",
-    "puppeteer-core": "25.13.0"
+    "puppeteer-core": "25.13.0",
+    "glob": "^15.0.0",
+    "minimatch": "^11.0.1"
   },
   "license": "GPL-3.0-or-later"
 }
