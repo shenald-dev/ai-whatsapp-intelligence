@@ -108,7 +108,7 @@ async def get_group_stats(group_id: str, db: AsyncSession = Depends(get_db)):
             func.count().filter(models.Message.classification == 'task').label("tasks"),
             func.count().filter(models.Message.classification == 'decision').label("decisions"),
         ).where(models.Message.group_id == group_id)
-        
+
         result = await db.execute(query)
         row = result.first()
 

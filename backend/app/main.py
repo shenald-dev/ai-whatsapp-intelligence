@@ -472,7 +472,7 @@ async def dashboard_ui():
     function createMessageCard(m) {
       const card = document.createElement('div');
       card.className = 'p-3.5 rounded-xl bg-gray-800/40 border border-gray-800 hover:border-gray-700 transition-all text-xs space-y-2';
-      
+
       let badgeColor = 'bg-gray-700 text-gray-300';
       if (m.sentiment === 'positive') badgeColor = 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
       else if (m.sentiment === 'negative') badgeColor = 'bg-rose-500/20 text-rose-400 border border-rose-500/30';

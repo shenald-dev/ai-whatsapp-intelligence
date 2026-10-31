@@ -208,3 +208,6 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 **[Fixed]:** Sanitized database connection string secrets from being leaked into internal application error logs.
+
+## [Unreleased]
+**[Fixed]:** Resolved a reliability issue in Celery workers by monkey-patching `chromadb.HttpClient` with a custom `requests.adapters.HTTPAdapter` to explicitly enforce a 5-second `timeout` and a 3-attempt `max_retries` policy on all background network interactions.

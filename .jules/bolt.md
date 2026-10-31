@@ -548,3 +548,8 @@ Always log the raw exception internally for debugging, but return a generic mess
 
 - **Learning:** Background tasks (like Celery workers) executing synchronous third-party client integrations (e.g., LangChain LLM initializations without default timeouts) are vulnerable to infinite hangs if the external network or API provider (like OpenRouter) becomes unresponsive. This leads to silent starvation of the worker pool.
 - **Action:** Always explicitly configure `request_timeout` and `max_retries` when instantiating external network clients (like `ChatOpenAI`) to ensure they fail fast and safely hand off back to the background task runner's retry loop.
+
+## 2026-11-01 — Prevent Indefinite Blocking on ChromaDB Network Calls
+
+- **Learning:** ChromaDB v0.4.24 `HttpClient` lacks native timeout and retry configuration parameters. Using it directly without connection robustness leaves background tasks (like Celery workers) vulnerable to infinite hangs or silent failures if the vector database becomes unresponsive.
+- **Action:** Enforce connection robustness by modifying its underlying `requests.Session` directly. Mount a custom `requests.adapters.HTTPAdapter` via a monkey-patch on `chromadb.api.fastapi.FastAPI.__init__` to inject a default `timeout` (e.g., 5 seconds) and `max_retries` into all HTTP requests.
