@@ -213,3 +213,6 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 **[Fixed]:** Resolved moderate security vulnerabilities in nested NPM dependencies (`glob` and `minimatch`) within the Node.js Collector by updating package overrides.
+
+## [Unreleased]
+**[Pruned]:** Removed unused `lucide-react` dependency from frontend.

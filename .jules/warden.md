@@ -98,3 +98,9 @@ Docs Updated: CHANGELOG.md, .jules/warden.md
 Release: none
 
 AI Summary: Applied explicit timeouts (15.0s) and a `Retry` strategy to `chromadb`'s underlying HTTP client requests by mounting a custom `TimeoutHTTPAdapter` directly onto the instantiated client's session in `backend/app/db/chroma.py`. This ensures background asynchronous workers won't hang indefinitely due to unhandled transient network errors, directly addressing a critical reliability edge case.
+
+## 2026-11-01 — Lifecycle & Assurance Ledger
+
+- **QA & Veto Actions:** None required.
+- **Entropy Pruned:** Removed unused `lucide-react` dependency from `frontend/package.json`.
+- **Deferred / Blocked:** Deferred NPM vulnerability fixes in the frontend (`vite`, `esbuild`) because `npm audit fix` requires forcing a breaking major version upgrade on `vite` (from `5.x` to `8.x`).
