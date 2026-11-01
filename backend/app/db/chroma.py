@@ -3,8 +3,19 @@ import logging
 from typing import List, Dict, Any, Optional
 import chromadb
 from chromadb.config import Settings
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 logger = logging.getLogger(__name__)
+
+class TimeoutHTTPAdapter(HTTPAdapter):
+    def __init__(self, *args, **kwargs):
+        self.timeout = kwargs.pop("timeout", 15.0)
+        super().__init__(*args, **kwargs)
+
+    def send(self, request, **kwargs):
+        kwargs.setdefault("timeout", self.timeout)
+        return super().send(request, **kwargs)
 
 CHROMA_HOST = os.getenv("CHROMA_HOST", "localhost")
 CHROMA_PORT = int(os.getenv("CHROMA_PORT", "8000"))
@@ -30,6 +41,20 @@ def get_chroma_client():
             port=CHROMA_PORT,
             settings=Settings(anonymized_telemetry=False)
         )
+
+        # Enforce explicit timeouts and retries on the underlying session
+        if hasattr(client, "_admin_client") and hasattr(client._admin_client, "_server") and hasattr(client._admin_client._server, "_session"):
+             session = client._admin_client._server._session
+             retry_strategy = Retry(
+                 total=3,
+                 backoff_factor=0.3,
+                 status_forcelist=[429, 500, 502, 503, 504],
+                 allowed_methods=["HEAD", "GET", "OPTIONS", "POST", "PUT", "DELETE"]
+             )
+             adapter = TimeoutHTTPAdapter(timeout=15.0, max_retries=retry_strategy)
+             session.mount("http://", adapter)
+             session.mount("https://", adapter)
+
         client.heartbeat()
         _chroma_client = client
         logger.info(f"Connected to remote ChromaDB at {CHROMA_HOST}:{CHROMA_PORT}")
