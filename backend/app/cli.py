@@ -1,10 +1,11 @@
 import argparse
 import sys
-import os
 import json
 import time
 import random
 import uuid
+import urllib.request
+import urllib.error
 from datetime import datetime, timezone, timedelta
 
 # Ensure UTF-8 output encoding if supported by environment
@@ -17,7 +18,7 @@ if hasattr(sys.stdout, "reconfigure"):
 def run_health(args):
     """Checks the health of all system components."""
     print("=" * 65)
-    print(" [HEALTH CHECK] AI WhatsApp Intelligence System")
+    print(" [HEALTH CHECK] AI WhatsApp Intelligence System v2.0")
     print("=" * 65)
 
     # 1. Database Check
@@ -26,9 +27,9 @@ def run_health(args):
         from sqlalchemy import text
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
-        print("  [OK] PostgreSQL: Connected & Responsive")
+        print("  [OK] Database: Connected & Responsive")
     except Exception as e:
-        print(f"  [--] PostgreSQL: Offline/Unreachable ({e})")
+        print(f"  [--] Database: Offline/Unreachable ({e})")
 
     # 2. ChromaDB Check
     try:
@@ -40,9 +41,8 @@ def run_health(args):
 
     # 3. AI Engine LLM Check
     try:
-        from app.ai.engine import OPENROUTER_API_KEY, OPENAI_API_KEY
-        provider = "OpenRouter" if OPENROUTER_API_KEY else ("OpenAI" if OPENAI_API_KEY else "Local Heuristic Synthesis Engine")
-        print(f"  [OK] AI Synthesis Engine: Configured ({provider})")
+        from app.ai.engine import ai_engine
+        print(f"  [OK] AI Synthesis Engine: Active ({ai_engine.provider})")
     except Exception as e:
         print(f"  [--] AI Synthesis Engine Error: {e}")
 
@@ -98,45 +98,178 @@ def run_ask(args):
     print("=" * 65)
     print(f"ANSWER (Confidence: {res.get('confidence', 0.0) * 100:.0f}%):")
     print(res.get("answer"))
-    print("\nCITATIONS:")
-    for c in res.get("citations", []):
-        print(f"  * \"{c.get('snippet')}\" (Message ID: {c.get('message_id')})")
     print("=" * 65)
 
-def run_simulate(args):
-    """Simulates realistic WhatsApp conversation streams for automated demo and testing."""
-    import urllib.request
-    import urllib.error
+    citations = res.get("citations", [])
+    if citations:
+        print("\nCITATIONS:")
+        for c in citations:
+            print(f" - [{c.get('sender_name')}]: \"{c.get('snippet')}\"")
+        print()
 
-    url = args.url or "http://localhost:8000/api/v1/ingest"
-    api_key = args.api_key or os.getenv("API_KEY", "default_secret_key")
+def run_tasks(args):
+    """Inspects and manages group action items from the terminal."""
+    from app.workers.tasks import SessionLocal
+    from app.db.models import ActionItem
+    from sqlalchemy import select
+
+    session = SessionLocal()
+    group_id = args.group or "dev_core"
+
+    # Complete task if flag provided
+    if getattr(args, "complete", None):
+        t = session.get(ActionItem, args.complete)
+        if t:
+            t.status = "done"
+            t.completed_at = datetime.now(timezone.utc)
+            session.commit()
+            print(f" [DONE] Marked action item '{t.title}' as completed.")
+        else:
+            print(f" [!] Task '{args.complete}' not found.")
+        session.close()
+        return
+
+    # Add task if flag provided
+    if getattr(args, "add", None):
+        new_task = ActionItem(
+            id=str(uuid.uuid4()),
+            group_id=group_id,
+            title=args.add,
+            assignee=getattr(args, "assignee", None) or "Unassigned",
+            urgency=getattr(args, "urgency", "medium") or "medium",
+            status="todo",
+            created_at=datetime.now(timezone.utc)
+        )
+        session.add(new_task)
+        session.commit()
+        print(f" [CREATED] New action item '{args.add}' for group '{group_id}'.")
+        session.close()
+        return
+
+    stmt = select(ActionItem).where(ActionItem.group_id == group_id)
+    if getattr(args, "status", None):
+        stmt = stmt.where(ActionItem.status == args.status)
+    stmt = stmt.order_by(ActionItem.created_at.desc())
+
+    tasks = session.execute(stmt).scalars().all()
+    session.close()
+
+    print("=" * 75)
+    print(f" ACTION ITEMS / KANBAN BOARD: {group_id} (Total: {len(tasks)})")
+    print("=" * 75)
+    if not tasks:
+        print("  No action items found matching criteria.")
+    else:
+        print(f"{'STATUS':<12} {'URGENCY':<10} {'ASSIGNEE':<16} {'TITLE'}")
+        print("-" * 75)
+        for t in tasks:
+            st = f"[{t.status.upper()}]"
+            urg = t.urgency.upper()
+            ass = (t.assignee or "Unassigned")[:14]
+            title = (t.title or "")[:35]
+            print(f"{st:<12} {urg:<10} {ass:<16} {title}")
+    print("=" * 75)
+
+def run_alerts(args):
+    """Inspects and manages active incidents and alerts."""
+    from app.workers.tasks import SessionLocal
+    from app.db.models import Alert
+    from sqlalchemy import select
+
+    session = SessionLocal()
+    group_id = args.group or "dev_core"
+
+    if getattr(args, "resolve", None):
+        a = session.get(Alert, args.resolve)
+        if a:
+            a.status = "resolved"
+            a.resolved_at = datetime.now(timezone.utc)
+            session.commit()
+            print(f" [RESOLVED] Alert '{a.title}' marked as resolved.")
+        else:
+            print(f" [!] Alert '{args.resolve}' not found.")
+        session.close()
+        return
+
+    stmt = select(Alert).where(Alert.group_id == group_id)
+    if getattr(args, "status", None):
+        stmt = stmt.where(Alert.status == args.status)
+    stmt = stmt.order_by(Alert.created_at.desc())
+
+    alerts = session.execute(stmt).scalars().all()
+    session.close()
+
+    print("=" * 75)
+    print(f" INCIDENT ALERTS LOG: {group_id} (Total: {len(alerts)})")
+    print("=" * 75)
+    if not alerts:
+        print("  No active alerts found. System operational.")
+    else:
+        print(f"{'SEVERITY':<12} {'STATUS':<12} {'TYPE':<16} {'TITLE'}")
+        print("-" * 75)
+        for a in alerts:
+            sev = f"[{a.severity.upper()}]"
+            st = a.status.upper()
+            at = a.alert_type[:14]
+            title = a.title[:32]
+            print(f"{sev:<12} {st:<12} {at:<16} {title}")
+    print("=" * 75)
+
+def run_simulate(args):
+    """Simulates realistic WhatsApp group messages for testing or live demonstrations."""
     count = args.count or 5
     group_id = args.group or "dev_core"
     group_name = args.group_name or "Engineering Core"
+    url = args.url or "http://localhost:8000/api/v1/ingest"
+    api_key = args.api_key or "default_secret_key"
+    scenario = getattr(args, "scenario", "normal") or "normal"
 
-    SIMULATED_PERSONAS = [
-        ("u_alex", "Alex Rivera (Lead Architect)"),
-        ("u_sarah", "Sarah Jenkins (Senior DevOps)"),
-        ("u_marcus", "Marcus Vance (Backend Engineer)"),
-        ("u_elena", "Elena Rostova (Product Manager)")
+    senders = [
+        ("u_sarah", "Sarah Jenkins"),
+        ("u_alex", "Alex Rivera"),
+        ("u_david", "David Chen"),
+        ("u_maria", "Maria Garcia")
     ]
 
-    SAMPLE_CHATS = [
-        ("We decided to migrate the primary queue to Redis 7 to reduce lock contention.", "decision"),
-        ("Can someone review PR #182 regarding the secret masking fix before noon?", "question"),
-        ("I'll take ownership of the vector index scaling task by Thursday.", "task"),
-        ("Heads up: database maintenance is scheduled for Sunday 2 AM UTC.", "announcement"),
-        ("The new async ingestion benchmarks look fantastic, 4x latency improvement!", "discussion"),
-        ("Action item: @marcus will update the Celery broker retry backoff parameters.", "task"),
-        ("Are we blocking the release on the frontend dashboard styling?", "question"),
-        ("Decision: approved the schema changes for the executive briefing export.", "decision")
+    normal_messages = [
+        "We need to finalize the API docs by Friday.",
+        "Great work on the new dashboard guys, looks amazing!",
+        "Are we still on track for the Q3 feature freeze?",
+        "Can someone please review PR #402?",
+        "I'll handle the database migration tomorrow morning.",
+        "User engagement is up 15% since the new update.",
+        "Let's schedule a 15-min sync to discuss the authentication flow.",
+        "The new marketing assets are ready for review."
     ]
 
-    print(f"\n[SIMULATOR] Streaming {count} realistic WhatsApp messages into '{group_name}'...\n")
+    incident_messages = [
+        "CRITICAL ALERT: Production is throwing 500 error spikes on /api/v1/auth!",
+        "Downtime detected on database cluster db-primary-01, checking logs immediately.",
+        "URGENT: Staging is down after the last deployment merge.",
+        "Server crash on worker node 4, looking into memory dump now.",
+        "Security warning: potential token leaked in public repo test fixture!"
+    ]
+
+    task_messages = [
+        "Todo: implement Redis connection pooling before launch.",
+        "Alex Rivera to review authentication security headers by end of day.",
+        "I'll handle refactoring the task queue worker tomorrow.",
+        "Action item: update documentation with new environment variables.",
+        "Need to finalize contract tests for external partner integration."
+    ]
+
+    if scenario == "incident":
+        msg_pool = incident_messages
+    elif scenario == "tasks":
+        msg_pool = task_messages
+    else:
+        msg_pool = normal_messages
+
+    print(f"\n[SIMULATOR] Scenario: '{scenario}' | Injecting {count} messages into group '{group_name}' ({group_id})...\n")
 
     for i in range(count):
-        user_id, user_name = random.choice(SIMULATED_PERSONAS)
-        content, _ = random.choice(SAMPLE_CHATS)
+        user_id, user_name = random.choice(senders)
+        content = random.choice(msg_pool)
 
         payload = {
             "message_id": f"sim_{uuid.uuid4().hex[:12]}",
@@ -160,10 +293,10 @@ def run_simulate(args):
 
         try:
             with urllib.request.urlopen(req):
-                print(f"  [SENT] ({i+1}/{count}): [{user_name}] {content[:45]}...")
+                print(f"  [SENT] ({i+1}/{count}): [{user_name}] {content[:48]}...")
         except urllib.error.URLError as e:
             # Fallback to direct DB injection if API server is not running
-            print(f"  [NOTE] Webhook endpoint offline ({e.reason}). Ingesting directly into database...")
+            print(f"  [NOTE] Webhook offline ({e.reason}). Ingesting directly into database...")
             try:
                 from app.workers.tasks import SessionLocal, process_message
                 from app.db.models import Message, Group, User
@@ -183,7 +316,6 @@ def run_simulate(args):
                 )
                 session.add(msg_obj)
                 session.commit()
-                # Run worker inline
                 process_message(payload["message_id"])
                 print(f"  [SAVED & ENRICHED] {payload['message_id']}")
                 session.close()
@@ -257,16 +389,32 @@ def run_briefing(args):
 def main():
     parser = argparse.ArgumentParser(
         prog="python -m app.cli",
-        description="AI WhatsApp Intelligence CLI & Developer Tooling"
+        description="AI WhatsApp Intelligence CLI & Autonomous Operations Tooling"
     )
     subparsers = parser.add_subparsers(dest="command", help="Available subcommands")
 
     # health
     subparsers.add_parser("health", help="Check system, database, and vector store health")
 
+    # tasks
+    tasks_parser = subparsers.add_parser("tasks", help="Inspect and manage group action items & Kanban tasks")
+    tasks_parser.add_argument("--group", type=str, default="dev_core", help="Target group ID")
+    tasks_parser.add_argument("--status", type=str, default=None, choices=["todo", "in_progress", "done", "dismissed"])
+    tasks_parser.add_argument("--add", type=str, default=None, help="Add a new action item title")
+    tasks_parser.add_argument("--assignee", type=str, default=None, help="Assignee for the new action item")
+    tasks_parser.add_argument("--urgency", type=str, default="medium", choices=["low", "medium", "high"])
+    tasks_parser.add_argument("--complete", type=str, default=None, help="Task ID to mark completed")
+
+    # alerts
+    alerts_parser = subparsers.add_parser("alerts", help="Inspect and resolve active group incident alerts")
+    alerts_parser.add_argument("--group", type=str, default="dev_core", help="Target group ID")
+    alerts_parser.add_argument("--status", type=str, default=None, choices=["active", "acknowledged", "resolved"])
+    alerts_parser.add_argument("--resolve", type=str, default=None, help="Alert ID to mark resolved")
+
     # simulate
     sim_parser = subparsers.add_parser("simulate", help="Simulate realistic WhatsApp chats for testing/demo")
     sim_parser.add_argument("--count", type=int, default=5, help="Number of simulated messages to send")
+    sim_parser.add_argument("--scenario", type=str, default="normal", choices=["normal", "incident", "tasks"])
     sim_parser.add_argument("--group", type=str, default="dev_core", help="Target group ID")
     sim_parser.add_argument("--group-name", type=str, default="Engineering Core", help="Target group display name")
     sim_parser.add_argument("--url", type=str, default="http://localhost:8000/api/v1/ingest", help="Ingestion webhook URL")
@@ -293,6 +441,10 @@ def main():
 
     if args.command == "health":
         run_health(args)
+    elif args.command == "tasks":
+        run_tasks(args)
+    elif args.command == "alerts":
+        run_alerts(args)
     elif args.command == "simulate":
         run_simulate(args)
     elif args.command == "search":

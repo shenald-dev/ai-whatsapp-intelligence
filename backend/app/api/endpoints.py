@@ -3,8 +3,9 @@ import collections
 import logging
 import csv
 import io
+import uuid
 from datetime import datetime, timezone, timedelta
-from typing import List, Literal
+from typing import List, Literal, Optional
 
 from fastapi import APIRouter, Depends, Query, HTTPException
 from fastapi.responses import StreamingResponse, PlainTextResponse
@@ -30,6 +31,11 @@ from .schemas import (
     ActionItem,
     DecisionItem,
     QuestionItem,
+    TaskItemCreate,
+    TaskItemUpdate,
+    TaskItemResponse,
+    AlertResponse,
+    AlertUpdate,
 )
 from .auth import get_api_key
 
@@ -130,7 +136,10 @@ async def get_group_stats(group_id: str, db: AsyncSession = Depends(get_db)):
                 "neutral": neutral
             },
             "tasks_detected": tasks_found,
-            "decisions_detected": decisions_found
+            "decisions_detected": decisions_found,
+            "tasks_pending": getattr(row, "tasks_pending", tasks_found),
+            "tasks_completed": getattr(row, "tasks_completed", 0),
+            "active_alerts": getattr(row, "active_alerts", 0)
         }
 
         stats_cache.put(cache_key, response_data)
@@ -200,7 +209,6 @@ async def semantic_search(
 
         if vector_hits:
             hit_ids = [h["message_id"] for h in vector_hits]
-            # Fetch relational metadata for matched IDs
             stmt = (
                 select(models.Message, models.Group.name.label("group_name"), models.User.name.label("user_name"))
                 .outerjoin(models.Group, models.Message.group_id == models.Group.id)
@@ -284,7 +292,7 @@ async def semantic_search(
                         timestamp=msg.timestamp.isoformat() if msg.timestamp else None,
                         sentiment=msg.sentiment,
                         classification=msg.classification,
-                        similarity=0.75 # Default text-match baseline
+                        similarity=0.75
                     )
                 )
 
@@ -308,7 +316,6 @@ async def ask_intelligence(
     Returns synthesized answer with exact message citations.
     """
     try:
-        # 1. Retrieve top-10 candidate messages via semantic search
         where_clause = {"group_id": payload.group_id} if payload.group_id else None
         vector_hits = search_message_embeddings(
             query_text=payload.question,
@@ -353,7 +360,6 @@ async def ask_intelligence(
                         "timestamp": row.Message.timestamp.isoformat() if row.Message.timestamp else ""
                     })
 
-        # 2. Synthesize answer with AI Engine
         qa_result = ai_engine.answer_question_sync(payload.question, context_messages)
 
         citations = [
@@ -397,13 +403,11 @@ async def get_executive_briefing(
         return cached
 
     try:
-        # Check group existence
         group_res = await db.execute(select(models.Group).where(models.Group.id == group_id))
         group = group_res.scalar_one_or_none()
         if not group:
             raise HTTPException(status_code=404, detail="Group not found")
 
-        # Fetch messages within the time window
         cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
         msg_stmt = (
             select(models.Message, models.User.name.label("user_name"))
@@ -426,7 +430,6 @@ async def get_executive_briefing(
                 "timestamp": m.timestamp.isoformat() if m.timestamp else ""
             })
 
-        # Run briefing synthesis
         raw_briefing = ai_engine.generate_briefing_sync(group.name or group.id, messages_data)
 
         decisions = [
@@ -506,7 +509,6 @@ async def export_intelligence(
             writer.writerow(["Open Question", q.question, q.asker or "", "Pending", q.source_message_id or ""])
         return PlainTextResponse(content=output.getvalue(), media_type="text/csv")
 
-    # Default: Markdown
     md_lines = [
         f"# 📊 WhatsApp Group Intelligence Briefing: {briefing.group_name}",
         f"*Window: Last {briefing.time_window_hours} Hours | Total Messages Analyzed: {briefing.total_messages_analyzed}*",
@@ -552,6 +554,259 @@ async def export_intelligence(
     ])
 
     return PlainTextResponse(content="\n".join(md_lines), media_type="text/markdown")
+
+# --- Action Items & Kanban Endpoints ---
+
+@router.get("/groups/{group_id}/tasks", response_model=List[TaskItemResponse])
+async def get_group_tasks(
+    group_id: str,
+    status: Optional[str] = Query(None, description="Filter by status: todo, in_progress, done, dismissed"),
+    urgency: Optional[str] = Query(None, description="Filter by urgency: high, medium, low"),
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    db: AsyncSession = Depends(get_db)
+):
+    """Fetches action items/tasks for the group's Kanban tracker."""
+    try:
+        stmt = select(models.ActionItem).where(models.ActionItem.group_id == group_id)
+        if status:
+            stmt = stmt.where(models.ActionItem.status == status)
+        if urgency:
+            stmt = stmt.where(models.ActionItem.urgency == urgency)
+        stmt = stmt.order_by(models.ActionItem.created_at.desc()).limit(limit).offset(offset)
+        res = await db.execute(stmt)
+        tasks = res.scalars().all()
+        return [
+            TaskItemResponse(
+                id=t.id,
+                group_id=t.group_id,
+                source_message_id=t.source_message_id,
+                title=t.title,
+                description=t.description,
+                assignee=t.assignee,
+                assignee_id=t.assignee_id,
+                urgency=t.urgency,
+                status=t.status,
+                due_date=t.due_date.isoformat() if t.due_date else None,
+                created_at=t.created_at.isoformat() if t.created_at else None,
+                completed_at=t.completed_at.isoformat() if t.completed_at else None,
+            )
+            for t in tasks
+        ]
+    except Exception as e:
+        safe_error = sanitize_error_msg(str(e))
+        logging.error(f"Error fetching tasks: {safe_error}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+@router.post("/groups/{group_id}/tasks", response_model=TaskItemResponse)
+async def create_group_task(
+    group_id: str,
+    payload: TaskItemCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    """Creates a new action item manually or via automation."""
+    try:
+        task_id = str(uuid.uuid4())
+        task_item = models.ActionItem(
+            id=task_id,
+            group_id=group_id,
+            title=payload.title,
+            description=payload.description,
+            assignee=payload.assignee,
+            urgency=payload.urgency,
+            status=payload.status,
+            created_at=datetime.now(timezone.utc)
+        )
+        db.add(task_item)
+        await db.commit()
+        await db.refresh(task_item)
+
+        resp = TaskItemResponse(
+            id=task_item.id,
+            group_id=task_item.group_id,
+            source_message_id=task_item.source_message_id,
+            title=task_item.title,
+            description=task_item.description,
+            assignee=task_item.assignee,
+            assignee_id=task_item.assignee_id,
+            urgency=task_item.urgency,
+            status=task_item.status,
+            due_date=None,
+            created_at=task_item.created_at.isoformat() if task_item.created_at else None,
+            completed_at=None,
+        )
+
+        await event_bus.publish("task.created", resp.model_dump())
+        return resp
+    except Exception as e:
+        await db.rollback()
+        safe_error = sanitize_error_msg(str(e))
+        logging.error(f"Error creating task: {safe_error}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+@router.patch("/tasks/{task_id}", response_model=TaskItemResponse)
+@router.post("/tasks/{task_id}", response_model=TaskItemResponse)
+async def update_task(
+    task_id: str,
+    payload: TaskItemUpdate,
+    db: AsyncSession = Depends(get_db)
+):
+    """Updates a task's status (todo -> in_progress -> done), urgency, assignee, or title."""
+    try:
+        stmt = select(models.ActionItem).where(models.ActionItem.id == task_id)
+        res = await db.execute(stmt)
+        task = res.scalar_one_or_none()
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
+
+        if payload.title is not None:
+            task.title = payload.title
+        if payload.description is not None:
+            task.description = payload.description
+        if payload.assignee is not None:
+            task.assignee = payload.assignee
+        if payload.urgency is not None:
+            task.urgency = payload.urgency
+        if payload.status is not None:
+            task.status = payload.status
+            if payload.status == "done":
+                task.completed_at = datetime.now(timezone.utc)
+            elif payload.status in ["todo", "in_progress"]:
+                task.completed_at = None
+
+        await db.commit()
+        await db.refresh(task)
+
+        resp = TaskItemResponse(
+            id=task.id,
+            group_id=task.group_id,
+            source_message_id=task.source_message_id,
+            title=task.title,
+            description=task.description,
+            assignee=task.assignee,
+            assignee_id=task.assignee_id,
+            urgency=task.urgency,
+            status=task.status,
+            due_date=task.due_date.isoformat() if task.due_date else None,
+            created_at=task.created_at.isoformat() if task.created_at else None,
+            completed_at=task.completed_at.isoformat() if task.completed_at else None,
+        )
+        await event_bus.publish("task.updated", resp.model_dump())
+        return resp
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        safe_error = sanitize_error_msg(str(e))
+        logging.error(f"Error updating task: {safe_error}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+@router.delete("/tasks/{task_id}")
+@router.post("/tasks/{task_id}/delete")
+async def delete_task(task_id: str, db: AsyncSession = Depends(get_db)):
+    """Deletes an action item."""
+    try:
+        stmt = select(models.ActionItem).where(models.ActionItem.id == task_id)
+        res = await db.execute(stmt)
+        task = res.scalar_one_or_none()
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
+
+        group_id = task.group_id
+        await db.delete(task)
+        await db.commit()
+        await event_bus.publish("task.deleted", {"task_id": task_id, "group_id": group_id})
+        return {"status": "success", "task_id": task_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        safe_error = sanitize_error_msg(str(e))
+        logging.error(f"Error deleting task: {safe_error}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+# --- Incident & Anomaly Alert Endpoints ---
+
+@router.get("/groups/{group_id}/alerts", response_model=List[AlertResponse])
+async def get_group_alerts(
+    group_id: str,
+    status: Optional[str] = Query(None, description="Filter by status: active, acknowledged, resolved"),
+    limit: int = Query(50, ge=1, le=100),
+    db: AsyncSession = Depends(get_db)
+):
+    """Fetches real-time incident and anomaly alerts for a group."""
+    try:
+        stmt = select(models.Alert).where(models.Alert.group_id == group_id)
+        if status:
+            stmt = stmt.where(models.Alert.status == status)
+        stmt = stmt.order_by(models.Alert.created_at.desc()).limit(limit)
+        res = await db.execute(stmt)
+        alerts = res.scalars().all()
+        return [
+            AlertResponse(
+                id=a.id,
+                group_id=a.group_id,
+                source_message_id=a.source_message_id,
+                severity=a.severity,
+                alert_type=a.alert_type,
+                title=a.title,
+                description=a.description,
+                status=a.status,
+                created_at=a.created_at.isoformat() if a.created_at else None,
+                resolved_at=a.resolved_at.isoformat() if a.resolved_at else None,
+            )
+            for a in alerts
+        ]
+    except Exception as e:
+        safe_error = sanitize_error_msg(str(e))
+        logging.error(f"Error fetching alerts: {safe_error}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+@router.patch("/alerts/{alert_id}", response_model=AlertResponse)
+@router.post("/alerts/{alert_id}", response_model=AlertResponse)
+async def update_alert(
+    alert_id: str,
+    payload: AlertUpdate,
+    db: AsyncSession = Depends(get_db)
+):
+    """Updates an alert status (acknowledge or resolve)."""
+    try:
+        stmt = select(models.Alert).where(models.Alert.id == alert_id)
+        res = await db.execute(stmt)
+        alert = res.scalar_one_or_none()
+        if not alert:
+            raise HTTPException(status_code=404, detail="Alert not found")
+
+        alert.status = payload.status
+        if payload.status == "resolved":
+            alert.resolved_at = datetime.now(timezone.utc)
+        elif payload.status in ["active", "acknowledged"]:
+            alert.resolved_at = None
+
+        await db.commit()
+        await db.refresh(alert)
+
+        resp = AlertResponse(
+            id=alert.id,
+            group_id=alert.group_id,
+            source_message_id=alert.source_message_id,
+            severity=alert.severity,
+            alert_type=alert.alert_type,
+            title=alert.title,
+            description=alert.description,
+            status=alert.status,
+            created_at=alert.created_at.isoformat() if alert.created_at else None,
+            resolved_at=alert.resolved_at.isoformat() if alert.resolved_at else None,
+        )
+        await event_bus.publish("alert.updated", resp.model_dump())
+        return resp
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        safe_error = sanitize_error_msg(str(e))
+        logging.error(f"Error updating alert: {safe_error}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 # --- Real-Time Intelligence Event Stream (SSE) ---
 

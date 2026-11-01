@@ -1,6 +1,6 @@
 import os
 import logging
-from typing import Literal, List, Dict, Any
+from typing import Literal, List, Dict, Any, Optional
 from pydantic import BaseModel, Field, field_validator
 from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
@@ -11,6 +11,8 @@ logger = logging.getLogger(__name__)
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3")
 
 class MessageAnalysis(BaseModel):
     sentiment: Literal["positive", "negative", "neutral"] = Field(
@@ -40,7 +42,7 @@ class BriefingSchema(BaseModel):
 
 class AIEngine:
     def __init__(self):
-        # Support either OpenRouter or standard OpenAI keys
+        # Support OpenRouter, standard OpenAI, or local Ollama instances
         api_key = OPENROUTER_API_KEY or OPENAI_API_KEY
         if api_key:
             model_name = "anthropic/claude-3-haiku:beta" if OPENROUTER_API_KEY else "gpt-4o-mini"
@@ -55,8 +57,19 @@ class AIEngine:
             if base_url:
                 kwargs["openai_api_base"] = base_url
             self.llm = ChatOpenAI(**kwargs)
+            self.provider = "OpenRouter" if OPENROUTER_API_KEY else "OpenAI"
+        elif OLLAMA_BASE_URL:
+            self.llm = ChatOpenAI(
+                openai_api_base=OLLAMA_BASE_URL,
+                openai_api_key="ollama",
+                model_name=OLLAMA_MODEL,
+                temperature=0.1,
+                timeout=20.0
+            )
+            self.provider = f"Ollama ({OLLAMA_MODEL})"
         else:
             self.llm = None
+            self.provider = "Local Heuristic Synthesis Engine"
 
         # Message Classifier Chain
         self.parser = PydanticOutputParser(pydantic_object=MessageAnalysis)
@@ -108,13 +121,13 @@ class AIEngine:
             sentiment = "neutral"
             if any(w in content_lower for w in ["great", "amazing", "awesome", "perfect", "good", "thanks", "done", "fixed"]):
                 sentiment = "positive"
-            elif any(w in content_lower for w in ["downtime", "broken", "failed", "error", "down", "bug", "issue", "blocked"]):
+            elif any(w in content_lower for w in ["downtime", "broken", "failed", "error", "down", "bug", "issue", "blocked", "crash", "outage"]):
                 sentiment = "negative"
 
             classification = "discussion"
             if "?" in content or any(w in content_lower for w in ["why", "how", "when", "who", "what", "is anyone", "can someone"]):
                 classification = "question"
-            elif any(w in content_lower for w in ["todo", "i'll handle", "will do", "need to", "must", "action item", "please review", "assign"]):
+            elif any(w in content_lower for w in ["todo", "i'll handle", "will do", "need to", "must", "action item", "please review", "assign", "finalize"]):
                 classification = "task"
             elif any(w in content_lower for w in ["we decided", "decision:", "agreed", "finalized", "let's go with", "approved"]):
                 classification = "decision"
@@ -132,6 +145,96 @@ class AIEngine:
         except Exception as e:
             logger.error(f"AI Analysis Error: {e}")
             raise
+
+    def extract_action_items_sync(self, content: str, sender_name: str = "Team Member") -> List[Dict[str, Any]]:
+        """
+        Extracts structured action items from a message.
+        Returns a list of dicts: {'title': str, 'assignee': str, 'urgency': str, 'due_date_str': Optional[str]}
+        """
+        if not content.strip() or len(content) < 8:
+            return []
+
+        content_lower = content.lower()
+        is_actionable = any(kw in content_lower for kw in [
+            "todo", "i'll handle", "will handle", "will do", "need to", "must", "action item",
+            "please review", "assign", "finalize", "let's fix", "working on", "scheduled"
+        ])
+        if not is_actionable:
+            return []
+
+        # Determine urgency
+        urgency = "medium"
+        if any(w in content_lower for w in ["urgent", "asap", "critical", "p0", "immediately", "blocker", "today"]):
+            urgency = "high"
+        elif any(w in content_lower for w in ["low priority", "backlog", "eventually", "whenever", "nice to have"]):
+            urgency = "low"
+
+        # Determine assignee
+        assignee = sender_name
+        if "assign to @" in content_lower:
+            parts = content.split("assign to @")
+            if len(parts) > 1:
+                assignee = parts[1].split()[0].strip()
+        elif "please review" in content_lower and sender_name:
+            assignee = None  # open review request for team
+
+        # Clean title
+        title = content.strip()
+        if len(title) > 140:
+            title = title[:137] + "..."
+
+        return [{
+            "title": title,
+            "assignee": assignee,
+            "urgency": urgency,
+            "due_date_str": "by Friday" if "by friday" in content_lower else ("tomorrow" if "tomorrow" in content_lower else None)
+        }]
+
+    def detect_incident_alert_sync(self, content: str, sender_name: str = "Team Member") -> Optional[Dict[str, Any]]:
+        """
+        Detects outages, severe security issues, or critical production emergencies.
+        Returns None if normal message, or a dict with alert fields.
+        """
+        if not content.strip():
+            return None
+
+        content_lower = content.lower()
+
+        # 1. Outage / Service Disruption Check
+        outage_keywords = [
+            "production is down", "production down", "prod is down", "staging is down",
+            "downtime alert", "server crash", "database crash", "500 error spike",
+            "database down", "server down", "outage"
+        ]
+        if any(kw in content_lower for kw in outage_keywords):
+            return {
+                "severity": "critical",
+                "alert_type": "outage",
+                "title": f"Service Outage Flagged by {sender_name}",
+                "description": content.strip()
+            }
+
+        # 2. Security / Data Exposure Check
+        security_keywords = ["api key exposed", "credentials leak", "security breach", "unauthorized access", "token leaked", "data exposure"]
+        if any(kw in content_lower for kw in security_keywords):
+            return {
+                "severity": "critical",
+                "alert_type": "security_leak",
+                "title": f"Security Exposure Warning from {sender_name}",
+                "description": content.strip()
+            }
+
+        # 3. Critical Blockers / Urgent Escalation
+        escalation_keywords = ["critical blocker", "emergency escalation", "p0 incident", "urgent escalation"]
+        if any(kw in content_lower for kw in escalation_keywords):
+            return {
+                "severity": "warning",
+                "alert_type": "escalation",
+                "title": f"Critical Escalation by {sender_name}",
+                "description": content.strip()
+            }
+
+        return None
 
     def answer_question_sync(self, question: str, context_messages: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Synthesizes an answer to a question given retrieved message contexts."""
@@ -188,7 +291,6 @@ class AIEngine:
             }
         except Exception as e:
             logger.error(f"RAG Q&A Synthesis Error: {e}")
-            # Resilient fallback
             return {
                 "answer": f"Identified {len(citations)} relevant discussions regarding '{question}'. Most relevant note from {citations[0]['sender_name']}: '{citations[0]['snippet']}'",
                 "confidence": 0.70,

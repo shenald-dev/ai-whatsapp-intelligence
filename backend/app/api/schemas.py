@@ -96,3 +96,51 @@ class ExecutiveBriefingResponse(BaseModel):
     action_items: List[ActionItem]
     open_questions: List[QuestionItem]
     sentiment_breakdown: Dict[str, int]
+
+# --- Task & Action Item Management Schemas ---
+
+class TaskItemCreate(BaseModel):
+    group_id: str = Field(..., max_length=255)
+    title: str = Field(..., min_length=1, max_length=1000)
+    description: Optional[str] = None
+    assignee: Optional[str] = None
+    urgency: str = Field("medium", pattern="^(high|medium|low)$")
+    status: str = Field("todo", pattern="^(todo|in_progress|done|dismissed)$")
+
+class TaskItemUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    assignee: Optional[str] = None
+    urgency: Optional[str] = Field(None, pattern="^(high|medium|low)$")
+    status: Optional[str] = Field(None, pattern="^(todo|in_progress|done|dismissed)$")
+
+class TaskItemResponse(BaseModel):
+    id: str
+    group_id: str
+    source_message_id: Optional[str] = None
+    title: str
+    description: Optional[str] = None
+    assignee: Optional[str] = None
+    assignee_id: Optional[str] = None
+    urgency: str
+    status: str
+    due_date: Optional[str] = None
+    created_at: Optional[str] = None
+    completed_at: Optional[str] = None
+
+# --- Incident & Anomaly Alert Schemas ---
+
+class AlertResponse(BaseModel):
+    id: str
+    group_id: str
+    source_message_id: Optional[str] = None
+    severity: str
+    alert_type: str
+    title: str
+    description: str
+    status: str
+    created_at: Optional[str] = None
+    resolved_at: Optional[str] = None
+
+class AlertUpdate(BaseModel):
+    status: str = Field(..., pattern="^(active|acknowledged|resolved)$")

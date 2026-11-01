@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI WhatsApp Intelligence Dashboard</title>
+  <title>AI WhatsApp Intelligence Hub v2.0</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -19,78 +19,111 @@
   </script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    body { background: #0B0F17; color: #F3F4F6; font-family: ui-sans-serif, system-ui, sans-serif; }
-    .glass-card { background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
-    .glass-input { background: rgba(31, 41, 55, 0.6); border: 1px solid rgba(255, 255, 255, 0.12); color: #FFF; }
+    body { background: #080C14; color: #F3F4F6; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .glass-card { background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); }
+    .glass-input { background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255, 255, 255, 0.12); color: #FFF; }
     .glass-input:focus { border-color: #25D366; outline: none; }
-    ::-webkit-scrollbar { width: 6px; }
+    .kanban-col { background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255, 255, 255, 0.05); }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.05); }
+    }
+    .animate-glow { animation: pulse-glow 2s infinite ease-in-out; }
   </style>
 </head>
-<body class="min-h-screen flex flex-col">
-  <header class="border-b border-gray-800 bg-gray-900/60 backdrop-blur-md sticky top-0 z-50 px-6 py-3 flex items-center justify-between">
+<body class="min-h-screen flex flex-col antialiased">
+
+  <!-- Floating Alert Banner for Real-Time Incident Notifications -->
+  <div id="live-alert-banner" class="hidden sticky top-0 z-50 px-6 py-3 bg-red-950/90 border-b border-red-500/40 text-red-200 flex items-center justify-between shadow-2xl backdrop-blur-md transition-all">
     <div class="flex items-center space-x-3">
-      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-700 to-brand-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
-        <i class="fa-brands fa-whatsapp text-xl"></i>
-      </div>
+      <span class="w-3 h-3 rounded-full bg-red-500 animate-ping"></span>
+      <i class="fa-solid fa-triangle-exclamation text-red-400 text-lg"></i>
       <div>
-        <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
-          AI WhatsApp Intelligence <span class="text-xs font-mono font-medium px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-500 border border-brand-500/30">v1.1</span>
-        </h1>
-        <p class="text-xs text-gray-400">Autonomous Group Monitor & Vector RAG Hub</p>
+        <span class="font-bold text-sm text-white" id="banner-alert-title">Critical Incident Detected</span>
+        <span class="text-xs text-red-300 ml-2" id="banner-alert-desc"></span>
       </div>
     </div>
-    <div class="flex items-center space-x-4">
-      <div id="sse-badge" class="flex items-center space-x-2 text-xs px-3 py-1.5 rounded-full bg-gray-800 border border-gray-700 text-gray-300">
-        <span class="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" id="sse-dot"></span>
-        <span id="sse-text">Connecting Stream...</span>
+    <div class="flex items-center space-x-3">
+      <button onclick="switchTab('alerts')" class="text-xs bg-red-600 hover:bg-red-500 text-white font-semibold px-3 py-1.5 rounded-lg shadow transition">Inspect Incident</button>
+      <button onclick="dismissAlertBanner()" class="text-gray-400 hover:text-white text-sm"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+  </div>
+
+  <!-- Top Navigation Header -->
+  <header class="border-b border-slate-800 bg-slate-900/70 backdrop-blur-md sticky top-0 z-40 px-6 py-3.5 flex items-center justify-between">
+    <div class="flex items-center space-x-3.5">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-700 via-brand-600 to-brand-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/25">
+        <i class="fa-brands fa-whatsapp text-2xl"></i>
       </div>
-      <div class="flex items-center space-x-2">
+      <div>
+        <h1 class="text-base font-bold tracking-tight text-white flex items-center gap-2">
+          AI WhatsApp Intelligence <span class="text-xs font-mono font-semibold px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-400 border border-brand-500/30">v2.0 Major</span>
+        </h1>
+        <p class="text-xs text-slate-400">Autonomous Group Operations, Kanban Tasks & Incident Monitor</p>
+      </div>
+    </div>
+
+    <!-- Quick Stats Bar & Auth Controls -->
+    <div class="flex items-center space-x-4">
+      <div id="sse-badge" class="flex items-center space-x-2 text-xs px-3.5 py-1.5 rounded-full bg-slate-800/90 border border-slate-700 text-slate-300 shadow-sm">
+        <span class="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" id="sse-dot"></span>
+        <span id="sse-text" class="font-medium">Connecting Stream...</span>
+      </div>
+      <div class="hidden sm:flex items-center space-x-2">
         <input type="password" id="api-key-input" placeholder="X-API-Key" class="glass-input text-xs px-3 py-1.5 rounded-lg w-32 focus:w-48 transition-all">
-        <button onclick="saveApiKey()" class="text-xs px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700">Save</button>
+        <button onclick="saveApiKey()" class="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">Save</button>
       </div>
     </div>
   </header>
 
+  <!-- Main Grid Layout -->
   <main class="flex-1 p-6 grid grid-cols-12 gap-6 max-w-7xl mx-auto w-full">
+
+    <!-- Left Column: Navigation, Groups & KPI Overview -->
     <div class="col-span-12 lg:col-span-4 space-y-6">
+
+      <!-- Monitored Groups Card -->
       <div class="glass-card rounded-2xl p-5 shadow-xl">
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-sm font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-2">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
             <i class="fa-solid fa-users text-brand-500"></i> Monitored Groups
           </h2>
-          <button onclick="loadGroups()" class="text-xs text-gray-400 hover:text-white"><i class="fa-solid fa-arrows-rotate"></i></button>
+          <button onclick="loadGroups()" title="Refresh Groups" class="text-xs text-slate-400 hover:text-white transition"><i class="fa-solid fa-arrows-rotate"></i></button>
         </div>
         <div id="groups-list" class="space-y-2 max-h-48 overflow-y-auto pr-1">
-          <div class="text-xs text-gray-500 italic p-3 text-center">Loading monitored groups...</div>
+          <div class="text-xs text-slate-500 italic p-3 text-center">Loading monitored groups...</div>
         </div>
       </div>
 
+      <!-- Real-Time Metrics & Health KPIs -->
       <div class="grid grid-cols-2 gap-3">
         <div class="glass-card rounded-xl p-4">
-          <div class="text-xs text-gray-400">Total Messages</div>
+          <div class="text-xs text-slate-400">Total Messages</div>
           <div class="text-2xl font-bold text-white mt-1" id="stat-total">0</div>
-          <div class="text-[10px] text-gray-500 mt-1" id="stat-analyzed">0 analyzed</div>
+          <div class="text-[10px] text-slate-500 mt-1" id="stat-analyzed">0 analyzed</div>
         </div>
         <div class="glass-card rounded-xl p-4">
-          <div class="text-xs text-gray-400">Tasks Detected</div>
+          <div class="text-xs text-slate-400">Active Incidents</div>
+          <div class="text-2xl font-bold text-red-400 mt-1" id="stat-alerts">0</div>
+          <div class="text-[10px] text-slate-500 mt-1">Alert triggers</div>
+        </div>
+        <div class="glass-card rounded-xl p-4">
+          <div class="text-xs text-slate-400">Action Items</div>
           <div class="text-2xl font-bold text-amber-400 mt-1" id="stat-tasks">0</div>
-          <div class="text-[10px] text-gray-500 mt-1">Action items flagged</div>
+          <div class="text-[10px] text-slate-500 mt-1" id="stat-tasks-sub">0 completed</div>
         </div>
         <div class="glass-card rounded-xl p-4">
-          <div class="text-xs text-gray-400">Decisions Made</div>
+          <div class="text-xs text-slate-400">Decisions Finalized</div>
           <div class="text-2xl font-bold text-emerald-400 mt-1" id="stat-decisions">0</div>
-          <div class="text-[10px] text-gray-500 mt-1">Consensus points</div>
-        </div>
-        <div class="glass-card rounded-xl p-4">
-          <div class="text-xs text-gray-400">Sentiment Health</div>
-          <div class="text-2xl font-bold text-brand-500 mt-1" id="stat-sentiment">--</div>
-          <div class="text-[10px] text-gray-500 mt-1" id="stat-sentiment-sub">pos / neg ratio</div>
+          <div class="text-[10px] text-slate-500 mt-1">Consensus points</div>
         </div>
       </div>
 
+      <!-- Autonomous Executive Intelligence Briefing Card -->
       <div class="glass-card rounded-2xl p-5 shadow-xl space-y-4">
-        <h2 class="text-sm font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-2">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
           <i class="fa-solid fa-file-invoice text-brand-500"></i> Executive Briefing
         </h2>
         <div class="flex items-center space-x-2">
@@ -104,80 +137,185 @@
             Generate
           </button>
         </div>
-        <div class="flex items-center justify-between pt-2 border-t border-gray-800 text-xs">
-          <span class="text-gray-400">Export Report:</span>
+        <div class="flex items-center justify-between pt-2 border-t border-slate-800 text-xs">
+          <span class="text-slate-400">Export Report:</span>
           <div class="space-x-1">
-            <button onclick="exportReport('markdown')" class="px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-300">.MD</button>
-            <button onclick="exportReport('csv')" class="px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-300">.CSV</button>
-            <button onclick="exportReport('json')" class="px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-300">.JSON</button>
+            <button onclick="exportReport('markdown')" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition">.MD</button>
+            <button onclick="exportReport('csv')" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition">.CSV</button>
+            <button onclick="exportReport('json')" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition">.JSON</button>
           </div>
         </div>
       </div>
     </div>
 
+    <!-- Right Column: Command Center Tabs & Workspaces -->
     <div class="col-span-12 lg:col-span-8 space-y-6">
+
+      <!-- Conversational Vector Memory RAG Assistant -->
       <div class="glass-card rounded-2xl p-5 shadow-xl">
         <div class="flex items-center justify-between mb-3">
-          <h2 class="text-sm font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-2">
-            <i class="fa-solid fa-brain text-purple-400"></i> Ask Group Memory (RAG)
+          <h2 class="text-xs font-bold uppercase tracking-wider text-purple-400 flex items-center gap-2">
+            <i class="fa-solid fa-brain"></i> Ask Group Memory (RAG)
           </h2>
-          <span class="text-[11px] text-gray-500">Vector-grounded answers with citations</span>
+          <span class="text-[11px] text-slate-500">Grounded semantic synthesis with message citations</span>
         </div>
         <div class="flex space-x-2">
-          <input type="text" id="ask-input" placeholder="e.g., 'What did Alex decide about the database migration?' or 'What are the open bugs?'" class="glass-input rounded-xl px-4 py-2.5 text-sm flex-1">
+          <input type="text" id="ask-input" onkeyup="if(event.key==='Enter') askAI()" placeholder="e.g. 'What did Alex decide about the database migration?' or 'What are our open P0 blockers?'" class="glass-input rounded-xl px-4 py-2.5 text-sm flex-1">
           <button onclick="askAI()" id="ask-btn" class="bg-purple-600 hover:bg-purple-500 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-purple-600/30 flex items-center gap-2">
             <i class="fa-solid fa-wand-magic-sparkles"></i> <span>Ask</span>
           </button>
         </div>
-        <div id="ask-answer-box" class="hidden mt-4 p-4 rounded-xl bg-purple-950/20 border border-purple-500/20 text-sm space-y-3">
-          <div class="text-gray-200 font-medium" id="ask-answer-text"></div>
-          <div id="ask-citations" class="border-t border-purple-500/10 pt-2 space-y-1"></div>
+        <div id="ask-answer-box" class="hidden mt-4 p-4 rounded-xl bg-purple-950/30 border border-purple-500/20 text-sm space-y-3">
+          <div class="text-slate-200 font-medium leading-relaxed" id="ask-answer-text"></div>
+          <div id="ask-citations" class="border-t border-purple-500/20 pt-2 space-y-1.5"></div>
         </div>
       </div>
 
-      <div class="glass-card rounded-2xl p-4 shadow-xl flex items-center space-x-3">
-        <i class="fa-solid fa-magnifying-glass text-gray-400 pl-2"></i>
-        <input type="text" id="search-input" onkeyup="if(event.key==='Enter') executeSearch()" placeholder="Semantic Vector Search across messages (type and press Enter)..." class="bg-transparent border-none text-sm text-white placeholder-gray-500 flex-1 focus:outline-none">
-        <button onclick="executeSearch()" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-lg border border-gray-700">Search</button>
+      <!-- Quick Global Vector Search Bar -->
+      <div class="glass-card rounded-2xl p-3.5 shadow-xl flex items-center space-x-3">
+        <i class="fa-solid fa-magnifying-glass text-slate-400 pl-2"></i>
+        <input type="text" id="search-input" onkeyup="if(event.key==='Enter') executeSearch()" placeholder="Semantic Vector Search across chat history (Press Enter to query)..." class="bg-transparent border-none text-sm text-white placeholder-slate-500 flex-1 focus:outline-none">
+        <button onclick="executeSearch()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3.5 py-1.5 rounded-lg border border-slate-700 transition">Search</button>
       </div>
 
-      <div class="glass-card rounded-2xl p-5 shadow-xl min-h-[400px]">
-        <div class="flex items-center justify-between border-b border-gray-800 pb-3 mb-4">
-          <div class="flex space-x-4">
-            <button onclick="switchTab('feed')" id="tab-feed" class="text-sm font-semibold text-brand-500 border-b-2 border-brand-500 pb-2">Live Message Feed</button>
-            <button onclick="switchTab('briefing')" id="tab-briefing" class="text-sm font-semibold text-gray-400 hover:text-white pb-2">Executive Briefing</button>
-            <button onclick="switchTab('search')" id="tab-search" class="text-sm font-semibold text-gray-400 hover:text-white pb-2">Search Results</button>
+      <!-- Main Command Center Workspace Tabs -->
+      <div class="glass-card rounded-2xl p-5 shadow-xl min-h-[500px]">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+          <div class="flex space-x-6 overflow-x-auto">
+            <button onclick="switchTab('feed')" id="tab-feed" class="text-sm font-semibold text-brand-400 border-b-2 border-brand-500 pb-2 flex items-center gap-2">
+              <i class="fa-solid fa-comments"></i> <span>Live Stream Feed</span>
+            </button>
+            <button onclick="switchTab('kanban')" id="tab-kanban" class="text-sm font-semibold text-slate-400 hover:text-white pb-2 flex items-center gap-2">
+              <i class="fa-solid fa-list-check"></i> <span>Action Items</span>
+            </button>
+            <button onclick="switchTab('alerts')" id="tab-alerts" class="text-sm font-semibold text-slate-400 hover:text-white pb-2 flex items-center gap-2">
+              <i class="fa-solid fa-triangle-exclamation"></i> <span>Incidents</span>
+            </button>
+            <button onclick="switchTab('briefing')" id="tab-briefing" class="text-sm font-semibold text-slate-400 hover:text-white pb-2 flex items-center gap-2">
+              <i class="fa-solid fa-chart-line"></i> <span>Executive Briefing</span>
+            </button>
+            <button onclick="switchTab('search')" id="tab-search" class="text-sm font-semibold text-slate-400 hover:text-white pb-2 flex items-center gap-2">
+              <i class="fa-solid fa-magnifying-glass"></i> <span>Search Results</span>
+            </button>
           </div>
-          <div class="text-xs text-gray-500" id="current-group-label">No group selected</div>
+          <div class="text-xs text-slate-400 font-medium truncate max-w-[150px]" id="current-group-label">No group selected</div>
         </div>
 
-        <div id="view-feed" class="space-y-3 max-h-[500px] overflow-y-auto pr-1">
-          <div class="text-sm text-gray-500 italic p-6 text-center">Select a group on the left to inspect intelligence messages.</div>
+        <!-- Tab View 1: Live Message Feed -->
+        <div id="view-feed" class="space-y-3 max-h-[520px] overflow-y-auto pr-1">
+          <div class="text-sm text-slate-500 italic p-8 text-center">Select a group on the left to inspect intelligence messages.</div>
         </div>
 
-        <div id="view-briefing" class="hidden space-y-6 max-h-[500px] overflow-y-auto pr-2">
-          <div class="text-sm text-gray-500 italic p-6 text-center">Click 'Generate' on the left to produce an autonomous executive briefing.</div>
+        <!-- Tab View 2: Interactive Kanban & Action Items -->
+        <div id="view-kanban" class="hidden space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Group Action Tracker</h3>
+            <button onclick="openNewTaskModal()" class="text-xs bg-brand-600 hover:bg-brand-500 text-white font-semibold px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
+              <i class="fa-solid fa-plus"></i> New Task
+            </button>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Todo Column -->
+            <div class="kanban-col rounded-xl p-3.5 space-y-3">
+              <div class="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-800 pb-2">
+                <span>To Do</span>
+                <span id="badge-count-todo" class="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">0</span>
+              </div>
+              <div id="kanban-col-todo" class="space-y-2.5 max-h-[420px] overflow-y-auto pr-1"></div>
+            </div>
+            <!-- In Progress Column -->
+            <div class="kanban-col rounded-xl p-3.5 space-y-3">
+              <div class="flex items-center justify-between text-xs font-bold text-amber-400 uppercase tracking-wider border-b border-slate-800 pb-2">
+                <span>In Progress</span>
+                <span id="badge-count-in_progress" class="px-2 py-0.5 rounded-full bg-amber-950/50 text-amber-300">0</span>
+              </div>
+              <div id="kanban-col-in_progress" class="space-y-2.5 max-h-[420px] overflow-y-auto pr-1"></div>
+            </div>
+            <!-- Completed Column -->
+            <div class="kanban-col rounded-xl p-3.5 space-y-3">
+              <div class="flex items-center justify-between text-xs font-bold text-emerald-400 uppercase tracking-wider border-b border-slate-800 pb-2">
+                <span>Completed</span>
+                <span id="badge-count-done" class="px-2 py-0.5 rounded-full bg-emerald-950/50 text-emerald-300">0</span>
+              </div>
+              <div id="kanban-col-done" class="space-y-2.5 max-h-[420px] overflow-y-auto pr-1"></div>
+            </div>
+          </div>
         </div>
 
-        <div id="view-search" class="hidden space-y-3 max-h-[500px] overflow-y-auto pr-1">
-          <div class="text-sm text-gray-500 italic p-6 text-center">Run a semantic vector query above to inspect matched messages and similarity scores.</div>
+        <!-- Tab View 3: Incident & Alert Center -->
+        <div id="view-alerts" class="hidden space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Incident Response Log</h3>
+            <button onclick="loadAlerts()" class="text-xs text-slate-400 hover:text-white transition"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+          </div>
+          <div id="alerts-container" class="space-y-3 max-h-[480px] overflow-y-auto pr-1">
+            <div class="text-sm text-slate-500 italic p-8 text-center">No active incidents detected. All services operational.</div>
+          </div>
+        </div>
+
+        <!-- Tab View 4: Executive Briefing -->
+        <div id="view-briefing" class="hidden space-y-6 max-h-[520px] overflow-y-auto pr-2">
+          <div class="text-sm text-slate-500 italic p-8 text-center">Click 'Generate' on the left to produce an autonomous executive briefing.</div>
+        </div>
+
+        <!-- Tab View 5: Vector Search Results -->
+        <div id="view-search" class="hidden space-y-3 max-h-[520px] overflow-y-auto pr-1">
+          <div class="text-sm text-slate-500 italic p-8 text-center">Run a semantic vector query above to inspect matched messages and similarity scores.</div>
         </div>
       </div>
     </div>
   </main>
+
+  <!-- Modal: Create New Action Item -->
+  <div id="new-task-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+    <div class="glass-card rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4 border border-slate-700">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-plus text-brand-500"></i> Create New Action Item
+        </h3>
+        <button onclick="closeNewTaskModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1">Task Title / Commitment</label>
+          <input type="text" id="task-title-input" placeholder="e.g. 'Deploy database migration on staging'" class="glass-input w-full rounded-lg px-3 py-2 text-white">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-400 mb-1">Assignee</label>
+            <input type="text" id="task-assignee-input" placeholder="e.g. 'Sarah' or '@alex'" class="glass-input w-full rounded-lg px-3 py-2 text-white">
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1">Urgency</label>
+            <select id="task-urgency-input" class="glass-input w-full rounded-lg px-3 py-2 text-white">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High (P0)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center justify-end space-x-2 pt-2 border-t border-slate-800">
+        <button onclick="closeNewTaskModal()" class="text-xs px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700">Cancel</button>
+        <button onclick="submitNewTask()" class="text-xs px-4 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-semibold shadow">Create Task</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     const API_BASE = window.location.origin;
     let selectedGroupId = null;
     let selectedGroupName = '';
     let apiKey = localStorage.getItem('awi_api_key') || '';
+    let currentTab = 'feed';
+    let sseSource = null;
 
     if (apiKey) document.getElementById('api-key-input').value = apiKey;
 
     function saveApiKey() {
       apiKey = document.getElementById('api-key-input').value.trim();
       localStorage.setItem('awi_api_key', apiKey);
-      alert('API Key saved!');
+      alert('API Key saved successfully!');
       loadGroups();
     }
 
@@ -187,6 +325,28 @@
       return h;
     }
 
+    // --- Tab Switching Logic ---
+    function switchTab(tab) {
+      currentTab = tab;
+      const tabs = ['feed', 'kanban', 'alerts', 'briefing', 'search'];
+      tabs.forEach(t => {
+        const btn = document.getElementById(`tab-${t}`);
+        const view = document.getElementById(`view-${t}`);
+        if (!btn || !view) return;
+        if (t === tab) {
+          btn.className = 'text-sm font-semibold text-brand-400 border-b-2 border-brand-500 pb-2 flex items-center gap-2';
+          view.classList.remove('hidden');
+        } else {
+          btn.className = 'text-sm font-semibold text-slate-400 hover:text-white pb-2 flex items-center gap-2';
+          view.classList.add('hidden');
+        }
+      });
+
+      if (tab === 'kanban') loadTasks();
+      if (tab === 'alerts') loadAlerts();
+    }
+
+    // --- Groups Management ---
     async function loadGroups() {
       try {
         const res = await fetch(`${API_BASE}/api/v1/dashboard/groups`, { headers: getHeaders() });
@@ -195,17 +355,17 @@
         const container = document.getElementById('groups-list');
         container.innerHTML = '';
         if (groups.length === 0) {
-          container.innerHTML = '<div class="text-xs text-gray-500 p-2 text-center">No groups recorded yet.</div>';
+          container.innerHTML = '<div class="text-xs text-slate-500 p-2 text-center">No groups recorded yet.</div>';
           return;
         }
         groups.forEach((g, idx) => {
           const btn = document.createElement('button');
-          btn.className = `w-full text-left px-3 py-2.5 rounded-xl text-xs font-medium transition-all flex items-center justify-between ${
+          btn.className = `w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all flex items-center justify-between ${
             (selectedGroupId === g.id || (!selectedGroupId && idx === 0))
-              ? 'bg-brand-600/20 text-brand-400 border border-brand-500/30'
-              : 'text-gray-300 hover:bg-gray-800'
+              ? 'bg-brand-600/20 text-brand-400 border border-brand-500/30 shadow'
+              : 'text-slate-300 hover:bg-slate-800'
           }`;
-          btn.innerHTML = `<span class="truncate">${g.name}</span><i class="fa-solid fa-chevron-right text-[10px] text-gray-600"></i>`;
+          btn.innerHTML = `<span class="truncate">${g.name}</span><i class="fa-solid fa-chevron-right text-[10px] text-slate-600"></i>`;
           btn.onclick = () => selectGroup(g.id, g.name);
           container.appendChild(btn);
         });
@@ -214,7 +374,7 @@
           selectGroup(groups[0].id, groups[0].name);
         }
       } catch (e) {
-        console.error(e);
+        console.error('Error loading groups:', e);
       }
     }
 
@@ -222,10 +382,11 @@
       selectedGroupId = id;
       selectedGroupName = name;
       document.getElementById('current-group-label').innerText = name;
-      await Promise.all([loadStats(), loadMessages()]);
+      await Promise.all([loadStats(), loadMessages(), loadTasks(), loadAlerts()]);
       loadGroups();
     }
 
+    // --- Stats & Metrics ---
     async function loadStats() {
       if (!selectedGroupId) return;
       try {
@@ -234,237 +395,459 @@
         const d = await res.json();
         document.getElementById('stat-total').innerText = d.total_messages;
         document.getElementById('stat-analyzed').innerText = `${d.ai_analyzed} analyzed`;
-        document.getElementById('stat-tasks').innerText = d.tasks_detected;
-        document.getElementById('stat-decisions').innerText = d.decisions_detected;
-        const pos = d.sentiment_distribution?.positive || 0;
-        const neg = d.sentiment_distribution?.negative || 0;
-        document.getElementById('stat-sentiment').innerText = `${pos} / ${neg}`;
+        document.getElementById('stat-tasks').innerText = d.tasks_detected || 0;
+        document.getElementById('stat-tasks-sub').innerText = `${d.tasks_completed || 0} completed`;
+        document.getElementById('stat-alerts').innerText = d.active_alerts || 0;
+        document.getElementById('stat-decisions').innerText = d.decisions_detected || 0;
       } catch (e) {
-        console.error(e);
+        console.error('Error loading stats:', e);
       }
     }
 
+    // --- Live Message Feed ---
     async function loadMessages() {
       if (!selectedGroupId) return;
       try {
         const res = await fetch(`${API_BASE}/api/v1/dashboard/groups/${selectedGroupId}/messages?limit=50`, { headers: getHeaders() });
         if (!res.ok) return;
-        const msgs = await res.json();
+        const messages = await res.json();
         const container = document.getElementById('view-feed');
         container.innerHTML = '';
-        if (msgs.length === 0) {
-          container.innerHTML = '<div class="text-sm text-gray-500 italic p-6 text-center">No messages recorded for this group yet.</div>';
+        if (messages.length === 0) {
+          container.innerHTML = '<div class="text-sm text-slate-500 italic p-6 text-center">No messages recorded for this group yet.</div>';
           return;
         }
-        msgs.forEach(m => {
+
+        messages.forEach(m => {
           container.appendChild(createMessageCard(m));
         });
       } catch (e) {
-        console.error(e);
+        console.error('Error loading messages:', e);
       }
     }
 
     function createMessageCard(m) {
       const card = document.createElement('div');
-      card.className = 'p-3.5 rounded-xl bg-gray-800/40 border border-gray-800 hover:border-gray-700 transition-all text-xs space-y-2';
-      
-      let badgeColor = 'bg-gray-700 text-gray-300';
-      if (m.sentiment === 'positive') badgeColor = 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
-      else if (m.sentiment === 'negative') badgeColor = 'bg-rose-500/20 text-rose-400 border border-rose-500/30';
+      card.className = 'p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 text-xs space-y-2 hover:border-slate-700 transition';
 
-      let clsBadge = '';
-      if (m.classification === 'task') clsBadge = '<span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold uppercase text-[10px]">TASK</span>';
-      else if (m.classification === 'decision') clsBadge = '<span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold uppercase text-[10px]">DECISION</span>';
-      else if (m.classification === 'question') clsBadge = '<span class="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 font-semibold uppercase text-[10px]">QUESTION</span>';
+      let sentimentBadge = '';
+      if (m.sentiment === 'positive') sentimentBadge = '<span class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">Positive</span>';
+      else if (m.sentiment === 'negative') sentimentBadge = '<span class="px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 font-medium">Negative</span>';
+      else sentimentBadge = '<span class="px-2 py-0.5 rounded-full bg-slate-700/50 text-slate-300 font-medium">Neutral</span>';
+
+      let classBadge = '';
+      if (m.classification === 'task') classBadge = '<span class="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-medium"><i class="fa-solid fa-list-check"></i> Task</span>';
+      else if (m.classification === 'decision') classBadge = '<span class="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 font-medium"><i class="fa-solid fa-gavel"></i> Decision</span>';
+      else if (m.classification === 'question') classBadge = '<span class="px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 font-medium"><i class="fa-solid fa-question"></i> Question</span>';
 
       card.innerHTML = `
-        <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-2">
-            ${clsBadge}
-            <span class="px-2 py-0.5 rounded text-[10px] ${badgeColor}">${m.sentiment || 'unrated'}</span>
+        <div class="flex items-center justify-between text-slate-400">
+          <span class="font-semibold text-slate-300">${escapeHtml(m.sender_name || 'Member')}</span>
+          <div class="flex items-center space-x-1.5">
+            ${classBadge}
+            ${sentimentBadge}
           </div>
-          <span class="text-[10px] text-gray-500 font-mono">${m.id.substring(0, 8)}</span>
         </div>
-        <p class="text-gray-200 leading-relaxed">${escapeHtml(m.content)}</p>
+        <p class="text-slate-200 leading-relaxed">${escapeHtml(m.content)}</p>
       `;
       return card;
     }
 
+    // --- Kanban Action Items Management ---
+    async function loadTasks() {
+      if (!selectedGroupId) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/dashboard/groups/${selectedGroupId}/tasks`, { headers: getHeaders() });
+        if (!res.ok) return;
+        const tasks = await res.json();
+
+        const cols = {
+          todo: document.getElementById('kanban-col-todo'),
+          in_progress: document.getElementById('kanban-col-in_progress'),
+          done: document.getElementById('kanban-col-done')
+        };
+        const counts = { todo: 0, in_progress: 0, done: 0 };
+
+        Object.values(cols).forEach(c => { if(c) c.innerHTML = ''; });
+
+        tasks.forEach(t => {
+          const status = t.status === 'dismissed' ? 'done' : t.status;
+          counts[status] = (counts[status] || 0) + 1;
+          const targetCol = cols[status] || cols.todo;
+          if (targetCol) targetCol.appendChild(createTaskCard(t));
+        });
+
+        document.getElementById('badge-count-todo').innerText = counts.todo || 0;
+        document.getElementById('badge-count-in_progress').innerText = counts.in_progress || 0;
+        document.getElementById('badge-count-done').innerText = counts.done || 0;
+      } catch (e) {
+        console.error('Error loading tasks:', e);
+      }
+    }
+
+    function createTaskCard(t) {
+      const card = document.createElement('div');
+      card.className = 'p-3 rounded-lg bg-slate-900/80 border border-slate-800 text-xs space-y-2 hover:border-slate-700 transition shadow';
+
+      let urgencyBadge = '<span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">low</span>';
+      if (t.urgency === 'high') urgencyBadge = '<span class="px-1.5 py-0.5 rounded bg-red-950/60 text-red-400 border border-red-500/30 font-mono font-bold">P0 High</span>';
+      else if (t.urgency === 'medium') urgencyBadge = '<span class="px-1.5 py-0.5 rounded bg-amber-950/50 text-amber-300 font-mono">Med</span>';
+
+      card.innerHTML = `
+        <div class="flex items-center justify-between">
+          ${urgencyBadge}
+          <div class="space-x-1">
+            ${t.status !== 'todo' ? `<button onclick="updateTaskStatus('${t.id}', 'todo')" title="Move to Todo" class="text-slate-500 hover:text-slate-300"><i class="fa-solid fa-arrow-left"></i></button>` : ''}
+            ${t.status !== 'in_progress' ? `<button onclick="updateTaskStatus('${t.id}', 'in_progress')" title="Start Progress" class="text-amber-500 hover:text-amber-400"><i class="fa-solid fa-play text-[10px]"></i></button>` : ''}
+            ${t.status !== 'done' ? `<button onclick="updateTaskStatus('${t.id}', 'done')" title="Mark Done" class="text-emerald-500 hover:text-emerald-400"><i class="fa-solid fa-check"></i></button>` : ''}
+            <button onclick="deleteTask('${t.id}')" title="Delete Task" class="text-slate-600 hover:text-red-400 ml-1"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        </div>
+        <div class="text-slate-200 font-medium">${escapeHtml(t.title)}</div>
+        <div class="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-800/80">
+          <span><i class="fa-solid fa-user text-slate-600"></i> ${escapeHtml(t.assignee || 'Unassigned')}</span>
+          ${t.due_date ? `<span><i class="fa-regular fa-clock"></i> ${escapeHtml(t.due_date.slice(0,10))}</span>` : ''}
+        </div>
+      `;
+      return card;
+    }
+
+    async function updateTaskStatus(taskId, newStatus) {
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/dashboard/tasks/${taskId}`, {
+          method: 'PATCH',
+          headers: getHeaders(),
+          body: JSON.stringify({ status: newStatus })
+        });
+        if (res.ok) {
+          loadTasks();
+          loadStats();
+        }
+      } catch (e) {
+        console.error('Error updating task:', e);
+      }
+    }
+
+    async function deleteTask(taskId) {
+      if (!confirm('Delete this action item?')) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/dashboard/tasks/${taskId}`, {
+          method: 'DELETE',
+          headers: getHeaders()
+        });
+        if (res.ok) {
+          loadTasks();
+          loadStats();
+        }
+      } catch (e) {
+        console.error('Error deleting task:', e);
+      }
+    }
+
+    function openNewTaskModal() {
+      document.getElementById('new-task-modal').classList.remove('hidden');
+      document.getElementById('task-title-input').focus();
+    }
+    function closeNewTaskModal() {
+      document.getElementById('new-task-modal').classList.add('hidden');
+      document.getElementById('task-title-input').value = '';
+      document.getElementById('task-assignee-input').value = '';
+    }
+    async function submitNewTask() {
+      const title = document.getElementById('task-title-input').value.trim();
+      const assignee = document.getElementById('task-assignee-input').value.trim() || null;
+      const urgency = document.getElementById('task-urgency-input').value;
+      if (!title || !selectedGroupId) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/dashboard/groups/${selectedGroupId}/tasks`, {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({ group_id: selectedGroupId, title, assignee, urgency, status: 'todo' })
+        });
+        if (res.ok) {
+          closeNewTaskModal();
+          loadTasks();
+          loadStats();
+        }
+      } catch (e) {
+        console.error('Error creating task:', e);
+      }
+    }
+
+    // --- Incident & Alert Center ---
+    async function loadAlerts() {
+      if (!selectedGroupId) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/dashboard/groups/${selectedGroupId}/alerts`, { headers: getHeaders() });
+        if (!res.ok) return;
+        const alerts = await res.json();
+        const container = document.getElementById('alerts-container');
+        container.innerHTML = '';
+
+        if (alerts.length === 0) {
+          container.innerHTML = '<div class="text-sm text-slate-500 italic p-8 text-center">No active incidents detected. All monitored systems operating normally.</div>';
+          return;
+        }
+
+        alerts.forEach(a => {
+          container.appendChild(createAlertCard(a));
+        });
+      } catch (e) {
+        console.error('Error loading alerts:', e);
+      }
+    }
+
+    function createAlertCard(a) {
+      const card = document.createElement('div');
+      const isCritical = a.severity === 'critical';
+      const isResolved = a.status === 'resolved';
+
+      card.className = `p-4 rounded-xl border text-xs space-y-2 transition ${
+        isResolved ? 'bg-slate-900/40 border-slate-800 opacity-60' : (isCritical ? 'bg-red-950/40 border-red-500/40' : 'bg-amber-950/30 border-amber-500/30')
+      }`;
+
+      card.innerHTML = `
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <span class="px-2 py-0.5 rounded-full font-mono font-bold uppercase ${
+              isCritical ? 'bg-red-500/20 text-red-400 border border-red-500/40' : 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+            }">${a.severity}</span>
+            <span class="text-slate-400 font-mono">${escapeHtml(a.alert_type)}</span>
+          </div>
+          <div class="space-x-1">
+            ${a.status !== 'resolved' ? `
+              <button onclick="updateAlertStatus('${a.id}', 'acknowledged')" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300">Acknowledge</button>
+              <button onclick="updateAlertStatus('${a.id}', 'resolved')" class="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-semibold">Resolve</button>
+            ` : '<span class="text-emerald-400 font-semibold"><i class="fa-solid fa-check"></i> Resolved</span>'}
+          </div>
+        </div>
+        <div class="font-bold text-sm text-white">${escapeHtml(a.title)}</div>
+        <p class="text-slate-300 leading-relaxed">${escapeHtml(a.description)}</p>
+        <div class="text-[11px] text-slate-500">${a.created_at ? new Date(a.created_at).toLocaleString() : ''}</div>
+      `;
+      return card;
+    }
+
+    async function updateAlertStatus(alertId, newStatus) {
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/dashboard/alerts/${alertId}`, {
+          method: 'PATCH',
+          headers: getHeaders(),
+          body: JSON.stringify({ status: newStatus })
+        });
+        if (res.ok) {
+          loadAlerts();
+          loadStats();
+        }
+      } catch (e) {
+        console.error('Error updating alert:', e);
+      }
+    }
+
+    function dismissAlertBanner() {
+      document.getElementById('live-alert-banner').classList.add('hidden');
+    }
+
+    // --- Vector Search Execution ---
     async function executeSearch() {
       const q = document.getElementById('search-input').value.trim();
       if (!q) return;
+
       switchTab('search');
       const container = document.getElementById('view-search');
-      container.innerHTML = '<div class="text-sm text-gray-400 p-6 text-center"><i class="fa-solid fa-spinner animate-spin"></i> Searching vector space...</div>';
+      container.innerHTML = '<div class="text-sm text-slate-400 italic p-6 text-center">Searching vector embedding space...</div>';
 
       try {
         const res = await fetch(`${API_BASE}/api/v1/dashboard/search`, {
           method: 'POST',
           headers: getHeaders(),
-          body: JSON.stringify({ query: q, group_id: selectedGroupId || null, limit: 15 })
+          body: JSON.stringify({ query: q, group_id: selectedGroupId, limit: 15 })
         });
+        if (!res.ok) throw new Error('Search failed');
         const data = await res.json();
+
         container.innerHTML = '';
-        if (!data.results || data.results.length === 0) {
-          container.innerHTML = `<div class="text-sm text-gray-400 p-6 text-center">No messages found matching "${escapeHtml(q)}".</div>`;
+        if (data.results.length === 0) {
+          container.innerHTML = `<div class="text-sm text-slate-500 italic p-6 text-center">No messages matched '${escapeHtml(q)}'.</div>`;
           return;
         }
 
-        data.results.forEach(item => {
-          const div = document.createElement('div');
-          div.className = 'p-3.5 rounded-xl bg-gray-800/40 border border-gray-800 text-xs space-y-2';
-          const simPct = Math.round(item.similarity * 100);
-          div.innerHTML = `
-            <div class="flex items-center justify-between">
-              <span class="font-semibold text-gray-300">${escapeHtml(item.sender_name || 'User')} in ${escapeHtml(item.group_name || 'Group')}</span>
-              <span class="text-[10px] px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-400 border border-brand-500/30">${simPct}% match</span>
+        data.results.forEach(r => {
+          const card = document.createElement('div');
+          card.className = 'p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 text-xs space-y-2';
+          card.innerHTML = `
+            <div class="flex items-center justify-between text-slate-400">
+              <span class="font-semibold text-slate-300">${escapeHtml(r.sender_name || 'Member')} &bull; ${escapeHtml(r.group_name || 'Group')}</span>
+              <span class="px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 font-mono font-medium">${(r.similarity * 100).toFixed(0)}% match</span>
             </div>
-            <p class="text-gray-200">${escapeHtml(item.content)}</p>
+            <p class="text-slate-200 leading-relaxed">${escapeHtml(r.content)}</p>
           `;
-          container.appendChild(div);
+          container.appendChild(card);
         });
       } catch (e) {
-        container.innerHTML = `<div class="text-sm text-red-400 p-4">Search failed: ${e.message}</div>`;
+        container.innerHTML = `<div class="text-sm text-red-400 p-6 text-center">Search error: ${escapeHtml(e.message)}</div>`;
       }
     }
 
+    // --- Ask AI (RAG Q&A) ---
     async function askAI() {
-      const question = document.getElementById('ask-input').value.trim();
-      if (!question) return;
+      const q = document.getElementById('ask-input').value.trim();
+      if (!q) return;
 
       const btn = document.getElementById('ask-btn');
       const box = document.getElementById('ask-answer-box');
-      const textEl = document.getElementById('ask-answer-text');
-      const citeEl = document.getElementById('ask-citations');
+      const answerText = document.getElementById('ask-answer-text');
+      const citationsBox = document.getElementById('ask-citations');
 
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Synthesizing...';
       box.classList.remove('hidden');
-      textEl.innerText = 'Consulting conversation memory & synthesizing answer...';
-      citeEl.innerHTML = '';
+      answerText.innerText = 'Consulting group conversation memory and formulating grounded answer...';
+      citationsBox.innerHTML = '';
 
       try {
         const res = await fetch(`${API_BASE}/api/v1/dashboard/ask`, {
           method: 'POST',
           headers: getHeaders(),
-          body: JSON.stringify({ question, group_id: selectedGroupId || null })
+          body: JSON.stringify({ question: q, group_id: selectedGroupId })
         });
+        if (!res.ok) throw new Error('AI Question synthesis failed');
         const data = await res.json();
-        textEl.innerText = data.answer;
+
+        answerText.innerText = data.answer;
         if (data.citations && data.citations.length > 0) {
-          citeEl.innerHTML = '<div class="text-[10px] uppercase font-semibold text-purple-400">Sources:</div>';
+          citationsBox.innerHTML = '<div class="text-[11px] font-bold uppercase tracking-wider text-purple-400">Grounded Citations:</div>';
           data.citations.forEach(c => {
-            const row = document.createElement('div');
-            row.className = 'text-[11px] text-gray-400 italic';
-            row.innerText = `• "${c.snippet}" — ${c.sender_name}`;
-            citeEl.appendChild(row);
+            const cit = document.createElement('div');
+            cit.className = 'text-xs text-slate-400 p-2 rounded bg-purple-900/20 border border-purple-500/10';
+            cit.innerHTML = `<span class="font-semibold text-purple-300">@${escapeHtml(c.sender_name)}:</span> "${escapeHtml(c.snippet)}"`;
+            citationsBox.appendChild(cit);
           });
         }
       } catch (e) {
-        textEl.innerText = `Error: ${e.message}`;
+        answerText.innerText = `Error: ${e.message}`;
       } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> <span>Ask</span>';
       }
     }
 
+    // --- Autonomous Briefing Generator ---
     async function fetchBriefing() {
-      if (!selectedGroupId) {
-        alert('Please select a group first.');
-        return;
-      }
-      switchTab('briefing');
+      if (!selectedGroupId) return;
       const hours = document.getElementById('briefing-hours').value;
+      switchTab('briefing');
       const container = document.getElementById('view-briefing');
-      container.innerHTML = '<div class="text-sm text-gray-400 p-8 text-center"><i class="fa-solid fa-spinner animate-spin"></i> Generating autonomous intelligence briefing...</div>';
+      container.innerHTML = '<div class="text-sm text-slate-400 italic p-6 text-center">Synthesizing executive intelligence briefing...</div>';
 
       try {
         const res = await fetch(`${API_BASE}/api/v1/dashboard/groups/${selectedGroupId}/briefing?hours=${hours}`, { headers: getHeaders() });
+        if (!res.ok) throw new Error('Failed to generate briefing');
         const b = await res.json();
 
-        let decisionsHtml = b.key_decisions.length ? b.key_decisions.map(d => `<li class="text-xs text-gray-300">• <b>${escapeHtml(d.decision)}</b> ${d.decider ? `(by ${escapeHtml(d.decider)})` : ''}</li>`).join('') : '<li class="text-xs text-gray-500 italic">None recorded</li>';
-        let tasksHtml = b.action_items.length ? b.action_items.map(t => `<li class="text-xs text-gray-300">• <span class="text-amber-400">[${t.urgency.toUpperCase()}]</span> <b>${escapeHtml(t.task)}</b> ${t.assignee ? `— @${escapeHtml(t.assignee)}` : ''}</li>`).join('') : '<li class="text-xs text-gray-500 italic">None recorded</li>';
-
         container.innerHTML = `
-          <div class="space-y-4">
-            <div class="p-4 rounded-xl bg-gray-800/60 border border-gray-700">
-              <h3 class="text-xs font-semibold uppercase text-brand-400 tracking-wider mb-2">Executive Summary</h3>
-              <p class="text-sm text-gray-200 leading-relaxed">${escapeHtml(b.executive_summary)}</p>
+          <div class="space-y-6">
+            <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-brand-400">Executive Summary</h3>
+              <p class="text-sm text-slate-200 leading-relaxed">${escapeHtml(b.executive_summary)}</p>
             </div>
-            <div class="grid grid-cols-2 gap-4">
-              <div class="p-4 rounded-xl bg-gray-800/40 border border-gray-800">
-                <h3 class="text-xs font-semibold uppercase text-emerald-400 tracking-wider mb-2"><i class="fa-solid fa-check"></i> Key Decisions</h3>
-                <ul class="space-y-1.5">${decisionsHtml}</ul>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400"><i class="fa-solid fa-gavel"></i> Key Decisions</h3>
+                <ul class="space-y-2 text-xs text-slate-300">
+                  ${b.key_decisions.length ? b.key_decisions.map(d => `<li class="p-2 rounded bg-slate-800/50">&bull; ${escapeHtml(d.decision)} <span class="text-slate-500 font-medium">(@${escapeHtml(d.decider || 'Team')})</span></li>`).join('') : '<li class="text-slate-500 italic">No formal decisions recorded.</li>'}
+                </ul>
               </div>
-              <div class="p-4 rounded-xl bg-gray-800/40 border border-gray-800">
-                <h3 class="text-xs font-semibold uppercase text-amber-400 tracking-wider mb-2"><i class="fa-solid fa-list-check"></i> Action Items</h3>
-                <ul class="space-y-1.5">${tasksHtml}</ul>
+              <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-amber-400"><i class="fa-solid fa-list-check"></i> Action Items</h3>
+                <ul class="space-y-2 text-xs text-slate-300">
+                  ${b.action_items.length ? b.action_items.map(a => `<li class="p-2 rounded bg-slate-800/50">&bull; ${escapeHtml(a.task)} <span class="text-amber-400/80 font-semibold">[${a.urgency}]</span></li>`).join('') : '<li class="text-slate-500 italic">No open tasks detected.</li>'}
+                </ul>
               </div>
             </div>
           </div>
         `;
       } catch (e) {
-        container.innerHTML = `<div class="text-sm text-red-400 p-4">Briefing failed: ${e.message}</div>`;
+        container.innerHTML = `<div class="text-sm text-red-400 p-6 text-center">Briefing error: ${escapeHtml(e.message)}</div>`;
       }
     }
 
-    function exportReport(fmt) {
-      if (!selectedGroupId) {
-        alert('Please select a group first.');
-        return;
-      }
+    async function exportReport(format) {
+      if (!selectedGroupId) return;
       const hours = document.getElementById('briefing-hours').value;
-      window.open(`${API_BASE}/api/v1/dashboard/groups/${selectedGroupId}/export?format=${fmt}&hours=${hours}`, '_blank');
+      const url = `${API_BASE}/api/v1/dashboard/groups/${selectedGroupId}/export?format=${format}&hours=${hours}`;
+      window.open(url, '_blank');
     }
 
-    function switchTab(t) {
-      ['feed', 'briefing', 'search'].forEach(tab => {
-        document.getElementById(`view-${tab}`).classList.add('hidden');
-        document.getElementById(`tab-${tab}`).className = 'text-sm font-semibold text-gray-400 hover:text-white pb-2';
-      });
-      document.getElementById(`view-${t}`).classList.remove('hidden');
-      document.getElementById(`tab-${t}`).className = 'text-sm font-semibold text-brand-500 border-b-2 border-brand-500 pb-2';
-    }
-
-    function escapeHtml(str) {
-      if (!str) return '';
-      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
-
-    function initSSE() {
-      const evtSource = new EventSource(`${API_BASE}/api/v1/dashboard/stream`);
+    // --- Server-Sent Events (SSE) Real-Time Stream ---
+    function connectSSE() {
+      if (sseSource) sseSource.close();
       const dot = document.getElementById('sse-dot');
       const text = document.getElementById('sse-text');
 
-      evtSource.addEventListener('connected', () => {
+      sseSource = new EventSource(`${API_BASE}/api/v1/dashboard/stream`);
+
+      sseSource.onopen = () => {
         dot.className = 'w-2 h-2 rounded-full bg-emerald-400';
-        text.innerText = 'Live Feed Connected';
+        text.innerText = 'Live Stream Connected';
+      };
+
+      sseSource.addEventListener('message.ingested', e => {
+        try {
+          const payload = JSON.parse(e.data);
+          if (payload.group_id === selectedGroupId) {
+            const feed = document.getElementById('view-feed');
+            feed.prepend(createMessageCard(payload));
+            loadStats();
+          }
+        } catch (err) { console.error(err); }
       });
 
-      evtSource.addEventListener('message.ingested', (e) => {
-        const payload = JSON.parse(e.data);
-        if (selectedGroupId && payload.group_id === selectedGroupId) {
-          const container = document.getElementById('view-feed');
-          const card = createMessageCard({
-            id: payload.message_id,
-            content: payload.content,
-            sentiment: 'neutral',
-            classification: 'pending'
-          });
-          container.prepend(card);
+      sseSource.addEventListener('alert.triggered', e => {
+        try {
+          const alert = JSON.parse(e.data);
+          document.getElementById('banner-alert-title').innerText = alert.title || 'Critical Alert';
+          document.getElementById('banner-alert-desc').innerText = alert.description || '';
+          document.getElementById('live-alert-banner').classList.remove('hidden');
+          loadAlerts();
           loadStats();
-        }
+        } catch (err) { console.error(err); }
       });
 
-      evtSource.onerror = () => {
-        dot.className = 'w-2 h-2 rounded-full bg-rose-500';
+      sseSource.addEventListener('task.created', () => { loadTasks(); loadStats(); });
+      sseSource.addEventListener('task.updated', () => { loadTasks(); loadStats(); });
+      sseSource.addEventListener('task.deleted', () => { loadTasks(); loadStats(); });
+
+      sseSource.onerror = () => {
+        dot.className = 'w-2 h-2 rounded-full bg-red-400 animate-pulse';
         text.innerText = 'Reconnecting...';
       };
     }
 
+    // Utility: HTML Escaping
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // Keyboard Shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.key === '/' && document.activeElement !== document.getElementById('search-input') && document.activeElement !== document.getElementById('ask-input')) {
+        e.preventDefault();
+        document.getElementById('search-input').focus();
+      }
+    });
+
+    // Boot
     window.onload = () => {
       loadGroups();
-      initSSE();
+      connectSSE();
     };
   </script>
 </body>

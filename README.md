@@ -42,6 +42,9 @@ Perfect for engineering managers, product teams, operations leads, and community
 ## 🚀 Enterprise Features
 
 * **📡 Headless WhatsApp Collector:** Automated `whatsapp-web.js` collector with HTTP Keep-Alive connection pooling, strict payload truncation, and schema validation.
+* **📋 Autonomous Action Items & Kanban Tracker:** Automatically identifies tasks, assignments, deadlines, and urgency ratings ("high", "medium", "low") from natural chat conversations, with a drag-and-drop style Kanban board (`Todo`, `In Progress`, `Done`) and full REST API.
+* **🚨 Real-Time Incident & Anomaly Alerting:** Zero-latency detection of critical outages, security credential leaks, and high-priority escalations with instant SSE broadcasts and floating incident banner alerts.
+* **🤖 Multi-Model AI Engine:** Seamless plug-and-play support for local Ollama (`OLLAMA_BASE_URL` - completely private & offline), OpenRouter, OpenAI, and deterministic heuristic fallback when no LLM API is configured.
 * **🧠 Conversational Vector RAG (`/ask`):** Ask natural language questions over group history (e.g. *"What did Alex decide about the database migration?"* or *"What bugs were reported today?"*) and receive accurate, vector-grounded answers with direct message citations.
 * **🔍 Hybrid Semantic Vector Search (`/search`):** Query group memory with cosine similarity matching against embedded messages, with automatic relational keyword fallback.
 * **⚡ Real-Time Intelligence Stream (SSE):** Server-Sent Events feed (`/stream`) delivering instantaneous updates to dashboards and monitoring tools as messages are ingested and analyzed.
@@ -51,8 +54,8 @@ Perfect for engineering managers, product teams, operations leads, and community
   - Prioritized Action Items (with detected urgency levels and assignees)
   - Open Questions & Pending Discussions
   - Multi-Format One-Click Export (`.md`, `.csv`, `.json`)
-* **💻 Interactive Developer CLI & Simulator (`python -m app.cli`):** Built-in CLI for subsystem health checks, terminal semantic search, RAG queries, and high-fidelity chat stream simulation.
-* **🖥️ Built-In Glassmorphic Dashboard:** Zero-setup web UI served directly at `/dashboard` featuring live SSE streaming, search, Ask-AI chat, and briefing downloads.
+* **💻 Interactive Developer CLI & Simulator (`python -m app.cli`):** Built-in CLI for subsystem health checks, terminal task management (`tasks`), incident resolution (`alerts`), semantic search, RAG queries, and scenario simulation (`--scenario incident|tasks|normal`).
+* **🖥️ Built-In Glassmorphic Command Center:** Zero-setup web UI served directly at `/dashboard` featuring 5 dedicated tabs: Live Feed, Kanban Board, Incidents, Executive Briefings, and Vector RAG Search.
 
 ---
 
@@ -87,22 +90,29 @@ graph TD
 
 ## 💻 Developer CLI & Simulator
 
-Test, search, and simulate conversations from your terminal without needing a physical phone:
+Test, search, inspect tasks, and simulate conversations from your terminal without needing a physical phone:
 
 ```bash
 # 1. Check subsystem health (PostgreSQL, ChromaDB, AI Engine)
 python -m app.cli health
 
-# 2. Simulate realistic WhatsApp conversations into the pipeline
-python -m app.cli simulate --group dev_core --count 8
+# 2. Inspect active tasks and Kanban board from the terminal
+python -m app.cli tasks --group dev_core
 
-# 3. Perform semantic vector search from the terminal
+# 3. View and manage active incident alerts
+python -m app.cli alerts --group dev_core
+
+# 4. Simulate realistic WhatsApp conversations (with incident or task scenarios)
+python -m app.cli simulate --group dev_core --scenario incident --count 3
+python -m app.cli simulate --group dev_core --scenario tasks --count 5
+
+# 5. Perform semantic vector search from the terminal
 python -m app.cli search "database migration"
 
-# 4. Ask conversational questions over group history (RAG)
+# 6. Ask conversational questions over group history (RAG)
 python -m app.cli ask "What did the team decide about Redis 7?"
 
-# 5. Generate and print an executive briefing
+# 7. Generate and print an executive briefing
 python -m app.cli briefing --group dev_core --hours 72
 ```
 

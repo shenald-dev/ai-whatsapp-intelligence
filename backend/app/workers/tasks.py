@@ -1,10 +1,11 @@
 from sqlalchemy import create_engine, update
 from sqlalchemy.orm import sessionmaker, load_only
 import os
+import uuid
 from dotenv import load_dotenv
 import logging
 
-from ..db.models import Message
+from ..db.models import Message, ActionItem, Alert, User
 from ..ai.engine import ai_engine
 from ..db.chroma import store_message_embedding
 
@@ -24,7 +25,7 @@ engine = create_engine(
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def process_message(message_id: str):
-    """Celery task worker to enrich a message with AI."""
+    """Celery task worker to enrich a message with AI, extract action items, and detect incidents."""
     session = SessionLocal()
     try:
         msg = session.get(Message, message_id, options=[load_only(Message.content, Message.group_id, Message.sender_id, Message.is_analyzed)])
@@ -35,6 +36,9 @@ def process_message(message_id: str):
         content = msg.content
         group_id = msg.group_id
         sender_id = msg.sender_id
+        user = session.get(User, sender_id) if sender_id else None
+        sender_name = user.name if user else "Team Member"
+
         # Release the database connection back to the pool before blocking on the network call
         session.commit()
 
@@ -44,9 +48,6 @@ def process_message(message_id: str):
         classification = analysis.get("classification")
 
         # Update DB directly without fetching the entire object over the network.
-        # Note: Direct UPDATE statements bypass standard ORM listeners, hybrid properties, and version columns.
-        # This is safe here because the `Message` model currently has no such listeners
-        # attached to `sentiment`, `classification`, or `is_analyzed`, and no versioning columns.
         stmt = update(Message).where(Message.id == message_id).values(
             sentiment=sentiment,
             classification=classification,
@@ -56,9 +57,41 @@ def process_message(message_id: str):
 
         if result.rowcount == 0:
             return {"status": "error", "reason": "Message deleted during analysis"}
+
+        # Extract structured action items if engine supports it
+        if hasattr(ai_engine, "extract_action_items_sync"):
+            tasks_data = ai_engine.extract_action_items_sync(content, sender_name=sender_name)
+            for t in tasks_data:
+                task_item = ActionItem(
+                    id=str(uuid.uuid4()),
+                    group_id=group_id,
+                    source_message_id=message_id,
+                    title=t["title"],
+                    description=None,
+                    assignee=t.get("assignee"),
+                    assignee_id=sender_id if t.get("assignee") == sender_name else None,
+                    urgency=t.get("urgency", "medium"),
+                    status="todo"
+                )
+                session.add(task_item)
+
+        # Detect critical incident alerts if engine supports it
+        if hasattr(ai_engine, "detect_incident_alert_sync"):
+            incident = ai_engine.detect_incident_alert_sync(content, sender_name=sender_name)
+            if incident:
+                alert_item = Alert(
+                    id=str(uuid.uuid4()),
+                    group_id=group_id,
+                    source_message_id=message_id,
+                    severity=incident["severity"],
+                    alert_type=incident["alert_type"],
+                    title=incident["title"],
+                    description=incident["description"],
+                    status="active"
+                )
+                session.add(alert_item)
         
         # Store message in ChromaDB for semantic search BEFORE committing DB.
-        # This prevents split-brain bugs if the network call to ChromaDB fails or the worker crashes.
         metadata = {
             "group_id": group_id,
             "sender_id": sender_id,
@@ -69,7 +102,6 @@ def process_message(message_id: str):
         try:
             store_message_embedding(message_id, content, metadata)
         except Exception as e:
-            # Revert the uncommitted UPDATE in memory
             session.rollback()
             logging.error(f"Failed to store embedding for {message_id}: {e}")
             raise e

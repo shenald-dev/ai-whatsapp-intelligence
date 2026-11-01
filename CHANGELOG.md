@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.0] - 2026-11-01
+
+### Major Evolution (v2.0) - Autonomous Group Operations & Real-Time Intelligence Center
+* **Autonomous Action Items & Kanban Tracker:** Implemented ActionItem database model, automated extraction of actionable tasks during enrichment, REST endpoints (/api/v1/dashboard/groups/{id}/tasks, /tasks/{id}), and real-time SSE task synchronization with an interactive Kanban board.
+* **Instant Incident & Anomaly Alerting:** Added Alert database model, instant pre-enrichment anomaly detector on /ingest and deep classification in workers for outages, security credential exposures, and critical escalations, broadcasting alert.triggered over SSE to a persistent dashboard incident banner.
+* **Multi-Model LLM Engine:** Added native configuration for local Ollama (OLLAMA_BASE_URL), OpenRouter, and OpenAI with deterministic heuristic fallback when external AI providers are unavailable.
+* **Command Center Dashboard UI:** Upgraded /dashboard to a full-featured 5-tab glassmorphic Command Center (Live Feed, Kanban Board, Incidents, Briefings, Vector RAG) with modal task creation, status filtering, and live SSE event badges.
+* **Developer CLI Upgrades:** Expanded python -m app.cli with tasks (terminal Kanban viewer/updater), alerts (incident resolver), and scenario-based simulation (python -m app.cli simulate --scenario [incident|tasks|normal]).
+
 ## [Unreleased]
 **[Optimized]:** Applied explicit HTTP timeouts and retry configurations for ChromaDB client to prevent background worker starvation during network hangs.
 
