@@ -8,9 +8,6 @@
     "build": "vite build",
     "preview": "vite preview"
   },
-  "dependencies": {
-    "lucide-react": "^0.359.0"
-  },
   "devDependencies": {
     "vite": "^5.1.6"
   }
