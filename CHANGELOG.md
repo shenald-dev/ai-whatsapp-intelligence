@@ -3,6 +3,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+**[Optimized]:** Applied explicit HTTP timeouts and retry configurations for ChromaDB client to prevent background worker starvation during network hangs.
+
 ### Major Evolution & Next-Gen Capabilities
 * **Conversational Vector RAG:** Implemented `/api/v1/dashboard/ask` with LangChain synthesis and citation tracking, allowing natural language question-answering grounded in WhatsApp conversation history.
 * **Hybrid Semantic Vector Search:** Implemented `/api/v1/dashboard/search` combining ChromaDB cosine vector search with fallback keyword retrieval and metadata filtering.

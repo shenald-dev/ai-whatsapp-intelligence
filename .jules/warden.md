@@ -87,3 +87,14 @@ Docs Updated: CHANGELOG.md, .jules/warden.md
 Release: none
 
 AI Summary: Resolved multiple NPM moderate vulnerabilities (glob, minimatch) in the Node.js Collector by injecting `overrides.glob="^15.0.0"` in `package.json` to upgrade vulnerable deep dependencies without degrading top-level required packages like `whatsapp-web.js`. Followed memory guidelines on performing non-breaking clean installations. Verified test suite passes natively.
+
+## 2026-11-01 — WARDEN Run
+
+QA Status: verified
+Dead Code Removed: 0 lines
+Dependencies Bumped: 0
+Security: Critical=0, High=0
+Docs Updated: CHANGELOG.md, .jules/warden.md
+Release: none
+
+AI Summary: Applied explicit timeouts (15.0s) and a `Retry` strategy to `chromadb`'s underlying HTTP client requests by mounting a custom `TimeoutHTTPAdapter` directly onto the instantiated client's session in `backend/app/db/chroma.py`. This ensures background asynchronous workers won't hang indefinitely due to unhandled transient network errors, directly addressing a critical reliability edge case.
