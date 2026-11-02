@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 * **Developer CLI Upgrades:** Expanded python -m app.cli with tasks (terminal Kanban viewer/updater), alerts (incident resolver), and scenario-based simulation (python -m app.cli simulate --scenario [incident|tasks|normal]).
 
 ## [Unreleased]
+**[Pruned]:** Added multiple endpoint functions to .vulture_whitelist.py to silence static analysis false positives.
 **[Optimized]:** Applied explicit HTTP timeouts and retry configurations for ChromaDB client to prevent background worker starvation during network hangs.
 
 ### Major Evolution & Next-Gen Capabilities
