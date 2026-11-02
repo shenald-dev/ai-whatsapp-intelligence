@@ -64,7 +64,8 @@ class AIEngine:
                 openai_api_key="ollama",
                 model_name=OLLAMA_MODEL,
                 temperature=0.1,
-                timeout=20.0
+                timeout=20.0,
+                max_retries=3
             )
             self.provider = f"Ollama ({OLLAMA_MODEL})"
         else:
