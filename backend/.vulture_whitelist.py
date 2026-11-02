@@ -21,3 +21,9 @@ app.main.ingest_message
 app.main.health_check
 app.main.dashboard_ui
 app.workers.celery_config.enrich_message_task
+app.api.endpoints.get_group_tasks
+app.api.endpoints.create_group_task
+app.api.endpoints.update_task
+app.api.endpoints.delete_task
+app.api.endpoints.get_group_alerts
+app.api.endpoints.update_alert
