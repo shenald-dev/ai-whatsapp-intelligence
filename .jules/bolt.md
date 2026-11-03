@@ -548,3 +548,8 @@ Always log the raw exception internally for debugging, but return a generic mess
 
 - **Learning:** Background tasks (like Celery workers) executing synchronous third-party client integrations (e.g., LangChain LLM initializations without default timeouts) are vulnerable to infinite hangs if the external network or API provider (like OpenRouter) becomes unresponsive. This leads to silent starvation of the worker pool.
 - **Action:** Always explicitly configure `request_timeout` and `max_retries` when instantiating external network clients (like `ChatOpenAI`) to ensure they fail fast and safely hand off back to the background task runner's retry loop.
+
+## 2026-11-03 — Fix 1+1 Query Bottleneck in Worker
+
+- **Learning:** Calling `session.get(Message)` followed immediately by `session.get(User)` in a hot-path Celery worker introduces an unnecessary 1+1 database query roundtrip, which adds latency over thousands of tasks.
+- **Action:** Use a single `select(Message, User).outerjoin(User, ...)` query to fetch primary entities and their associated lightweight objects in a single database request, bypassing standard SQLAlchemy N+1 or 1+1 overhead.
