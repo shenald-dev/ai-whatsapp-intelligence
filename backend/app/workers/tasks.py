@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, update
+from sqlalchemy import create_engine, update, select
 from sqlalchemy.orm import sessionmaker, load_only
 import os
 import uuid
@@ -28,15 +28,24 @@ def process_message(message_id: str):
     """Celery task worker to enrich a message with AI, extract action items, and detect incidents."""
     session = SessionLocal()
     try:
-        msg = session.get(Message, message_id, options=[load_only(Message.content, Message.group_id, Message.sender_id, Message.is_analyzed)])
-        if not msg or msg.is_analyzed or not msg.content:
+        stmt = (
+            select(Message, User)
+            .outerjoin(User, Message.sender_id == User.id)
+            .where(Message.id == message_id)
+            .options(load_only(Message.content, Message.group_id, Message.sender_id, Message.is_analyzed))
+        )
+        row = session.execute(stmt).first()
+        if not row:
+            return {"status": "skipped", "reason": "Not found, analyzed, or empty"}
+
+        msg, user = row
+        if msg.is_analyzed or not msg.content:
             return {"status": "skipped", "reason": "Not found, analyzed, or empty"}
 
         # Extract needed fields before committing to prevent lazy loading
         content = msg.content
         group_id = msg.group_id
         sender_id = msg.sender_id
-        user = session.get(User, sender_id) if sender_id else None
         sender_name = user.name if user else "Team Member"
 
         # Release the database connection back to the pool before blocking on the network call
