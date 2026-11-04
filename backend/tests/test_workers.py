@@ -17,12 +17,21 @@ def test_worker_lazy_load_deferred_columns():
     session.add(msg)
     session.commit()
 
+    from sqlalchemy import select
+
     # Fetch exactly like the worker task
-    fetched_msg = session.get(Message, "msg_lazy", options=[
-        load_only(Message.content, Message.group_id, Message.sender_id, Message.is_analyzed)
-    ])
+    stmt = (
+        select(Message, User)
+        .outerjoin(User, Message.sender_id == User.id)
+        .where(Message.id == "msg_lazy")
+        .options(load_only(Message.content, Message.group_id, Message.sender_id, Message.is_analyzed))
+    )
+    row = session.execute(stmt).first()
+    assert row is not None
+    fetched_msg, fetched_user = row
 
     assert fetched_msg.content == "test deferred loading"
+    assert fetched_user.name == "user_lazy"
 
     # Access a deferred column to verify lazy loading works safely without a MissingGreenlet error
     # since the worker uses sync engine, this is fully supported by the ORM contract.
