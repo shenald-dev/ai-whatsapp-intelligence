@@ -553,3 +553,13 @@ Always log the raw exception internally for debugging, but return a generic mess
 
 - **Learning:** Calling `session.get(Message)` followed immediately by `session.get(User)` in a hot-path Celery worker introduces an unnecessary 1+1 database query roundtrip, which adds latency over thousands of tasks.
 - **Action:** Use a single `select(Message, User).outerjoin(User, ...)` query to fetch primary entities and their associated lightweight objects in a single database request, bypassing standard SQLAlchemy N+1 or 1+1 overhead.
+
+## 2026-11-04 — Fix requests.Session adapter overriding timeout=None
+
+- **Learning:** When creating a custom `requests.adapters.HTTPAdapter` to enforce connection timeouts globally on a session using `kwargs.setdefault("timeout", self.timeout)`, it will silently fail if the underlying `requests.Session` explicitly passes `timeout=None` when executing `.send()` or `.get()`. `setdefault` does not overwrite existing dictionary keys mapped to `None`.
+- **Action:** Instead of `setdefault`, explicitly check `if kwargs.get('timeout') is None:` before assigning a fallback timeout in a custom `HTTPAdapter`'s `send` method to ensure the default global timeout strictly overrides any upstream `timeout=None` invocations.
+
+## 2026-11-04 — Ensure global adapter coverage in ChromaDB HTTP Clients
+
+- **Learning:** Applying a custom `requests.adapters.HTTPAdapter` in `chromadb>=0.4.0` requires mounting it to multiple places, since `chromadb.HttpClient` orchestrates two internal clients: the standard `_server` component and the `_admin_client._server` component. Both use distinct internal `requests.Session` pools, meaning timeouts and retries will be inconsistently applied if mounted to only one.
+- **Action:** Iterate through both `client` and `getattr(client, "_admin_client", None)` to safely mount `HTTPAdapter` overrides onto both underlying `_server._session` components.
