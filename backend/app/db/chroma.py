@@ -14,7 +14,8 @@ class TimeoutHTTPAdapter(HTTPAdapter):
         super().__init__(*args, **kwargs)
 
     def send(self, request, **kwargs):
-        kwargs.setdefault("timeout", self.timeout)
+        if kwargs.get("timeout") is None:
+            kwargs["timeout"] = self.timeout
         return super().send(request, **kwargs)
 
 CHROMA_HOST = os.getenv("CHROMA_HOST", "localhost")
@@ -43,17 +44,18 @@ def get_chroma_client():
         )
 
         # Enforce explicit timeouts and retries on the underlying session
-        if hasattr(client, "_admin_client") and hasattr(client._admin_client, "_server") and hasattr(client._admin_client._server, "_session"):
-             session = client._admin_client._server._session
-             retry_strategy = Retry(
-                 total=3,
-                 backoff_factor=0.3,
-                 status_forcelist=[429, 500, 502, 503, 504],
-                 allowed_methods=["HEAD", "GET", "OPTIONS", "POST", "PUT", "DELETE"]
-             )
-             adapter = TimeoutHTTPAdapter(timeout=15.0, max_retries=retry_strategy)
-             session.mount("http://", adapter)
-             session.mount("https://", adapter)
+        retry_strategy = Retry(
+            total=3,
+            backoff_factor=0.3,
+            status_forcelist=[429, 500, 502, 503, 504],
+            allowed_methods=["HEAD", "GET", "OPTIONS", "POST", "PUT", "DELETE"]
+        )
+        adapter = TimeoutHTTPAdapter(timeout=15.0, max_retries=retry_strategy)
+        for client_ref in [client, getattr(client, "_admin_client", None)]:
+            if client_ref and hasattr(client_ref, "_server") and hasattr(client_ref._server, "_session"):
+                session = client_ref._server._session
+                session.mount("http://", adapter)
+                session.mount("https://", adapter)
 
         client.heartbeat()
         _chroma_client = client
