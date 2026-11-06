@@ -1,3 +1,19 @@
+## 2026-11-05 — Lifecycle & Assurance Ledger
+
+- **QA & Veto Actions:** Fixed `pytest` import unused warning and `F841` unused local variable warning by removing `import pytest` and replacing `client = chroma.get_chroma_client()` with `chroma.get_chroma_client()` in `backend/tests/test_chroma_mount.py`.
+- **Entropy Pruned:** Pruned unused test imports and false positives from static code analysis (ruff).
+- **Deferred / Blocked:** None.
+
+## 2026-11-05 — WARDEN Run
+
+QA Status: verified
+Dead Code Removed: 1 lines
+Dependencies Bumped: 0
+Security: Critical=0, High=0
+Docs Updated: CHANGELOG.md, .jules/warden.md
+Release: none
+
+AI Summary: Repository is stable and clean. Addressed `pytest` import unused warning and `F841` unused local variable warning in `backend/tests/test_chroma_mount.py`. Tests pass for both backend and collector. Updated CHANGELOG.md and .jules/warden.md. No further lifecycle actions required this cycle.
 # WARDEN Maintenance Log
 
 ## 2026-06-20 — WARDEN Run
