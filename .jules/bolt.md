@@ -563,3 +563,8 @@ Always log the raw exception internally for debugging, but return a generic mess
 
 - **Learning:** Applying a custom `requests.adapters.HTTPAdapter` in `chromadb>=0.4.0` requires mounting it to multiple places, since `chromadb.HttpClient` orchestrates two internal clients: the standard `_server` component and the `_admin_client._server` component. Both use distinct internal `requests.Session` pools, meaning timeouts and retries will be inconsistently applied if mounted to only one.
 - **Action:** Iterate through both `client` and `getattr(client, "_admin_client", None)` to safely mount `HTTPAdapter` overrides onto both underlying `_server._session` components.
+
+## 2026-11-06 — Fix Deprecated request_timeout in LangChain ChatOpenAI
+
+- **Learning:** In newer versions of the OpenAI Python SDK and `langchain-openai` integration (>=0.1.0), the `request_timeout` parameter for initializing `ChatOpenAI` clients is deprecated and has been removed in favor of `timeout`. Passing `request_timeout` to these newer clients causes instantiation crashes or leads to the timeout being silently ignored, which leaves asynchronous background workers vulnerable to indefinite hanging when external API endpoints (like OpenRouter or OpenAI) become unresponsive.
+- **Action:** Always configure explicit timeouts using the standard `timeout` parameter instead of `request_timeout` when instantiating `ChatOpenAI` models to ensure robust network resilience in background task processing.
