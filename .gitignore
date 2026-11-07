@@ -5,3 +5,4 @@ node_modules/
 .chroma_data/
 .pytest_cache/
 .env.local
+frontend/dist/
