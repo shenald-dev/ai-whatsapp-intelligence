@@ -13,7 +13,6 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 **[Added]:** Enforce `max_length` bounds on all string fields in Pydantic schemas to prevent unbounded payloads and mitigate memory exhaustion risks.
-**[Added]:** Enforce `max_length` bounds on all string fields in Pydantic schemas to prevent unbounded payloads and mitigate memory exhaustion risks.
 **[Fixed]:** Updated deprecated `request_timeout` parameter to `timeout` in LangChain `ChatOpenAI` client instantiation to prevent background task hanging during LLM network timeouts.
 - **[Optimized]:** Completed Warden lifecycle audit. System is stable. Deferred frontend dependency updates due to breaking major version constraints.
 **[Pruned]:** Fixed `pytest` import unused warning and `F841` unused local variable warning in `backend/tests/test_chroma_mount.py`.
