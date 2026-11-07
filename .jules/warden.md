@@ -154,6 +154,22 @@ AI Summary: Verified system integrity after `APEX-BOLT` optimized the 1+1 DB que
 - **Deferred / Blocked:** Deferred NPM vulnerability fixes in the frontend (`vite`, `esbuild`) due to breaking major version constraints.
 
 ## 2026-11-06 — Lifecycle & Assurance Ledger
+- **QA & Veto Actions:** Fixed missing schema length bounds in `ActionItem`, `DecisionItem`, `QuestionItem`, and `ExecutiveBriefingResponse` in `backend/app/api/schemas.py` to prevent unbounded payloads.
+- **Entropy Pruned:** None.
+- **Deferred / Blocked:** None.
+
+## 2026-11-06 — Lifecycle & Assurance Ledger
 - **QA & Veto Actions:** Fixed deprecated `request_timeout` parameter by replacing it with `timeout` in `backend/app/ai/engine.py` for `ChatOpenAI` instances to prevent potential instantiation failures and ensure timeouts are properly respected.
 - **Entropy Pruned:** None.
 - **Deferred / Blocked:** Deferred NPM vulnerability fixes in the frontend (`esbuild`) due to breaking major version constraints.
+
+## 2026-11-06 — WARDEN Run
+
+QA Status: verified
+Dead Code Removed: 0 lines
+Dependencies Bumped: 0
+Security: Critical=1, High=0
+Docs Updated: CHANGELOG.md, .jules/warden.md
+Release: none
+
+AI Summary: Enforced explicit max_length bounds on ActionItem, DecisionItem, QuestionItem, and ExecutiveBriefingResponse string properties within Pydantic schemas. This resolves a known security vulnerability where unbounded payloads can lead to memory exhaustion and database column saturation attacks when processing external or AI-generated objects.

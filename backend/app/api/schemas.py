@@ -71,27 +71,27 @@ class AskAIResponse(BaseModel):
 # --- Executive Intelligence Briefing Schemas ---
 
 class ActionItem(BaseModel):
-    task: str
-    assignee: Optional[str] = None
-    urgency: str = "medium"
-    source_message_id: Optional[str] = None
+    task: str = Field(..., max_length=65536)
+    assignee: Optional[str] = Field(None, max_length=255)
+    urgency: str = Field("medium", max_length=255)
+    source_message_id: Optional[str] = Field(None, max_length=255)
 
 class DecisionItem(BaseModel):
-    decision: str
-    decider: Optional[str] = None
-    source_message_id: Optional[str] = None
+    decision: str = Field(..., max_length=65536)
+    decider: Optional[str] = Field(None, max_length=255)
+    source_message_id: Optional[str] = Field(None, max_length=255)
 
 class QuestionItem(BaseModel):
-    question: str
-    asker: Optional[str] = None
-    source_message_id: Optional[str] = None
+    question: str = Field(..., max_length=65536)
+    asker: Optional[str] = Field(None, max_length=255)
+    source_message_id: Optional[str] = Field(None, max_length=255)
 
 class ExecutiveBriefingResponse(BaseModel):
-    group_id: str
-    group_name: str
+    group_id: str = Field(..., max_length=255)
+    group_name: str = Field(..., max_length=255)
     time_window_hours: int
     total_messages_analyzed: int
-    executive_summary: str
+    executive_summary: str = Field(..., max_length=65536)
     key_decisions: List[DecisionItem]
     action_items: List[ActionItem]
     open_questions: List[QuestionItem]

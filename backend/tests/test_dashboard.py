@@ -195,3 +195,64 @@ def test_cache_ttl_uses_monotonic_time():
 
     # Item should be expired based on monotonic time
     assert cache.get("key1") is None
+
+def test_schema_string_bounds():
+    from pydantic import ValidationError
+    from app.api.schemas import ActionItem, DecisionItem, QuestionItem, ExecutiveBriefingResponse
+
+    # Test max length for short fields (255)
+    long_string = "a" * 256
+
+    # ActionItem
+    with pytest.raises(ValidationError):
+        ActionItem(task="Valid task", assignee=long_string, urgency="medium")
+
+    with pytest.raises(ValidationError):
+        ActionItem(task="Valid task", urgency=long_string)
+
+    # DecisionItem
+    with pytest.raises(ValidationError):
+        DecisionItem(decision="Valid decision", decider=long_string)
+
+    # QuestionItem
+    with pytest.raises(ValidationError):
+        QuestionItem(question="Valid question", asker=long_string)
+
+    # ExecutiveBriefingResponse
+    with pytest.raises(ValidationError):
+        ExecutiveBriefingResponse(
+            group_id=long_string,
+            group_name="Valid Name",
+            time_window_hours=24,
+            total_messages_analyzed=10,
+            executive_summary="Valid summary",
+            key_decisions=[],
+            action_items=[],
+            open_questions=[],
+            sentiment_breakdown={}
+        )
+
+    # Test max length for long fields (65536)
+    super_long_string = "a" * 65537
+
+    with pytest.raises(ValidationError):
+        ActionItem(task=super_long_string)
+
+    with pytest.raises(ValidationError):
+        DecisionItem(decision=super_long_string)
+
+    with pytest.raises(ValidationError):
+        QuestionItem(question=super_long_string)
+
+    with pytest.raises(ValidationError):
+        ExecutiveBriefingResponse(
+            group_id="Valid ID",
+            group_name="Valid Name",
+            time_window_hours=24,
+            total_messages_analyzed=10,
+            executive_summary=super_long_string,
+            key_decisions=[],
+            action_items=[],
+            open_questions=[],
+            sentiment_breakdown={}
+        )
