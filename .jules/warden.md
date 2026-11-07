@@ -154,6 +154,6 @@ AI Summary: Verified system integrity after `APEX-BOLT` optimized the 1+1 DB que
 - **Deferred / Blocked:** Deferred NPM vulnerability fixes in the frontend (`vite`, `esbuild`) due to breaking major version constraints.
 
 ## 2026-11-06 — Lifecycle & Assurance Ledger
-- **QA & Veto Actions:** Fixed deprecated `request_timeout` parameter by replacing it with `timeout` in `backend/app/ai/engine.py` for `ChatOpenAI` instances to prevent potential instantiation failures and ensure timeouts are properly respected.
-- **Entropy Pruned:** None.
-- **Deferred / Blocked:** Deferred NPM vulnerability fixes in the frontend (`esbuild`) due to breaking major version constraints.
+- **QA & Veto Actions:** Verified safe minor replacement of deprecated `request_timeout` parameter with `timeout` in `backend/app/ai/engine.py` for `ChatOpenAI` instances. This prevents worker starvation during LLM integration timeouts. Tests pass natively.
+- **Entropy Pruned:** 0 lines (Codebase is already clean following static analysis audits).
+- **Deferred / Blocked:** Deferred NPM vulnerability fixes in the frontend (`vite`, `esbuild`) because `npm audit fix` requires forcing a breaking major version upgrade on `vite` (from `5.x` to `8.x`), which violates Warden's safe-minor strict directive.
